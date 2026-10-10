@@ -1,8 +1,96 @@
+import { useAdminReports } from '@/hooks/queries';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageSkeleton, ErrorBanner } from '@/components/feedback';
+import { formatMoney, bookingStatusLabel, paymentMethodLabel } from '@/lib/format';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+
 export default function AdminReportsPage() {
+  const reportsQuery = useAdminReports();
+  const data = reportsQuery.data;
+
+  if (reportsQuery.isLoading) return <PageSkeleton rows={4} />;
+  if (reportsQuery.isError) return <ErrorBanner message="We couldn't load the reports" retry={() => reportsQuery.refetch()} />;
+  if (!data) return null;
+
+  const trend = data.revenueTrend.map((d) => ({ date: d.date.slice(5), revenue: d.revenue }));
+
   return (
-    <div className="container-x section-pad space-y-6">
-      <h1 className="heading-2">Admin reports</h1>
-      <p className="text-ink-600">Coming in Phase 5.</p>
+    <div className="space-y-8">
+      <div>
+        <h1 className="heading-2">Reports</h1>
+        <p className="text-sm text-ink-600">Performance across the month.</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Occupancy rate" value={`${data.occupancyRate}%`} />
+        <StatCard label="Average daily rate" value={formatMoney(data.adr)} />
+        <StatCard label="RevPAR" value={formatMoney(data.revpar)} />
+        <StatCard label="Average stay" value={`${data.averageStayNights} nights`} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-2xl font-semibold text-forest-700">{formatMoney(data.totalRevenue)}</p>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trend} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--ink-200)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} stroke="var(--ink-400)" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="var(--ink-400)" />
+                  <Tooltip formatter={(value: number) => [formatMoney(value), 'Revenue']} contentStyle={{ borderRadius: 8, border: '1px solid var(--ink-200)' }} />
+                  <Line type="monotone" dataKey="revenue" stroke="var(--forest-600)" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Bookings by status</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {data.bookingsByStatus.map((row) => (
+                <div key={row.status} className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-ink-700">{bookingStatusLabel(row.status)}</span>
+                  <span className="text-sm font-semibold text-ink-900">{row.count}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Payments by method</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {data.bookingsByPaymentMethod.map((row) => (
+                <div key={row.paymentMethod} className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-ink-700">{paymentMethodLabel(row.paymentMethod)}</span>
+                  <span className="text-sm font-semibold text-ink-900">{row.count}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-ink-600">{label}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-2xl font-semibold text-ink-900">{value}</p>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,10 +1,12 @@
 import { appConfig } from '@/config/appConfig';
 import type {
+  ActivityLog,
   BookingStatus,
   NotificationType,
   PaymentMethod,
   PaymentStatus,
   RoomStatus,
+  StaffRole,
   UserRole,
 } from '@/types';
 
@@ -76,6 +78,25 @@ const roleLabels: Record<UserRole, string> = {
   Administrator: 'Administrator',
 };
 
+const staffRoleLabels: Record<StaffRole, string> = {
+  Receptionist: 'Receptionist',
+  Administrator: 'Administrator',
+};
+
+const activityTypeLabels: Record<ActivityLog['type'], string> = {
+  BookingCreated: 'Booking created',
+  BookedRoomsAssigned: 'Rooms assigned',
+  BookingCheckedIn: 'Checked in',
+  BookingCheckedOut: 'Checked out',
+  BookingCancelled: 'Booking cancelled',
+  PaymentRecorded: 'Payment recorded',
+  RoomStatusChanged: 'Room status changed',
+  RoomTypeCreated: 'Room type created',
+  RoomTypeUpdated: 'Room type updated',
+  StaffCreated: 'Staff created',
+  StaffUpdated: 'Staff updated',
+};
+
 export function bookingStatusLabel(status: BookingStatus): string {
   return bookingStatusLabels[status];
 }
@@ -93,4 +114,10 @@ export function notificationTypeLabel(type: NotificationType): string {
 }
 export function roleLabel(role: UserRole): string {
   return roleLabels[role];
+}
+export function staffRoleLabel(role: StaffRole): string {
+  return staffRoleLabels[role];
+}
+export function activityTypeLabel(type: ActivityLog['type']): string {
+  return activityTypeLabels[type];
 }

@@ -1,20 +1,35 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 export function LoadingSkeleton({ className = 'h-10 w-full', ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={`animate-pulse rounded-md bg-ink-100 ${className}`} {...props} />;
 }
 
-export function PageSkeleton() {
+export function PageSkeleton({ rows = 3 }: { rows?: number } = {}) {
   return (
-    <div className="container-x section-pad space-y-6">
-      <LoadingSkeleton className="h-8 w-1/2" />
-      <LoadingSkeleton className="h-4 w-2/3" />
-      <div className="grid gap-6 md:grid-cols-3">
-        {[0, 1, 2].map((i) => (
-          <LoadingSkeleton key={i} className="h-64" />
+    <div className="space-y-6">
+      <LoadingSkeleton className="h-8 w-1/3" />
+      <div className="space-y-3">
+        {Array.from({ length: rows }).map((_, i) => (
+          <LoadingSkeleton key={i} className="h-12" />
         ))}
       </div>
+    </div>
+  );
+}
+
+export function EmptyState({ icon: Icon, title, body, action }: { icon?: LucideIcon; title: string; body?: string; action?: { label: string; to: string } }) {
+  return (
+    <div className="rounded-xl border border-dashed p-10 text-center">
+      {Icon ? <Icon className="mx-auto mb-3 h-8 w-8 text-ink-400" /> : null}
+      <p className="font-medium text-ink-900">{title}</p>
+      {body ? <p className="mx-auto mt-1 max-w-sm text-sm text-ink-600">{body}</p> : null}
+      {action ? (
+        <Button asChild size="sm" className="mt-4">
+          <Link to={action.to}>{action.label}</Link>
+        </Button>
+      ) : null}
     </div>
   );
 }
