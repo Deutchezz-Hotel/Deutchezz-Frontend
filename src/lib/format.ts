@@ -19,7 +19,7 @@ export function formatMoney(amount: number): string {
   return new Intl.NumberFormat(appConfig.locale, {
     style: 'currency',
     currency: appConfig.currency,
-    minimumFractionDigits: 0,
+    minimumFractionDigits: hasFraction ? 2 : 0,
     maximumFractionDigits: hasFraction ? 2 : 0,
   }).format(amount);
 }
