@@ -1,0 +1,51 @@
+import { PageHero } from '@/components/branding';
+import { usePublicRoomTypes } from '@/hooks/queries';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatMoney } from '@/lib/format';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import { PageSkeleton, ErrorBanner } from '@/components/feedback';
+
+export default function RoomsPage() {
+  const { data: types, isLoading, error, refetch } = usePublicRoomTypes();
+
+  return (
+    <>
+      <PageHero
+        eyebrow="The collection"
+        title={<>Rooms that make <em className="font-serif italic">staying in</em> feel good.</>}
+        description="Four distinctive ways to settle into the city, each with the same promise of ease, warmth and thoughtful attention to detail."
+      />
+      <section className="section-pad container-x">
+        {isLoading ? <PageSkeleton /> : null}
+        {error ? <ErrorBanner message="Unable to load rooms" retry={refetch} /> : null}
+        {types ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {types.map((t) => (
+              <Card key={t.id} className="overflow-hidden">
+                <div className="aspect-[16/9] w-full bg-ink-100">
+                  {t.imageUrls[0] ? (
+                    <img src={t.imageUrls[0]} alt={t.name} className="h-full w-full object-cover" />
+                  ) : null}
+                </div>
+                <CardContent className="space-y-3 p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <h3 className="heading-3">{t.name}</h3>
+                      <p className="text-sm text-ink-600">{t.bedType} · Up to {t.maximumOccupancy} guests</p>
+                    </div>
+                    <p className="font-semibold text-forest-700">{formatMoney(t.basePrice)} / night</p>
+                  </div>
+                  <p className="text-sm text-ink-600 line-clamp-2">{t.description}</p>
+                  <Link to={`/rooms/${t.id}`} className="inline-flex items-center text-sm font-medium text-forest-700 hover:underline">
+                    View details <ArrowRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : null}
+      </section>
+    </>
+  );
+}
