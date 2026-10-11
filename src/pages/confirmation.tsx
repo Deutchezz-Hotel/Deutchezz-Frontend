@@ -22,29 +22,17 @@ export default function ConfirmationPage() {
   const nav = useNavigate();
   const { user } = useAuth();
   const [booking, setBooking] = useState<BookingResponse | null>(location.state ?? null);
-  const [resolved] = useState<BookingResponse | null>(() => {
-    if (location.state) return location.state;
-    if (bookingReference) {
-      try {
-        const raw = sessionStorage.getItem(`deutchezz.confirmation.${bookingReference}`);
-        return raw ? (JSON.parse(raw) as BookingResponse) : null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
   const cancel = useAnonymousCancelBooking();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState('');
 
   useEffect(() => {
-    if (!resolved && bookingReference) {
+    if (!booking && bookingReference) {
       nav(`/my-booking?bookingReference=${encodeURIComponent(bookingReference)}`, { replace: true });
     }
-  }, [resolved, bookingReference, nav]);
+  }, [booking, bookingReference, nav]);
 
-  const data = booking ?? resolved;
+  const data = booking;
   const canCancel = !!data && (data.status === 'Confirmed' || data.status === 'Pending');
 
   const runCancel = () => {

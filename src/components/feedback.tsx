@@ -49,3 +49,52 @@ export function ErrorBanner({ message, retry }: { message: string; retry?: () =>
     </div>
   );
 }
+
+export function ErrorState({
+  icon: Icon = AlertTriangle,
+  title = 'Something went wrong',
+  body,
+  retry,
+  retryLabel = 'Try again',
+}: {
+  icon?: LucideIcon;
+  title?: string;
+  body?: string;
+  retry?: () => void;
+  retryLabel?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-10 text-center">
+      <Icon className="mx-auto mb-3 h-8 w-8 text-destructive/70" />
+      <p className="font-medium text-ink-900">{title}</p>
+      {body ? <p className="mx-auto mt-1 max-w-sm text-sm text-ink-600">{body}</p> : null}
+      {retry ? (
+        <Button size="sm" variant="outline" className="mt-4" onClick={retry}>
+          {retryLabel}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+export function UnavailableState({
+  title = 'Not available yet',
+  body = 'This feature is not available on the server yet. Please check back later.',
+  retry,
+}: {
+  title?: string;
+  body?: string;
+  retry?: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-dashed p-10 text-center">
+      <p className="mx-auto font-medium text-ink-900">{title}</p>
+      <p className="mx-auto mt-1 max-w-md text-sm text-ink-600">{body}</p>
+      {retry ? (
+        <Button size="sm" variant="outline" className="mt-4" onClick={retry}>
+          Try again
+        </Button>
+      ) : null}
+    </div>
+  );
+}

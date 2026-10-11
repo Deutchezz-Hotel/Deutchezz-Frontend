@@ -49,7 +49,6 @@ export default function LookupPage() {
                   setRateLimited(false);
                   lookup.mutate(v, {
                     onSuccess: (booking) => {
-                      sessionStorage.setItem(`deutchezz.confirmation.${booking.bookingReference}`, JSON.stringify(booking));
                       nav(`/booking/confirmation/${booking.bookingReference}`, { state: booking });
                     },
                     onError: (e) => {
@@ -70,7 +69,7 @@ export default function LookupPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Booking reference</FormLabel>
-                      <FormControl><Input placeholder="DHI-2026-XXXXXX" {...field} /></FormControl>
+                      <FormControl><Input placeholder="Your booking reference" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

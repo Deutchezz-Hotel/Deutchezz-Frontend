@@ -41,7 +41,6 @@ export default function ReviewPage() {
       { request: draft.request },
       {
         onSuccess: (booking) => {
-          sessionStorage.setItem(`deutchezz.confirmation.${booking.bookingReference}`, JSON.stringify(booking));
           nav(`/booking/confirmation/${booking.bookingReference}`, { state: booking, replace: true });
         },
         onError: (e) => setError(e as ApiError),
