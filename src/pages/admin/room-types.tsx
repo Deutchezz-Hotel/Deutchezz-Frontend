@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { formatMoney } from '@/lib/format';
 import { toast } from 'sonner';
+import { toApiError } from '@/api/problem';
 import { Building2, Pencil, Plus } from 'lucide-react';
 import type { RoomTypeResponse, SaveRoomTypeRequest } from '@/types';
 
@@ -86,7 +87,7 @@ export default function AdminRoomTypesPage() {
                       checked={rt.isActive}
                       onCheckedChange={(checked) => mutations.updateRoomTypeStatus.mutate(
                         { id: rt.id, isActive: checked },
-                        { onError: () => toast.error('Could not update status') },
+                        { onError: (error) => toast.error(toApiError(error).userMessage) },
                       )}
                       aria-label={`${rt.isActive ? 'Deactivate' : 'Activate'} ${rt.name}`}
                     />
