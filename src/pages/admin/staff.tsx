@@ -24,10 +24,14 @@ export default function AdminStaffPage() {
   const [editing, setEditing] = useState<Staff | null>(null);
   const [form, setForm] = useState<SaveStaffRequest>(emptyForm);
   const [search, setSearch] = useState('');
-  const query = useAdminStaff({ pageSize: 100, search: search || undefined });
+  const query = useAdminStaff({ pageSize: 100 });
   const mutations = useAdminStaffMutations();
 
-  const staff = query.data?.items ?? [];
+  const allStaff = query.data?.items ?? [];
+  const q = search.trim().toLowerCase();
+  const staff = q
+    ? allStaff.filter((s) => `${s.firstName} ${s.lastName}`.toLowerCase().includes(q) || s.email.toLowerCase().includes(q))
+    : allStaff;
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (s: Staff) => {
@@ -38,6 +42,10 @@ export default function AdminStaffPage() {
   const save = () => {
     if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
       toast.error('Enter the staff member name and email');
+      return;
+    }
+    if (!editing && (!form.password || form.password.length < 8)) {
+      toast.error('Set a password of at least 8 characters');
       return;
     }
     const req = { ...form, firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim() };
@@ -134,6 +142,12 @@ export default function AdminStaffPage() {
               <Label>Email</Label>
               <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
+            {!editing ? (
+              <div className="space-y-2">
+                <Label>Password</Label>
+                <Input type="password" value={form.password ?? ''} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="At least 8 characters" />
+              </div>
+            ) : null}
             <div className="space-y-2">
               <Label>Phone number (optional)</Label>
               <Input value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} />

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useAdminGuests } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -37,10 +36,7 @@ export default function AdminGuestsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Guest</TableHead>
-                    <TableHead>Stays</TableHead>
-                    <TableHead>Last stay</TableHead>
-                    <TableHead>Rooms</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Joined</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -57,12 +53,7 @@ export default function AdminGuestsPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-ink-700">{g.totalBookings}</TableCell>
-                      <TableCell className="text-ink-700">{g.lastStayDate ? formatDisplayDate(g.lastStayDate) : '—'}</TableCell>
-                      <TableCell className="text-ink-700">{g.currentRoomNumbers?.join(', ') ?? '—'}</TableCell>
-                      <TableCell>
-                        {g.inHouse ? <Badge variant="success">In house</Badge> : <Badge variant="secondary">Not staying</Badge>}
-                      </TableCell>
+                      <TableCell className="text-ink-700">{g.createdAt ? formatDisplayDate(g.createdAt) : '—'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

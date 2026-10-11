@@ -1,4 +1,5 @@
 import { PageHero } from '@/components/branding';
+import { Reveal } from '@/components/reveal';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { usePublicRoomTypes } from '@/hooks/queries';
 import { formatMoney } from '@/lib/format';
@@ -15,14 +16,14 @@ export default function RoomDetailPage() {
     <>
       <PageHero
         eyebrow={type?.name ?? 'Room'}
-        title={<>Space to <em className="font-serif italic">unwind.</em></>}
+        title={<>Space to <em className="italic">unwind.</em></>}
         description={type?.description ?? 'Loading room details...'}
       />
       <section className="section-pad container-x">
         {isLoading ? <PageSkeleton /> : null}
         {error ? <ErrorBanner message="Unable to load room details" retry={refetch} /> : null}
         {type ? (
-          <div className="grid gap-10 lg:grid-cols-2">
+          <Reveal delay={80} className="grid gap-10 lg:grid-cols-2">
             <div className="aspect-[4/3] overflow-hidden rounded-xl bg-ink-100">
               {type.imageUrls[0] ? (
                 <img src={type.imageUrls[0]} alt={type.name} className="h-full w-full object-cover" />
@@ -66,7 +67,7 @@ export default function RoomDetailPage() {
                 </Link>
               </Button>
             </div>
-          </div>
+          </Reveal>
         ) : (
           <ErrorBanner message="Room not found" retry={refetch} />
         )}

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/api/problem';
-import type { BookingRoomLine, CreateBookingRequest } from '@/types';
+import type { BookingRoomLine, BookingResponse, CreateBookingRequest } from '@/types';
 import {
   availableFor,
   createBookingFromData,
   daysFromToday,
+  deriveBookingTotals,
   overlapsHalfOpen,
   type BookingLike,
   type RoomLike,
@@ -55,6 +56,7 @@ function booking(overrides: Partial<BookingLike> = {}): BookingLike {
     rooms: [],
     totalAmount: 0,
     createdAt: '2026-10-01',
+    updatedAt: '2026-10-01',
     nights: 2,
     ...overrides,
   };
@@ -147,5 +149,69 @@ describe('createBookingFromData idempotency', () => {
 
     expect(() => createBookingFromData(request(), 'key-3', roomTypes, rooms, bookings, idempotency)).toThrowError(ApiError);
     expect(bookings).toHaveLength(0);
+  });
+});
+
+describe('deriveBookingTotals — single source of truth', () => {
+  it('recomputes subtotal and total from catalogue rates, quantities and nights', () => {
+    const roomTypes: RoomTypeLike[] = [
+      roomType({ id: 'rt-deluxe', name: 'Deluxe', basePrice: 40_000 }),
+      roomType({ id: 'rt-executive', name: 'Executive', basePrice: 55_000 }),
+    ];
+    const existing: BookingLike = booking({
+      checkInDate: '2026-11-01',
+      checkOutDate: '2026-11-06',
+      rooms: [
+        line('rt-deluxe', 2),
+        line('rt-executive', 1),
+      ],
+      totalAmount: 999_999,
+    });
+
+    deriveBookingTotals([existing], roomTypes);
+
+    expect(existing.nights).toBe(5);
+    const deluxe = existing.rooms[0];
+    const executive = existing.rooms[1];
+    expect(deluxe.ratePerNight).toBe(40_000);
+    expect(deluxe.subtotal).toBe(40_000 * 2 * 5);
+    expect(executive.ratePerNight).toBe(55_000);
+    expect(executive.subtotal).toBe(55_000 * 1 * 5);
+    expect(existing.totalAmount).toBe(2 * 40_000 * 5 + 55_000 * 5);
+    expect(existing.totalAmount).toBe(675_000);
+  });
+
+  it('keeps a booking consistent with its expected example total', () => {
+    const roomTypes: RoomTypeLike[] = [
+      roomType({ id: 'rt-deluxe', name: 'Deluxe', basePrice: 40_000 }),
+      roomType({ id: 'rt-executive', name: 'Executive', basePrice: 55_000 }),
+    ];
+    const b: BookingResponse = {
+      id: 'b1',
+      bookingReference: 'DHI-2026-TEST01',
+      status: 'Confirmed',
+      paymentStatus: 'Pending',
+      checkInDate: '2026-11-01',
+      checkOutDate: '2026-11-06',
+      nights: 0,
+      adults: 2,
+      children: 1,
+      guest: { firstName: 'Nnamdi', lastName: 'Eze', email: 'n@example.com', phoneNumber: '08000000000' },
+      rooms: [
+        { bookingRoomTypeId: 'l1', roomTypeId: 'rt-deluxe', roomTypeName: 'Deluxe Room', quantity: 2, ratePerNight: 0, numberOfNights: 0, subtotal: 0 },
+        { bookingRoomTypeId: 'l2', roomTypeId: 'rt-executive', roomTypeName: 'Executive Room', quantity: 1, ratePerNight: 0, numberOfNights: 0, subtotal: 0 },
+      ],
+      specialRequests: null,
+      totalAmount: 0,
+      createdAt: '2026-10-01',
+      updatedAt: '2026-10-01',
+    };
+
+    deriveBookingTotals([b], roomTypes);
+
+    expect(b.totalAmount).toBe(675_000);
+    expect(b.nights).toBe(5);
+    expect(b.rooms[0].subtotal).toBe(400_000);
+    expect(b.rooms[1].subtotal).toBe(275_000);
   });
 });

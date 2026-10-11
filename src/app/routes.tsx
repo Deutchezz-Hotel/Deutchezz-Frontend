@@ -21,6 +21,7 @@ const NotFound = withSuspense(lazy(() => import('@/pages/not-found')));
 
 const CustomerDashboard = withSuspense(lazy(() => import('@/pages/customer/dashboard')));
 const CustomerBookings = withSuspense(lazy(() => import('@/pages/customer/bookings')));
+const CustomerBookingDetail = withSuspense(lazy(() => import('@/pages/customer/booking-detail')));
 const CustomerProfile = withSuspense(lazy(() => import('@/pages/customer/profile')));
 
 const ReceptionDashboard = withSuspense(lazy(() => import('@/pages/reception/dashboard')));
@@ -35,6 +36,7 @@ const AdminDashboard = withSuspense(lazy(() => import('@/pages/admin/dashboard')
 const AdminRooms = withSuspense(lazy(() => import('@/pages/admin/rooms')));
 const AdminRoomTypes = withSuspense(lazy(() => import('@/pages/admin/room-types')));
 const AdminBookings = withSuspense(lazy(() => import('@/pages/admin/bookings')));
+const AdminBookingDetail = withSuspense(lazy(() => import('@/pages/admin/booking-detail')));
 const AdminGuests = withSuspense(lazy(() => import('@/pages/admin/guests')));
 const AdminStaff = withSuspense(lazy(() => import('@/pages/admin/staff')));
 const AdminPayments = withSuspense(lazy(() => import('@/pages/admin/payments')));
@@ -71,6 +73,7 @@ export const appRoutes: RouteObject[] = [
         children: [
           { path: '/dashboard', element: <CustomerDashboard /> },
           { path: '/dashboard/bookings', element: <CustomerBookings /> },
+          { path: '/dashboard/bookings/:id', element: <CustomerBookingDetail /> },
           { path: '/dashboard/profile', element: <CustomerProfile /> },
         ],
       },
@@ -103,6 +106,8 @@ export const appRoutes: RouteObject[] = [
           { path: '/admin/rooms', element: <AdminRooms /> },
           { path: '/admin/room-types', element: <AdminRoomTypes /> },
           { path: '/admin/bookings', element: <AdminBookings /> },
+          { path: '/admin/bookings/new', element: <ReceptionCreateBooking /> },
+          { path: '/admin/bookings/:id', element: <AdminBookingDetail /> },
           { path: '/admin/guests', element: <AdminGuests /> },
           { path: '/admin/staff', element: <AdminStaff /> },
           { path: '/admin/payments', element: <AdminPayments /> },

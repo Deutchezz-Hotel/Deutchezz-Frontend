@@ -3,11 +3,12 @@ import { useMeBookings } from '@/hooks/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { RowLink } from '@/components/shared';
 import { formatMoney, bookingStatusLabel, paymentStatusLabel } from '@/lib/format';
 import { formatStayRange } from '@/lib/dates';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { Link } from 'react-router-dom';
-import { CalendarDays, CalendarPlus, Search, Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarDays, CalendarPlus, Search, Sparkles } from 'lucide-react';
 import type { BookingListItem } from '@/types';
 
 function nextUpcoming(items: BookingListItem[]): BookingListItem | null {
@@ -121,6 +122,36 @@ export default function CustomerDashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle>Recent bookings</CardTitle>
+              <Link to="/dashboard/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">
+                View all <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </CardHeader>
+            <CardContent className="p-0">
+              {bookings.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-ink-600">No bookings yet — your reservations will appear here.</p>
+              ) : (
+                <ul className="divide-y">
+                  {bookings.slice(0, 5).map((b) => (
+                    <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-milk">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-ink-900">{b.bookingReference}</p>
+                        <p className="truncate text-xs text-ink-600">{formatStayRange(b.checkInDate, b.checkOutDate)} · {formatMoney(b.totalAmount)}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge>
+                        <ArrowUpRight className="h-4 w-4 text-ink-400" />
+                      </div>
+                      <RowLink to={`/dashboard/bookings/${b.id}`} label={`Open booking ${b.bookingReference}`} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="flex items-start gap-3 rounded-lg border border-dashed p-4 text-sm text-ink-600">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-forest-600" />

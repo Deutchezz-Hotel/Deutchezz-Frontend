@@ -9,6 +9,7 @@ import type {
   AdminDashboard,
   AdminReports,
   ActivityLog,
+  AnonymousCancelBookingRequest,
   AppNotification,
   AssignRoomsRequest,
   AuthResponse,
@@ -25,6 +26,7 @@ import type {
   MeProfile,
   Paginated,
   Payment,
+  PaymentListItem,
   RecordPaymentRequest,
   RegisterRequest,
   Room,
@@ -44,10 +46,20 @@ export interface PaginationParams {
   search?: string;
 }
 
+/** Room board list: filter by date-aware status, free-text and page. */
+export interface RoomListParams extends PaginationParams {
+  status?: string;
+  /** "yyyy-MM-dd" occupancy date; defaults to today on the backend. */
+  date?: string;
+}
+
 export interface BookingFilterParams extends PaginationParams {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
+  /** Column to order the filtered results by. */
+  sort?: 'createdAt' | 'updatedAt';
+  direction?: 'asc' | 'desc';
 }
 
 export interface AuthApi {
@@ -69,6 +81,7 @@ export interface AvailabilityApi {
 export interface BookingsApi {
   create(request: CreateBookingRequest, idempotencyKey: string): Promise<BookingResponse>;
   lookup(request: BookingLookupRequest): Promise<BookingResponse>;
+  cancel(request: AnonymousCancelBookingRequest): Promise<BookingResponse>;
 }
 
 export interface MeApi {
@@ -86,15 +99,15 @@ export interface ReceptionApi {
   assignRooms(id: string, request: AssignRoomsRequest): Promise<BookingResponse>;
   checkIn(id: string): Promise<BookingResponse>;
   checkOut(id: string): Promise<BookingResponse>;
-  listRooms(params: PaginationParams): Promise<Paginated<Room>>;
+  listRooms(params: RoomListParams): Promise<Paginated<Room>>;
   listGuests(params: PaginationParams): Promise<Paginated<GuestListItem>>;
-  listPayments(params: PaginationParams): Promise<Paginated<Payment>>;
+  listPayments(params: PaginationParams): Promise<Paginated<PaymentListItem>>;
   recordPayment(request: RecordPaymentRequest): Promise<Payment>;
 }
 
 export interface AdminApi {
   dashboard(): Promise<AdminDashboard>;
-  listRooms(params: PaginationParams): Promise<Paginated<Room>>;
+  listRooms(params: RoomListParams): Promise<Paginated<Room>>;
   createRoom(request: SaveRoomRequest): Promise<Room>;
   getRoom(id: string): Promise<Room>;
   updateRoom(id: string, request: SaveRoomRequest): Promise<Room>;
@@ -111,7 +124,7 @@ export interface AdminApi {
   getStaff(id: string): Promise<Staff>;
   updateStaff(id: string, request: SaveStaffRequest): Promise<Staff>;
   updateStaffStatus(id: string, isActive: boolean): Promise<Staff>;
-  listPayments(params: PaginationParams): Promise<Paginated<Payment>>;
+  listPayments(params: PaginationParams): Promise<Paginated<PaymentListItem>>;
   reports(): Promise<AdminReports>;
   listActivityLogs(params: PaginationParams): Promise<Paginated<ActivityLog>>;
   listNotifications(params: PaginationParams): Promise<Paginated<AppNotification>>;

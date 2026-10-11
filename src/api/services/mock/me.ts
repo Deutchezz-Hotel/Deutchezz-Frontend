@@ -53,6 +53,7 @@ export const mockMeApi = {
       throw new ApiError({ status: 409, title: 'Conflict', detail: 'This booking can no longer be cancelled' });
     }
     booking.status = 'Cancelled';
+    booking.updatedAt = new Date().toISOString().slice(0, 10);
     db.notifications.unshift({
       id: `notif-${Math.random().toString(36).slice(2, 9)}`,
       type: 'BookingCancelled',

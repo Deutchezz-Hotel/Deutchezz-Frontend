@@ -9,6 +9,17 @@
     <meta property="og:title" content="Deutchezz Hotel Ispahan — Luxury Hotel in Jos" />
     <meta property="og:description" content="A quietly confident hotel shaped by local warmth, thoughtful design, and the unhurried pleasure of being well looked after." />
     <meta property="og:type" content="website" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (!stored && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

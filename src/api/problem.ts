@@ -37,7 +37,7 @@ export class ApiError extends Error {
   get userMessage(): string {
     const s = this.status;
     if (s === 409) {
-      return 'These rooms are no longer available for your dates';
+      return this.problem.detail ?? 'These rooms are no longer available for your dates';
     }
     if (s === 429) {
       return 'Too many attempts, please wait a moment';
@@ -68,4 +68,16 @@ export function toApiError(error: unknown): ApiError {
 
 export function isValidationError(error: unknown): error is ApiError & { status: 400 } {
   return isApiError(error) && error.status === 400 && Object.keys(error.fieldErrors).length > 0;
+}
+
+/** User-facing message for sign-in / sign-up failures (401 = bad credentials). */
+export function friendlyAuthError(error: unknown): string | null {
+  if (!error) return null;
+  if (isApiError(error)) {
+    if (error.status === 401) return 'Invalid email or password.';
+    if (error.status === 429) return 'Too many attempts. Please wait a minute and try again.';
+    if (error.status === 400) return error.problem.detail ?? 'Please check the details and try again.';
+    return error.userMessage;
+  }
+  return 'Something went wrong. Please try again.';
 }

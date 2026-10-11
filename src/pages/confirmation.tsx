@@ -1,21 +1,27 @@
 import { PageHero } from '@/components/branding';
+import { Reveal } from '@/components/reveal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useLocation, useParams, Link, useNavigate } from 'react-router-dom';
 import { formatStayRange } from '@/lib/dates';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
 import { appConfig } from '@/config/appConfig';
-import type { BookingResponse } from '@/types';
+import { toApiError } from '@/api/problem';
+import { useAnonymousCancelBooking } from '@/hooks/queries';
 import { useAuth } from '@/app/auth';
-import { ArrowLeft, CheckCircle2, Printer } from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowLeft, CheckCircle2, Printer, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { BookingResponse } from '@/types';
 
 export default function ConfirmationPage() {
   const { bookingReference } = useParams<{ bookingReference: string }>();
   const location = useLocation() as { state?: BookingResponse };
   const nav = useNavigate();
   const { user } = useAuth();
-  const [booking] = useState<BookingResponse | null>(location.state ?? null);
+  const [booking, setBooking] = useState<BookingResponse | null>(location.state ?? null);
   const [resolved] = useState<BookingResponse | null>(() => {
     if (location.state) return location.state;
     if (bookingReference) {
@@ -28,6 +34,9 @@ export default function ConfirmationPage() {
     }
     return null;
   });
+  const cancel = useAnonymousCancelBooking();
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [reason, setReason] = useState('');
 
   useEffect(() => {
     if (!resolved && bookingReference) {
@@ -36,16 +45,33 @@ export default function ConfirmationPage() {
   }, [resolved, bookingReference, nav]);
 
   const data = booking ?? resolved;
+  const canCancel = !!data && (data.status === 'Confirmed' || data.status === 'Pending');
+
+  const runCancel = () => {
+    if (!data) return;
+    cancel.mutate(
+      { bookingReference: data.bookingReference, email: data.guest.email, reason: reason.trim() || undefined },
+      {
+        onSuccess: (updated) => {
+          setBooking(updated);
+          setCancelOpen(false);
+          toast.success('Booking cancelled. A confirmation has been emailed to you.');
+        },
+        onError: (error) => toast.error(toApiError(error).userMessage),
+      },
+    );
+  };
 
   return (
     <>
       <PageHero
         eyebrow="Reservation confirmed"
-        title={<>Your stay is <em className="font-serif italic">waiting for you.</em></>}
+        title={<>Your stay is <em className="italic">waiting for you.</em></>}
         description="Your booking has been confirmed. Please keep the reference handy."
       />
       <section className="section-pad container-x">
-        <Card className="mx-auto max-w-2xl print:border-0 print:shadow-none">
+        <Reveal>
+          <Card className="mx-auto max-w-2xl print:border-0 print:shadow-none">
           <CardContent className="space-y-8 p-10">
             {data ? (
               <>
@@ -124,6 +150,35 @@ export default function ConfirmationPage() {
                   <Button asChild variant="outline">
                     <Link to="/my-booking">Find another booking</Link>
                   </Button>
+                  {canCancel ? (
+                    <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="text-destructive">
+                          <XCircle className="mr-2 h-4 w-4" /> Cancel booking
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {data.bookingReference} will be cancelled and the rooms freed for other guests.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <Textarea
+                          value={reason}
+                          onChange={(e) => setReason(e.target.value)}
+                          placeholder="Reason (optional)"
+                          className="min-h-20"
+                        />
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep booking</AlertDialogCancel>
+                          <AlertDialogAction onClick={runCancel} disabled={cancel.isPending}>
+                            {cancel.isPending ? 'Cancelling…' : 'Cancel booking'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : null}
                 </div>
               </>
             ) : (
@@ -141,6 +196,7 @@ export default function ConfirmationPage() {
             )}
           </CardContent>
         </Card>
+        </Reveal>
       </section>
     </>
   );

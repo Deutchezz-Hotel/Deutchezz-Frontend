@@ -1,4 +1,5 @@
 import { PageHero } from '@/components/branding';
+import { Reveal } from '@/components/reveal';
 import { ErrorBanner } from '@/components/feedback';
 import { useAvailability, usePublicRoomTypes } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
@@ -126,11 +127,11 @@ export default function BookPage() {
     <>
       <PageHero
         eyebrow="Reserve your stay"
-        title={<>Make space for <em className="font-serif italic">something good.</em></>}
+        title={<>Make space for <em className="italic">something good.</em></>}
         description="Choose your dates, then pick room types. Your reservation can include multiple room types."
       />
       <section className="section-pad container-x grid gap-10 lg:grid-cols-12">
-        <div className="space-y-8 lg:col-span-8">
+        <Reveal className="space-y-8 lg:col-span-8">
           <Card>
             <CardContent className="space-y-6 p-8">
               <h3 className="heading-3">Stay details</h3>
@@ -220,9 +221,9 @@ export default function BookPage() {
               ) : null}
             </CardContent>
           </Card>
-        </div>
+        </Reveal>
 
-        <div className="lg:col-span-4">
+        <Reveal delay={120} className="lg:col-span-4">
           <Card className="lg:sticky lg:top-24">
             <CardContent className="space-y-6 p-8">
               <h3 className="heading-3">Reservation summary</h3>
@@ -252,7 +253,7 @@ export default function BookPage() {
               </Button>
             </CardContent>
           </Card>
-        </div>
+        </Reveal>
       </section>
     </>
   );

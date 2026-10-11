@@ -1,4 +1,5 @@
 import { PageHero } from '@/components/branding';
+import { Reveal } from '@/components/reveal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,6 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRegister } from '@/hooks/queries';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from '@/app/auth';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { friendlyAuthError } from '@/api/problem';
 import type { BookingFlowState } from '@/features/booking/types';
 
 const schema = z
@@ -26,14 +31,31 @@ export default function RegisterPage() {
   const nav = useNavigate();
   const location = useLocation() as { state?: BookingFlowState };
   const flow = location.state;
+  const { user, refetch } = useAuth();
   const form = useForm({ resolver: zodResolver(schema), defaultValues: { firstName: '', lastName: '', email: '', phoneNumber: '', password: '', confirm: '' } });
+
+  useEffect(() => {
+    if (!user) return;
+    if (flow) nav('/booking/review', { state: flow, replace: true });
+    else if (user.role === 'Administrator') nav('/admin', { replace: true });
+    else if (user.role === 'Receptionist') nav('/reception', { replace: true });
+    else nav('/dashboard', { replace: true });
+  }, [user, flow, nav]);
+
+  const registerError = friendlyAuthError(register.error);
 
   return (
     <>
-      <PageHero eyebrow="Create your account" title={<>Join Deutchezz <em className="font-serif italic">Ispahan</em></>} description="Create an account to manage your reservations." />
+      <PageHero eyebrow="Create your account" title={<>Join Deutchezz <em className="italic">Ispahan</em></>} description="Create an account to manage your reservations." />
       <section className="section-pad container-x">
-        <Card className="mx-auto max-w-xl">
+        <Reveal>
+          <Card className="mx-auto max-w-xl">
           <CardContent className="space-y-6 p-8">
+            {registerError ? (
+              <Alert variant="destructive">
+                <AlertDescription>{registerError}</AlertDescription>
+              </Alert>
+            ) : null}
             <Form {...form}>
               <form
                 className="space-y-4"
@@ -41,15 +63,8 @@ export default function RegisterPage() {
                   register.mutate(
                     { firstName: v.firstName, lastName: v.lastName, email: v.email, phoneNumber: v.phoneNumber, password: v.password },
                     {
-                      onSuccess: (data) => {
-                        if (flow) {
-                          nav('/booking/review', { state: flow, replace: true });
-                          return;
-                        }
-                        const role = data.user.role;
-                        if (role === 'Administrator') nav('/admin');
-                        else if (role === 'Receptionist') nav('/reception');
-                        else nav('/dashboard');
+                      onSuccess: () => {
+                        void refetch();
                       },
                     },
                   ),
@@ -142,6 +157,7 @@ export default function RegisterPage() {
             </Form>
           </CardContent>
         </Card>
+        </Reveal>
       </section>
     </>
   );

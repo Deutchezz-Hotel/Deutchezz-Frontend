@@ -1,4 +1,5 @@
 import { PageHero } from '@/components/branding';
+import { Reveal } from '@/components/reveal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,11 +34,12 @@ export default function LookupPage() {
     <>
       <PageHero
         eyebrow="Your stay, close at hand"
-        title={<>Find your <em className="font-serif italic">booking.</em></>}
+        title={<>Find your <em className="italic">booking.</em></>}
         description="Enter the reference from your confirmation email along with the email address used to make the reservation."
       />
       <section className="section-pad container-x">
-        <Card className="mx-auto max-w-xl">
+        <Reveal>
+          <Card className="mx-auto max-w-xl">
           <CardContent className="space-y-6 p-8">
             <Form {...form}>
               <form
@@ -91,10 +93,11 @@ export default function LookupPage() {
               </form>
             </Form>
             <p className="border-t pt-4 text-sm text-ink-600">
-              To change or cancel an existing booking, please contact the hotel on {appConfig.phoneNumber}.
+              Once found, you can view the details or cancel the booking using your reference and email. For anything else, contact the hotel on {appConfig.phoneNumber}.
             </p>
           </CardContent>
         </Card>
+        </Reveal>
       </section>
     </>
   );

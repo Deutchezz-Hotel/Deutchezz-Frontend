@@ -1,6 +1,7 @@
 import { authStorage, services } from '@/api';
-import type { BookingFilterParams, PaginationParams } from '@/api';
+import type { BookingFilterParams, PaginationParams, RoomListParams } from '@/api';
 import type {
+  AnonymousCancelBookingRequest,
   AvailabilitySearchRequest,
   BookingLookupRequest,
   CreateBookingRequest,
@@ -26,11 +27,11 @@ export const keys = {
   meProfile: ['me', 'profile'] as const,
   receptionBookings: (params: BookingFilterParams) => ['reception', 'bookings', params] as const,
   receptionBooking: (id: string) => ['reception', 'bookings', id] as const,
-  receptionRooms: (params: PaginationParams & { status?: string }) => ['reception', 'rooms', params] as const,
+  receptionRooms: (params: RoomListParams) => ['reception', 'rooms', params] as const,
   receptionGuests: (params: PaginationParams) => ['reception', 'guests', params] as const,
   receptionPayments: (params: PaginationParams) => ['reception', 'payments', params] as const,
   adminDashboard: ['admin', 'dashboard'] as const,
-  adminRooms: (params: PaginationParams & { status?: string }) => ['admin', 'rooms', params] as const,
+  adminRooms: (params: RoomListParams) => ['admin', 'rooms', params] as const,
   adminRoomTypes: (params: PaginationParams) => ['admin', 'room-types', params] as const,
   adminBookings: (params: BookingFilterParams) => ['admin', 'bookings', params] as const,
   adminGuests: (params: PaginationParams) => ['admin', 'guests', params] as const,
@@ -71,6 +72,17 @@ export function useCreateBooking(idempotencyKey: string | null) {
 
 export function useBookingLookup() {
   return useMutation({ mutationFn: (request: BookingLookupRequest) => services.bookings.lookup(request) });
+}
+
+export function useAnonymousCancelBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (request: AnonymousCancelBookingRequest) => services.bookings.cancel(request),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reception'] });
+      qc.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
 }
 
 /* -------------------------------- Auth ----------------------------------- */
@@ -168,7 +180,7 @@ export function useReceptionAction() {
   };
 }
 
-export function useReceptionRooms(params: PaginationParams & { status?: string }) {
+export function useReceptionRooms(params: RoomListParams) {
   return useQuery({ queryKey: keys.receptionRooms(params), queryFn: () => services.reception.listRooms(params) });
 }
 
@@ -197,7 +209,7 @@ export function useAdminDashboard() {
   return useQuery({ queryKey: keys.adminDashboard, queryFn: services.admin.dashboard });
 }
 
-export function useAdminRooms(params: PaginationParams & { status?: string }) {
+export function useAdminRooms(params: RoomListParams) {
   return useQuery({ queryKey: keys.adminRooms(params), queryFn: () => services.admin.listRooms(params) });
 }
 

@@ -1,4 +1,5 @@
 import { PageHero } from '@/components/branding';
+import { Reveal } from '@/components/reveal';
 import { usePublicRoomTypes } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatMoney } from '@/lib/format';
@@ -13,14 +14,14 @@ export default function RoomsPage() {
     <>
       <PageHero
         eyebrow="The collection"
-        title={<>Rooms that make <em className="font-serif italic">staying in</em> feel good.</>}
+        title={<>Rooms that make <em className="italic">staying in</em> feel good.</>}
         description="Four distinctive ways to settle into the city, each with the same promise of ease, warmth and thoughtful attention to detail."
       />
       <section className="section-pad container-x">
         {isLoading ? <PageSkeleton /> : null}
         {error ? <ErrorBanner message="Unable to load rooms" retry={refetch} /> : null}
         {types ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Reveal delay={80} className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {types.map((t) => (
               <Card key={t.id} className="overflow-hidden">
                 <div className="aspect-[16/9] w-full bg-ink-100">
@@ -43,7 +44,7 @@ export default function RoomsPage() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+          </Reveal>
         ) : null}
       </section>
     </>

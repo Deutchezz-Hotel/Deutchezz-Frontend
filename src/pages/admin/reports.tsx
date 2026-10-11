@@ -55,12 +55,16 @@ export default function AdminReportsPage() {
               <CardTitle>Bookings by status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {data.bookingsByStatus.map((row) => (
-                <div key={row.status} className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-ink-700">{bookingStatusLabel(row.status)}</span>
-                  <span className="text-sm font-semibold text-ink-900">{row.count}</span>
-                </div>
-              ))}
+              {data.bookingsByStatus.length === 0 ? (
+                <p className="text-sm text-ink-600">Not available from the API.</p>
+              ) : (
+                data.bookingsByStatus.map((row) => (
+                  <div key={row.status} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-ink-700">{bookingStatusLabel(row.status)}</span>
+                    <span className="text-sm font-semibold text-ink-900">{row.count}</span>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -68,12 +72,16 @@ export default function AdminReportsPage() {
               <CardTitle>Payments by method</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {data.bookingsByPaymentMethod.map((row) => (
-                <div key={row.paymentMethod} className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-ink-700">{paymentMethodLabel(row.paymentMethod)}</span>
-                  <span className="text-sm font-semibold text-ink-900">{row.count}</span>
-                </div>
-              ))}
+              {data.bookingsByPaymentMethod.length === 0 ? (
+                <p className="text-sm text-ink-600">Not available from the API.</p>
+              ) : (
+                data.bookingsByPaymentMethod.map((row) => (
+                  <div key={row.paymentMethod} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-ink-700">{paymentMethodLabel(row.paymentMethod)}</span>
+                    <span className="text-sm font-semibold text-ink-900">{row.count}</span>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
