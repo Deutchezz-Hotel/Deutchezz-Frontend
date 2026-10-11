@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
+import { RowLink } from '@/components/shared';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
 import { formatStayRange } from '@/lib/dates';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarCheck } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarCheck } from 'lucide-react';
 import type { BookingStatus } from '@/types';
 
 const FILTERS = [
@@ -69,24 +70,24 @@ export default function CustomerBookingsPage() {
                   <TableRow>
                     <TableHead>Reference</TableHead>
                     <TableHead>Stay</TableHead>
-                    <TableHead>Rooms</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
+                    <TableHead className="w-9"><span className="sr-only">Open</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {bookings.map((b) => (
-                    <TableRow key={b.id}>
+                    <TableRow key={b.id} className="relative hover:bg-milk">
                       <TableCell className="font-medium text-ink-900">{b.bookingReference}</TableCell>
                       <TableCell>
                         <p>{formatStayRange(b.checkInDate, b.checkOutDate)}</p>
                         <p className="text-xs text-ink-600">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
                       </TableCell>
-                      <TableCell className="text-ink-700">{b.roomsCount}</TableCell>
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
                       <TableCell>{statusBadge(b.status)}</TableCell>
                       <TableCell>{paymentStatusLabel(b.paymentStatus)}</TableCell>
+                      <TableCell className="text-ink-400"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/dashboard/bookings/${b.id}`} label={`Open booking ${b.bookingReference}`} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

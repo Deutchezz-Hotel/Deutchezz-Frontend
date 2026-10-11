@@ -9,6 +9,8 @@ export interface BookingFilter {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
+  sort?: 'createdAt' | 'updatedAt';
+  direction?: 'asc' | 'desc';
 }
 
 export function filterBookings(db: MockDbData, params: BookingFilter): BookingListItem[] {
@@ -27,7 +29,13 @@ export function filterBookings(db: MockDbData, params: BookingFilter): BookingLi
         b.guest.email.toLowerCase().includes(q),
     );
   }
-  items.sort((a, b) => (a.checkInDate < b.checkInDate ? 1 : a.checkInDate > b.checkInDate ? -1 : 0));
+  if (params.sort === 'createdAt' || params.sort === 'updatedAt') {
+    const key = params.sort;
+    const dir = params.direction === 'asc' ? 1 : -1;
+    items.sort((a, b) => (a[key] < b[key] ? -dir : a[key] > b[key] ? dir : 0));
+  } else {
+    items.sort((a, b) => (a.checkInDate < b.checkInDate ? 1 : a.checkInDate > b.checkInDate ? -1 : 0));
+  }
   return items.map(bookingListItem);
 }
 

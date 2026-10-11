@@ -1,6 +1,5 @@
 import { appConfig } from '@/config/appConfig';
 import type {
-  ActivityLog,
   BookingStatus,
   NotificationType,
   PaymentMethod,
@@ -83,7 +82,7 @@ const staffRoleLabels: Record<StaffRole, string> = {
   Administrator: 'Administrator',
 };
 
-const activityTypeLabels: Record<ActivityLog['type'], string> = {
+const activityTypeLabels: Record<string, string> = {
   BookingCreated: 'Booking created',
   BookedRoomsAssigned: 'Rooms assigned',
   BookingCheckedIn: 'Checked in',
@@ -96,6 +95,13 @@ const activityTypeLabels: Record<ActivityLog['type'], string> = {
   StaffCreated: 'Staff created',
   StaffUpdated: 'Staff updated',
 };
+
+/** Fallback label for backend actions the UI hasn't mapped yet, e.g. "settings.updated". */
+function humanizeActivity(type: string): string {
+  const spaced = type.replace(/[._]/g, ' ').trim();
+  if (!spaced) return 'Activity';
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
 
 export function bookingStatusLabel(status: BookingStatus): string {
   return bookingStatusLabels[status];
@@ -118,6 +124,6 @@ export function roleLabel(role: UserRole): string {
 export function staffRoleLabel(role: StaffRole): string {
   return staffRoleLabels[role];
 }
-export function activityTypeLabel(type: ActivityLog['type']): string {
-  return activityTypeLabels[type];
+export function activityTypeLabel(type: string): string {
+  return activityTypeLabels[type] ?? humanizeActivity(type);
 }

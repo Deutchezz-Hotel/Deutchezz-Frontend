@@ -4,17 +4,25 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { friendlyAuthError } from '@/api/problem';
 
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
 
-export function LoginForm({ onSubmit, loading }: { onSubmit: (v: z.infer<typeof schema>) => void; loading?: boolean }) {
+export function LoginForm({ onSubmit, loading, error }: { onSubmit: (v: z.infer<typeof schema>) => void; loading?: boolean; error?: unknown }) {
   const form = useForm({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } });
+  const message = friendlyAuthError(error);
   return (
     <Form {...form}>
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+        {message ? (
+          <Alert variant="destructive">
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        ) : null}
         <FormField
           control={form.control}
           name="email"

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
@@ -40,44 +41,66 @@ export default function AdminSettingsPage() {
           <CardTitle>Hotel details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="rounded-md border border-dashed p-3 text-sm text-ink-600">
+            Hotel name, address and contact details are configured in the app shell. Only the
+            fields below are stored by the API.
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Hotel name</Label>
-              <Input value={form.hotelName} onChange={(e) => setForm({ ...form, hotelName: e.target.value })} />
+              <Input value={form.hotelName} disabled />
             </div>
             <div className="space-y-2">
               <Label>Currency</Label>
-              <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
+              <Input value={form.currency} disabled />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Address line 1</Label>
-            <Input value={form.addressLine1} onChange={(e) => setForm({ ...form, addressLine1: e.target.value })} />
-          </div>
-          <div className="space-y-2">
-            <Label>Address line 2</Label>
-            <Input value={form.addressLine2} onChange={(e) => setForm({ ...form, addressLine2: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Phone number</Label>
-              <Input value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div className="space-y-2">
               <Label>Check-in time</Label>
-              <Input value={form.checkInTime} onChange={(e) => setForm({ ...form, checkInTime: e.target.value })} />
+              <Input value={form.checkInTime} onChange={(e) => setForm({ ...form, checkInTime: e.target.value })} placeholder="14:00" />
             </div>
             <div className="space-y-2">
               <Label>Check-out time</Label>
-              <Input value={form.checkOutTime} onChange={(e) => setForm({ ...form, checkOutTime: e.target.value })} />
+              <Input value={form.checkOutTime} onChange={(e) => setForm({ ...form, checkOutTime: e.target.value })} placeholder="12:00" />
             </div>
             <div className="space-y-2">
               <Label>Max rooms per booking</Label>
               <Input type="number" min={1} value={form.maxRoomsPerBooking} onChange={(e) => setForm({ ...form, maxRoomsPerBooking: Number(e.target.value) })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Cancellation window (hours)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={form.cancellationWindowHours ?? 0}
+                onChange={(e) => setForm({ ...form, cancellationWindowHours: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+          <div className="border-t pt-4">
+            <h3 className="mb-3 text-sm font-semibold text-ink-900">Payment rules</h3>
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Label>Require full payment at check-in</Label>
+                  <p className="text-xs text-ink-600">Refuse check-in while the balance is outstanding.</p>
+                </div>
+                <Switch
+                  checked={form.requireFullPaymentAtCheckIn ?? false}
+                  onCheckedChange={(checked) => setForm({ ...form, requireFullPaymentAtCheckIn: checked })}
+                />
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Label>Require payment before check-out</Label>
+                  <p className="text-xs text-ink-600">Refuse check-out while the balance is outstanding.</p>
+                </div>
+                <Switch
+                  checked={form.requirePaymentBeforeCheckOut ?? false}
+                  onCheckedChange={(checked) => setForm({ ...form, requirePaymentBeforeCheckOut: checked })}
+                />
+              </div>
             </div>
           </div>
           <Button onClick={save} disabled={update.isPending}>{update.isPending ? 'Saving…' : 'Save settings'}</Button>

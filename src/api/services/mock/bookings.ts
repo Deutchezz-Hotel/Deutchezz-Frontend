@@ -1,5 +1,5 @@
 import { ApiError } from '@/api/problem';
-import type { BookingLookupRequest, BookingResponse, CreateBookingRequest } from '@/types';
+import type { AnonymousCancelBookingRequest, BookingLookupRequest, BookingResponse, CreateBookingRequest } from '@/types';
 import { readDb, writeDb } from './db';
 import { simulateLatency } from './latency';
 import { createBookingFromData, rateLimitSeconds } from './rules';
@@ -57,6 +57,35 @@ export const mockBookingsApi = {
     if (!booking) {
       throw new ApiError({ status: 404, title: 'Not found', detail: GENERIC_LOOKUP_ERROR });
     }
+    return booking;
+  },
+
+  async cancel(request: AnonymousCancelBookingRequest): Promise<BookingResponse> {
+    await simulateLatency();
+    const db = readDb();
+
+    const reference = request.bookingReference.trim().toLowerCase();
+    const email = request.email.trim().toLowerCase();
+    const booking = db.bookings.find(
+      (b) => b.bookingReference.toLowerCase() === reference && b.guest.email.toLowerCase() === email,
+    );
+    if (!booking) {
+      throw new ApiError({ status: 404, title: 'Not found', detail: GENERIC_LOOKUP_ERROR });
+    }
+    if (booking.status === 'Cancelled' || booking.status === 'CheckedIn' || booking.status === 'CheckedOut') {
+      throw new ApiError({ status: 409, title: 'Conflict', detail: `Booking in status '${booking.status}' cannot be cancelled` });
+    }
+
+    booking.status = 'Cancelled';
+    db.notifications.unshift({
+      id: `notif-${Math.random().toString(36).slice(2, 9)}`,
+      type: 'BookingCancelled',
+      message: `Booking ${booking.bookingReference} has been cancelled`,
+      isRead: false,
+      createdAt: booking.createdAt,
+    });
+    pushActivity(db, `Booking ${booking.bookingReference} cancelled by guest`, 'System', 'BookingCancelled');
+    writeDb(db);
     return booking;
   },
 };

@@ -11,7 +11,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['Playfair Display', 'Georgia', 'serif'],
       },
       colors: {
@@ -44,15 +44,18 @@ export default {
         },
         gold: {
           50: '#FBF6EF',
-          100: '#F3E7D6',
-          200: '#E6CFAC',
-          300: '#D4B078',
-          400: '#C09352',
-          500: '#7B5233',
-          600: '#63421F',
-          700: '#4A2C1A',
-          800: '#3A2214',
-          900: '#2B1A10',
+          100: '#F5EBD7',
+          200: '#EAD6A9',
+          300: '#DDBE76',
+          400: '#D1A94F',
+          500: '#C49A3C',
+          600: '#A37E2E',
+          700: '#7C5F23',
+          800: '#5A451C',
+          900: '#3D2F15',
+          DEFAULT: '#C49A3C',
+          light: '#E8C97A',
+          dark: '#A37E2E',
         },
         /** Milk — warm section background #F7F1E8. */
         milk: {
@@ -116,10 +119,20 @@ export default {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        'fade-up': {
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'fade-up': 'fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'fade-in': 'fade-in 0.9s ease-out both',
       },
     },
   },

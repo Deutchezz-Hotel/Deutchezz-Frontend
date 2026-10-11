@@ -1,4 +1,5 @@
 import { PageHero } from '@/components/branding';
+import { Reveal } from '@/components/reveal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -48,11 +49,12 @@ export default function GuestDetailsPage() {
     <>
       <PageHero
         eyebrow="Almost there"
-        title={<>Tell us a little <em className="font-serif italic">about yourself.</em></>}
+        title={<>Tell us a little <em className="italic">about yourself.</em></>}
         description="We'll use these details to prepare your arrival and send your confirmation."
       />
       <section className="section-pad container-x">
-        <Card className="mx-auto max-w-2xl">
+        <Reveal>
+          <Card className="mx-auto max-w-2xl">
           <CardContent className="space-y-6 p-10">
             <Form {...form}>
               <form
@@ -136,6 +138,7 @@ export default function GuestDetailsPage() {
             </Form>
           </CardContent>
         </Card>
+        </Reveal>
       </section>
     </>
   );

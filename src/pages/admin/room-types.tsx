@@ -55,7 +55,7 @@ export default function AdminRoomTypesPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Room types</h1>
-          <p className="text-sm text-ink-600">The categories you sell, from Standard to Suite.</p>
+          <p className="text-sm text-ink-600">The categories you sell, from Standard to Executive.</p>
         </div>
         <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> Add room type</Button>
       </div>

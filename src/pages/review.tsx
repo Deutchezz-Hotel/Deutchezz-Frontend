@@ -1,4 +1,5 @@
 import { PageHero } from '@/components/branding';
+import { Reveal } from '@/components/reveal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,11 +61,12 @@ export default function ReviewPage() {
     <>
       <PageHero
         eyebrow="Review & confirm"
-        title={<>One last look <em className="font-serif italic">before you arrive.</em></>}
+        title={<>One last look <em className="italic">before you arrive.</em></>}
         description="Check your details. No payment is taken today — you pay at the hotel on arrival."
       />
       <section className="section-pad container-x">
-        <Card className="mx-auto max-w-2xl">
+        <Reveal>
+          <Card className="mx-auto max-w-2xl">
           <CardContent className="space-y-8 p-10">
             <div className="space-y-2">
               <p className="font-semibold text-ink-900">Guest</p>
@@ -134,6 +136,7 @@ export default function ReviewPage() {
             </div>
           </CardContent>
         </Card>
+        </Reveal>
       </section>
 
       <AlertDialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>

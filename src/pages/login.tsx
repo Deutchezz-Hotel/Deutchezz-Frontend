@@ -1,4 +1,5 @@
 import { LoginForm } from '@/features/auth/components/login-form';
+import { Reveal } from '@/components/reveal';
 import { useLogin } from '@/hooks/queries';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,7 @@ export default function LoginPage() {
   const nav = useNavigate();
   const location = useLocation() as { state?: BookingFlowState };
   const flow = location.state;
-  const { user } = useAuth();
+  const { user, refetch } = useAuth();
 
   const goAfterAuth = (role: string) => {
     if (flow) nav('/booking/review', { state: flow, replace: true });
@@ -22,22 +23,26 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    if (user && !flow) goAfterAuth(user.role);
+    if (user) goAfterAuth(user.role);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, flow, nav]);
 
   return (
     <div className="section-pad container-x">
-      <Card className="mx-auto max-w-lg">
+      <Reveal>
+        <Card className="mx-auto max-w-lg">
         <CardHeader>
           <CardTitle>Welcome back</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <LoginForm
             loading={login.isPending}
+            error={login.error}
             onSubmit={(v) =>
               login.mutate(v, {
-                onSuccess: (data) => goAfterAuth(data.user.role),
+                onSuccess: () => {
+                  void refetch();
+                },
               })
             }
           />
@@ -46,6 +51,7 @@ export default function LoginPage() {
           </p>
         </CardContent>
       </Card>
+      </Reveal>
       <div className="mt-8">
         <DevQuickLogin />
       </div>

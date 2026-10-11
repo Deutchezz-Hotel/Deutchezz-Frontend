@@ -7,6 +7,7 @@
  */
 import { addDays, format } from 'date-fns';
 import { appConfig } from '@/config/appConfig';
+import { deriveBookingTotals } from './rules';
 import type {
   AppNotification,
   ActivityLog,
@@ -44,10 +45,14 @@ export interface MockDbData {
   lookupAttempts: number[];
 }
 
-const KEY = 'deutchezz.mockdb.v1';
+const KEY = 'deutchezz.mockdb.v2';
 
 function iso(dayOffset: number): string {
   return format(addDays(new Date(), dayOffset), 'yyyy-MM-dd');
+}
+
+function isoDateTime(dayOffset: number, hour = 12, minute = 0): string {
+  return `${iso(dayOffset)}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 }
 
 function uid(prefix: string): string {
@@ -159,6 +164,7 @@ function seedBookings(): BookingResponse[] {
     specialRequests: 'Late arrival requested',
     totalAmount: 200000,
     createdAt: iso(-2),
+    updatedAt: iso(-2),
   };
 
   const davidCheckedIn: BookingResponse = {
@@ -187,6 +193,7 @@ function seedBookings(): BookingResponse[] {
     specialRequests: null,
     totalAmount: 165000,
     createdAt: iso(-5),
+    updatedAt: iso(0),
   };
 
   const estherPending: BookingResponse = {
@@ -214,6 +221,7 @@ function seedBookings(): BookingResponse[] {
     specialRequests: null,
     totalAmount: 60000,
     createdAt: iso(-1),
+    updatedAt: iso(-1),
   };
 
   const pastCheckedOut: BookingResponse = {
@@ -242,9 +250,86 @@ function seedBookings(): BookingResponse[] {
     specialRequests: null,
     totalAmount: 240000,
     createdAt: iso(-20),
+    updatedAt: iso(-7),
   };
 
-  return [graceBooking, davidCheckedIn, estherPending, pastCheckedOut];
+  const nnamdiUpcoming: BookingResponse = {
+    id: 'booking-nnamdi',
+    bookingReference: 'DHI-2026-3M7Q2B',
+    status: 'Confirmed',
+    paymentStatus: 'Pending',
+    checkInDate: iso(14),
+    checkOutDate: iso(19),
+    nights: 5,
+    adults: 2,
+    children: 1,
+    guest: guest('Nnamdi', 'Eze', 'nnamdi@example.com', '+234 810 222 3344'),
+    rooms: [
+      {
+        bookingRoomTypeId: 'brt-nnamdi-1',
+        roomTypeId: 'deluxe',
+        roomTypeName: 'Deluxe Room',
+        quantity: 2,
+        ratePerNight: 40000,
+        numberOfNights: 5,
+        subtotal: 400000,
+      },
+      {
+        bookingRoomTypeId: 'brt-nnamdi-2',
+        roomTypeId: 'executive',
+        roomTypeName: 'Executive Room',
+        quantity: 1,
+        ratePerNight: 55000,
+        numberOfNights: 5,
+        subtotal: 275000,
+      },
+    ],
+    specialRequests: 'High floor if possible',
+    totalAmount: 675000,
+    createdAt: iso(-3),
+    updatedAt: iso(0),
+  };
+
+  const gracePast: BookingResponse = {
+    id: 'booking-grace-2',
+    bookingReference: 'DHI-2026-3Y8Q1C',
+    status: 'CheckedOut',
+    paymentStatus: 'Paid',
+    checkInDate: iso(-40),
+    checkOutDate: iso(-37),
+    nights: 3,
+    adults: 2,
+    children: 1,
+    guest: guest('Grace', 'Ibrahim', 'grace@example.com', '+234 803 123 4567'),
+    rooms: [
+      {
+        bookingRoomTypeId: 'brt-grace-2-1',
+        roomTypeId: 'standard',
+        roomTypeName: 'Standard Room',
+        quantity: 1,
+        ratePerNight: 30000,
+        numberOfNights: 3,
+        subtotal: 90000,
+        assignedRoomNumbers: ['101'],
+      },
+      {
+        bookingRoomTypeId: 'brt-grace-2-2',
+        roomTypeId: 'deluxe',
+        roomTypeName: 'Deluxe Room',
+        quantity: 1,
+        ratePerNight: 40000,
+        numberOfNights: 3,
+        subtotal: 120000,
+        assignedRoomNumbers: ['104'],
+      },
+    ],
+    specialRequests: null,
+    totalAmount: 210000,
+    createdAt: iso(-45),
+    updatedAt: iso(-37),
+  };
+
+  return [graceBooking, davidCheckedIn, estherPending, pastCheckedOut, nnamdiUpcoming, gracePast];
 }
 
 function seedUsers(): MockUser[] {
@@ -279,11 +364,40 @@ function seedPayments(): Payment[] {
       id: 'pay-1',
       bookingId: 'booking-david',
       bookingReference: 'DHI-2026-7D19PL',
+      guestName: 'David Musa',
+      payerName: 'David Musa',
       amount: 100000,
       paymentMethod: 'POS',
       reference: 'POS-TXN-88231',
       notes: 'Deposit collected at booking via card on POS',
-      recordedAt: iso(-5),
+      recordedByName: 'Tunde Bakare',
+      paidAt: isoDateTime(-5, 10, 30),
+    },
+    {
+      id: 'pay-2',
+      bookingId: 'booking-peter',
+      bookingReference: 'DHI-2026-2N4K6C',
+      guestName: 'Peter James',
+      payerName: 'Peter James',
+      amount: 240000,
+      paymentMethod: 'BankTransfer',
+      reference: 'BT-REF-44107',
+      notes: 'Full stay settled by transfer',
+      recordedByName: 'Chidinma Okafor',
+      paidAt: isoDateTime(-8, 16, 5),
+    },
+    {
+      id: 'pay-3',
+      bookingId: 'booking-grace-2',
+      bookingReference: 'DHI-2026-3Y8Q1C',
+      guestName: 'Grace Ibrahim',
+      payerName: 'Grace Ibrahim',
+      amount: 210000,
+      paymentMethod: 'Cash',
+      reference: null,
+      notes: 'Settled on arrival',
+      recordedByName: 'Femi Adeyemi',
+      paidAt: isoDateTime(-37, 12, 15),
     },
   ];
 }
@@ -314,15 +428,19 @@ function seedSettings(): HotelSettings {
     checkInTime: appConfig.checkInTime,
     checkOutTime: appConfig.checkOutTime,
     maxRoomsPerBooking: appConfig.maxRoomsPerBooking,
+    requireFullPaymentAtCheckIn: false,
+    requirePaymentBeforeCheckOut: false,
   };
 }
 
 export function createSeedData(): MockDbData {
+  const roomTypes = seedRoomTypes();
   const bookings = seedBookings();
+  deriveBookingTotals(bookings, roomTypes);
   return {
-    version: 1,
+    version: 3,
     users: seedUsers(),
-    roomTypes: seedRoomTypes(),
+    roomTypes,
     rooms: seedRooms(),
     bookings,
     payments: seedPayments(),
@@ -355,7 +473,14 @@ export function readDb(): MockDbData {
   const raw = safeGet();
   if (raw) {
     try {
-      return JSON.parse(raw) as MockDbData;
+      const db = JSON.parse(raw) as MockDbData;
+      deriveBookingTotals(db.bookings, db.roomTypes);
+      for (const b of db.bookings) {
+        if (!b.updatedAt) b.updatedAt = b.createdAt;
+      }
+      // Fill keys added after a persisted snapshot's version with today's defaults.
+      db.settings = { ...seedSettings(), ...db.settings };
+      return db;
     } catch {
       /* corrupted — reseed */
     }
@@ -396,4 +521,25 @@ export function getOrCreateUser(db: MockDbData, profile: { firstName: string; la
 
 export function todayISO(): string {
   return format(new Date(), 'yyyy-MM-dd');
+}
+
+/**
+ * Date-aware occupancy for the mock room board (mirrors the backend concept):
+ * for a given date a room is Occupied when a live (Confirmed/CheckedIn) booking
+ * whose stay covers the date has it assigned, else Available. Maintenance and
+ * Inactive are always physical; with no date the physical status is returned.
+ */
+export function effectiveRoomStatus(db: MockDbData, room: Room, date?: string): Room['status'] {
+  if (room.status === 'Maintenance' || room.status === 'Inactive') return room.status;
+  if (date) {
+    const occupied = db.bookings.some(
+      (b) =>
+        (b.status === 'Confirmed' || b.status === 'CheckedIn') &&
+        b.checkInDate <= date &&
+        b.checkOutDate > date &&
+        (b.rooms ?? []).some((line) => (line.assignedRoomNumbers ?? []).includes(room.roomNumber)),
+    );
+    return occupied ? 'Occupied' : 'Available';
+  }
+  return room.status;
 }

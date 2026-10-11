@@ -171,6 +171,13 @@ export interface BookingResponse {
   specialRequests: string | null;
   totalAmount: number;
   createdAt: string;
+  /** "yyyy-MM-dd" — bumped on any lifecycle change (rooms assigned, checked in, payment recorded, cancelled). */
+  updatedAt: string;
+  /**
+   * Live payment summary from the backend booking detail. Optional because the
+   * mock adapter and list endpoints don't populate it.
+   */
+  payments?: { totalPaid: number; balance: number };
 }
 
 export interface BookingLookupRequest {
@@ -193,9 +200,17 @@ export interface BookingListItem {
   roomsSummary: string;
   totalAmount: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface CancelBookingRequest {
+  reason?: string;
+}
+
+/** Anonymous cancellation is authorised by reference + email, like lookup. */
+export interface AnonymousCancelBookingRequest {
+  bookingReference: string;
+  email: string;
   reason?: string;
 }
 
@@ -211,7 +226,10 @@ export interface Room {
   floor: number;
   roomTypeId: string;
   roomTypeName: string;
+  /** Persisted physical state (editable by admins). */
   status: RoomStatus;
+  /** Occupancy for the requested board date; falls back to `status` when absent. */
+  effectiveStatus?: RoomStatus;
 }
 
 export interface SaveRoomRequest {
@@ -234,6 +252,7 @@ export interface GuestListItem {
   inHouse: boolean;
   currentRoomNumbers?: string[];
   lastStayDate?: string;
+  createdAt?: string;
 }
 
 /* --------------------------------- Staff --------------------------------- */
@@ -255,6 +274,8 @@ export interface SaveStaffRequest {
   email: string;
   phoneNumber?: string;
   role: StaffRole;
+  /** Required when creating a staff member; ignored on update. */
+  password?: string;
 }
 
 /* -------------------------------- Payments ------------------------------- */
@@ -263,20 +284,32 @@ export interface RecordPaymentRequest {
   bookingId: string;
   amount: number;
   paymentMethod: PaymentMethod;
+  /** Optional display-only label; not persisted by the backend. */
+  payerName?: string;
+  /** Transaction reference. Required for POS and Bank transfer. */
   reference?: string | null;
   notes?: string | null;
 }
 
-export interface Payment {
+/** Row shape used by the payment lists across the portals. */
+export interface PaymentListItem {
   id: string;
   bookingId: string;
   bookingReference: string;
+  guestName: string;
+  payerName: string;
   amount: number;
   paymentMethod: PaymentMethod;
   reference?: string | null;
   notes?: string | null;
-  recordedAt: string;
+  /** Staff name behind the desk when the money was recorded. */
+  recordedByName: string;
+  /** ISO date-time the payment was received. */
+  paidAt: string;
 }
+
+/** The full stored payment record (superset of the list row). */
+export type Payment = PaymentListItem;
 
 /* ----------------------------- Me / customer ----------------------------- */
 
@@ -328,7 +361,8 @@ export interface AdminReports {
 
 export interface ActivityLog {
   id: string;
-  type: 'BookingCreated' | 'BookedRoomsAssigned' | 'BookingCheckedIn' | 'BookingCheckedOut' | 'BookingCancelled' | 'PaymentRecorded' | 'RoomStatusChanged' | 'RoomTypeCreated' | 'RoomTypeUpdated' | 'StaffCreated' | 'StaffUpdated';
+  /** Mapped audit action; falls back to the raw backend action when unknown. */
+  type: string;
   message: string;
   actorName: string;
   timestamp: string;
@@ -352,6 +386,12 @@ export interface HotelSettings {
   checkInTime: string;
   checkOutTime: string;
   maxRoomsPerBooking: number;
+  /** Hours before check-in that a cancellation is allowed (backend-managed). */
+  cancellationWindowHours?: number;
+  /** Checks-in are refused while an amount is outstanding (backend-managed, default off). */
+  requireFullPaymentAtCheckIn?: boolean;
+  /** Check-outs are refused while an amount is outstanding (backend-managed, default off). */
+  requirePaymentBeforeCheckOut?: boolean;
 }
 
 export type SaveSettingsRequest = Partial<HotelSettings>;

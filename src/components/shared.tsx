@@ -1,5 +1,16 @@
 import { appConfig } from '@/config/appConfig';
 import { Card } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+
+/**
+ * Accessible whole-row link for tables and lists. Place inside a `relative`
+ * row/cell: the link stretches across the row while remaining keyboard-focusable.
+ */
+export function RowLink({ to, label }: { to: string; label: string }) {
+  return (
+    <Link to={to} aria-label={label} className="absolute inset-0 z-10 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset" />
+  );
+}
 
 export function StatCard({ label, value, icon: Icon }: { label: string; value: string; icon: React.ComponentType<{ className?: string }> }) {
   return (

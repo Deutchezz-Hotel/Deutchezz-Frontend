@@ -10,7 +10,7 @@ import type {
   BookingListItem,
   BookingStatus,
   Paginated,
-  Payment,
+  PaymentListItem,
   PaymentMethod,
   Room,
   RoomTypeResponse,
@@ -21,7 +21,7 @@ import type {
   Staff,
 } from '@/types';
 import { initialsOf, newId } from '@/lib/id';
-import { readDb, writeDb, type MockDbData } from './db';
+import { effectiveRoomStatus, readDb, writeDb, type MockDbData } from './db';
 import { simulateLatency } from './latency';
 import { paginate } from './rules';
 import { deriveGuests, filterBookings } from './selectors';
@@ -95,14 +95,14 @@ export const mockAdminApi = {
     };
   },
 
-  async listRooms(params: { page?: number; pageSize?: number; search?: string; status?: string }): Promise<Paginated<Room>> {
+  async listRooms(params: { page?: number; pageSize?: number; search?: string; status?: string; date?: string }): Promise<Paginated<Room>> {
     await simulateLatency();
     const db = readDb();
     requireRole(['Administrator'], db);
-    let rooms = db.rooms.slice();
-    if (params.status && params.status !== 'All') rooms = rooms.filter((r) => r.status === params.status);
+    let rooms = db.rooms.map((r) => ({ ...r, effectiveStatus: effectiveRoomStatus(db, r, params.date) }));
+    if (params.status && params.status !== 'All') rooms = rooms.filter((r) => r.effectiveStatus === params.status);
     const q = params.search?.trim().toLowerCase();
-    if (q) rooms = rooms.filter((r) => r.roomNumber.toLowerCase().includes(q) || r.roomTypeName.toLowerCase().includes(q));
+    if (q) rooms = rooms.filter((r) => `${r.roomNumber} ${r.roomTypeName}`.toLowerCase().includes(q));
     return paginate(rooms, params.page, params.pageSize);
   },
 
@@ -245,7 +245,7 @@ export const mockAdminApi = {
     return type;
   },
 
-  async listBookings(params: { page?: number; pageSize?: number; status?: string; dateFrom?: string; dateTo?: string; search?: string }): Promise<Paginated<BookingListItem>> {
+  async listBookings(params: import('@/api').BookingFilterParams): Promise<Paginated<BookingListItem>> {
     await simulateLatency();
     const db = readDb();
     requireRole(['Administrator'], db);
@@ -336,13 +336,20 @@ export const mockAdminApi = {
     return staff;
   },
 
-  async listPayments(params: { page?: number; pageSize?: number; search?: string }): Promise<Paginated<Payment>> {
+  async listPayments(params: { page?: number; pageSize?: number; search?: string }): Promise<Paginated<PaymentListItem>> {
     await simulateLatency();
     const db = readDb();
     requireRole(['Administrator'], db);
-    let payments = db.payments.slice().sort((a, b) => (a.recordedAt < b.recordedAt ? 1 : -1));
+    let payments = db.payments.slice().sort((a, b) => (a.paidAt < b.paidAt ? 1 : -1));
     const q = params.search?.trim().toLowerCase();
-    if (q) payments = payments.filter((p) => p.bookingReference.toLowerCase().includes(q));
+    if (q) {
+      payments = payments.filter(
+        (p) =>
+          p.guestName.toLowerCase().includes(q) ||
+          p.bookingReference.toLowerCase().includes(q) ||
+          (p.reference ?? '').toLowerCase().includes(q),
+      );
+    }
     return paginate(payments, params.page, params.pageSize);
   },
 
@@ -415,6 +422,8 @@ export const mockAdminApi = {
     db.settings.checkInTime = request.checkInTime ?? db.settings.checkInTime;
     db.settings.checkOutTime = request.checkOutTime ?? db.settings.checkOutTime;
     db.settings.maxRoomsPerBooking = request.maxRoomsPerBooking ?? db.settings.maxRoomsPerBooking;
+    if (request.requireFullPaymentAtCheckIn !== undefined) db.settings.requireFullPaymentAtCheckIn = request.requireFullPaymentAtCheckIn;
+    if (request.requirePaymentBeforeCheckOut !== undefined) db.settings.requirePaymentBeforeCheckOut = request.requirePaymentBeforeCheckOut;
     pushActivity(db, 'RoomStatusChanged', 'Hotel settings updated', ACTOR(actor));
     writeDb(db);
     return db.settings;

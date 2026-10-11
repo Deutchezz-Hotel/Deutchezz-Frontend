@@ -21,9 +21,30 @@ import type {
 
 export type RoomTypeLike = Pick<RoomTypeResponse, 'id' | 'name' | 'description' | 'basePrice' | 'maximumOccupancy' | 'bedType' | 'imageUrls' | 'features' | 'isActive'>;
 export type RoomLike = { roomTypeId: string; status: string };
-export type BookingLike = Pick<BookingResponse, 'id' | 'bookingReference' | 'status' | 'paymentStatus' | 'checkInDate' | 'checkOutDate' | 'adults' | 'children' | 'guest' | 'rooms' | 'totalAmount' | 'createdAt' | 'nights'> & { rooms: Array<{ roomTypeId: string; quantity: number }> };
+export type BookingLike = Pick<BookingResponse, 'id' | 'bookingReference' | 'status' | 'paymentStatus' | 'checkInDate' | 'checkOutDate' | 'adults' | 'children' | 'guest' | 'rooms' | 'totalAmount' | 'createdAt' | 'updatedAt' | 'nights'>;
 
 export const BOOKING_STATUSES_THAT_BLOCK: BookingStatus[] = ['Pending', 'Confirmed', 'CheckedIn'];
+
+/**
+ * Re-derive every line (per-night rate, nights, subtotal) and the booking total
+ * from the room-type catalogue. This is the single source of truth: numbers are
+ * never typed in by hand anywhere in the UI.
+ */
+export function deriveBookingTotals(bookings: BookingLike[], roomTypes: RoomTypeLike[]): void {
+  for (const b of bookings) {
+    const nights = nightsBetween(b.checkInDate, b.checkOutDate);
+    let total = 0;
+    for (const line of b.rooms) {
+      const rate = roomTypes.find((t) => t.id === line.roomTypeId)?.basePrice ?? line.ratePerNight ?? 0;
+      line.ratePerNight = rate;
+      line.numberOfNights = nights;
+      line.subtotal = rate * line.quantity * nights;
+      total += line.subtotal;
+    }
+    b.nights = nights;
+    b.totalAmount = total;
+  }
+}
 
 /** Half-open interval overlap: a checkout on date X does not block a check-in on date X. */
 export function overlapsHalfOpen(checkInA: string, checkOutA: string, checkInB: string, checkOutB: string): boolean {
@@ -167,6 +188,7 @@ export function createBookingFromData(
       0,
     ),
     createdAt: today,
+    updatedAt: today,
   };
 
   idempotency[idempotencyKey] = { hash, bookingId: booking.id };
@@ -247,6 +269,7 @@ export function bookingListItem(b: BookingResponse): BookingListItem {
     roomsSummary: roomsSummary(b.rooms),
     totalAmount: b.totalAmount,
     createdAt: b.createdAt,
+    updatedAt: b.updatedAt,
   };
 }
 

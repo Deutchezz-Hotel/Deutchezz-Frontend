@@ -2,7 +2,7 @@ import { appConfig } from '@/config/appConfig';
 import { cn } from '@/lib/utils';
 import { roleLabel } from '@/lib/format';
 import { useAuth } from '@/app/auth';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import {
   Activity,
@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export interface ConsoleNavItem {
   to: string;
@@ -84,10 +85,22 @@ function SidebarNav({ groups, onNavigate }: { groups: ConsoleNavGroup[]; onNavig
   );
 }
 
+function SidebarLogo() {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+        D
+      </span>
+    );
+  }
+  return <img src={appConfig.logoUrl} alt="Deutchezz Hotel Ispahan" className="h-9 w-9" onError={() => setFailed(true)} />;
+}
+
 function SidebarHeader({ sectionLabel }: { sectionLabel: string }) {
   return (
     <div className="flex items-center gap-3 border-b px-5 py-4">
-      <img src={appConfig.logoUrl} alt="" className="h-9 w-9" />
+      <SidebarLogo />
       <div className="leading-tight">
         <p className="text-sm font-semibold tracking-wide text-ink-900">Deutchezz</p>
         <p className="text-xs text-muted-foreground">{sectionLabel}</p>
@@ -99,21 +112,23 @@ function SidebarHeader({ sectionLabel }: { sectionLabel: string }) {
 export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholder = 'Search...', children }: ConsoleLayoutProps) {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { pathname } = useLocation();
+  const isDashboard = pathname === '/admin' || pathname === '/reception' || pathname === '/dashboard';
 
   return (
     <div className="flex min-h-screen bg-canvas font-sans">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r bg-white lg:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border/50 bg-white md:flex xl:w-64">
         <SidebarHeader sectionLabel={sectionLabel} />
         <SidebarNav groups={groups} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/50 bg-white px-4 sm:px-6">
           {/* Mobile menu */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
+              <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -135,7 +150,8 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
             />
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-1 sm:gap-3">
+            <ThemeToggle />
             <Button asChild variant="ghost" size="sm" className="hidden text-ink-600 sm:inline-flex">
               <Link to="/">View site</Link>
             </Button>
@@ -169,7 +185,11 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children ?? <Outlet />}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <div key={pathname} className={isDashboard ? undefined : 'animate-fade-up motion-reduce:animate-none'}>
+            {children ?? <Outlet />}
+          </div>
+        </main>
       </div>
     </div>
   );

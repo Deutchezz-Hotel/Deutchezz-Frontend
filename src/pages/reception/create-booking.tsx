@@ -14,7 +14,7 @@ import { addDaysISO, formatStayRange, nightsBetween, todayISO } from '@/lib/date
 import { newIdempotencyKey } from '@/lib/id';
 import { appConfig } from '@/config/appConfig';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
 
@@ -33,6 +33,10 @@ type FormValues = z.infer<typeof schema>;
 
 export default function ReceptionCreateBookingPage() {
   const nav = useNavigate();
+  const { pathname } = useLocation();
+  // Rendered under both the reception and admin consoles; return to the one we
+  // were launched from.
+  const bookingsBase = pathname.startsWith('/admin') ? '/admin/bookings' : '/reception/bookings';
   const [idempotencyKey] = useState(() => newIdempotencyKey());
   const [qty, setQty] = useState<Record<string, number>>({});
   const createBooking = useReceptionCreateBooking(idempotencyKey);
@@ -107,7 +111,7 @@ export default function ReceptionCreateBookingPage() {
       {
         onSuccess: (booking) => {
           toast.success(`Booking created`);
-          nav(`/reception/bookings/${booking.id}`, { replace: true });
+          nav(`${bookingsBase}/${booking.id}`, { replace: true });
         },
         onError: () => toast.error('Could not create the booking'),
       },

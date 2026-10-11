@@ -2,12 +2,14 @@ import { useAuth } from '@/app/auth';
 import { useReceptionBookings, useReceptionRooms } from '@/hooks/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
+import { RowLink } from '@/components/shared';
 import { roomStatusLabel, bookingStatusLabel } from '@/lib/format';
 import { todayISO, formatStayRange } from '@/lib/dates';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import type { RoomStatus } from '@/types';
+import { ArrowRight, ArrowUpRight, Plus } from 'lucide-react';
+import type { BookingListItem, RoomStatus } from '@/types';
 
 export default function ReceptionDashboardPage() {
   const { user } = useAuth();
@@ -33,9 +35,12 @@ export default function ReceptionDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="heading-2">Good day{user ? `, ${user.firstName}` : ''}.</h1>
-        <p className="text-sm text-ink-600">{today} — here&apos;s the front desk at a glance.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="heading-2">Good day{user ? `, ${user.firstName}` : ''}.</h1>
+          <p className="text-sm text-ink-600">{today} — here&apos;s the front desk at a glance.</p>
+        </div>
+        <Button asChild><Link to="/reception/bookings/new"><Plus className="mr-2 h-4 w-4" /> New walk-in</Link></Button>
       </div>
 
       {loading ? <PageSkeleton rows={3} /> : null}
@@ -64,13 +69,41 @@ export default function ReceptionDashboardPage() {
                 ) : (
                   <ul className="divide-y">
                     {arrivalsToday.map((b) => (
-                      <li key={b.id} className="flex items-center justify-between gap-3 py-3">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-ink-900">{b.guestName}</p>
-                          <p className="truncate text-xs text-ink-600">{b.bookingReference} · {b.roomsSummary} · {b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
-                        </div>
-                        <Badge variant={b.status === 'Confirmed' ? 'default' : 'warning'}>{bookingStatusLabel(b.status)}</Badge>
-                      </li>
+                      <BookingRow key={b.id} b={b} />
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Departures today</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {departuresToday.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-ink-600">No departures due today.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {departuresToday.map((b) => (
+                      <BookingRow key={b.id} b={b} />
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-forest-200 bg-forest-50/60 lg:col-span-1">
+              <CardHeader>
+                <CardTitle className="text-forest-900">Checked in now</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {inHouse.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-forest-700">No guests in-house right now.</p>
+                ) : (
+                  <ul className="divide-y divide-forest-100">
+                    {inHouse.map((b) => (
+                      <BookingRow key={b.id} b={b} tone="forest" />
                     ))}
                   </ul>
                 )}
@@ -114,12 +147,16 @@ export default function ReceptionDashboardPage() {
                 ) : (
                   <ul className="divide-y">
                     {bookings.slice(0, 8).map((b) => (
-                      <li key={b.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-milk">
                         <div className="min-w-0">
                           <p className="truncate font-medium text-ink-900">{b.guestName}</p>
                           <p className="truncate text-xs text-ink-600">{b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}</p>
                         </div>
-                        <Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge>
+                          <ArrowUpRight className="h-4 w-4 text-ink-400" />
+                        </div>
+                        <RowLink to={`/reception/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} />
                       </li>
                     ))}
                   </ul>
@@ -130,6 +167,23 @@ export default function ReceptionDashboardPage() {
         </>
       ) : null}
     </div>
+  );
+}
+
+function BookingRow({ b, tone }: { b: BookingListItem; tone?: 'forest' }) {
+  const isForest = tone === 'forest';
+  return (
+    <li className={`relative flex items-center justify-between gap-3 py-3 ${isForest ? 'hover:bg-forest-50' : 'hover:bg-milk'}`}>
+      <div className="min-w-0">
+        <p className="truncate font-medium text-ink-900">{b.guestName}</p>
+        <p className="truncate text-xs text-ink-600">{b.bookingReference} · {b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Badge variant={b.status === 'Confirmed' ? 'default' : 'warning'}>{bookingStatusLabel(b.status)}</Badge>
+        <ArrowUpRight className={`h-4 w-4 ${isForest ? 'text-forest-500' : 'text-ink-400'}`} />
+      </div>
+      <RowLink to={`/reception/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} />
+    </li>
   );
 }
 

@@ -11,6 +11,11 @@ export function formatDisplayDate(isoDate: string): string {
   return format(parseISO(isoDate), 'dd MMM yyyy');
 }
 
+/** Format an ISO date-time as "10 Oct 2026, 09:30". */
+export function formatDateTime(isoDateTime: string): string {
+  return format(parseISO(isoDateTime), 'dd MMM yyyy, HH:mm');
+}
+
 /** Format an ISO date as "October 10, 2026". */
 export function formatLongDate(isoDate: string): string {
   return format(parseISO(isoDate), 'MMMM d, yyyy');

@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { useAdminBookings } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
+import { RowLink } from '@/components/shared';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
 import { formatStayRange } from '@/lib/dates';
-import { CalendarDays } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowUpRight, CalendarDays, Plus } from 'lucide-react';
 
 const FILTERS = ['All', 'Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled'] as const;
 
@@ -25,12 +28,15 @@ export default function AdminBookingsPage() {
           <h1 className="heading-2">Bookings</h1>
           <p className="text-sm text-ink-600">Every reservation, across the hotel.</p>
         </div>
-        <Input
-          className="w-full sm:w-64"
-          placeholder="Search reference, guest or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            className="w-full sm:w-64"
+            placeholder="Search booking reference..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <Button asChild><Link to="/admin/bookings/new"><Plus className="mr-2 h-4 w-4" /> Walk-in booking</Link></Button>
+        </div>
       </div>
 
       <Tabs value={status} onValueChange={setStatus}>
@@ -56,28 +62,27 @@ export default function AdminBookingsPage() {
                     <TableHead>Reference</TableHead>
                     <TableHead>Guest</TableHead>
                     <TableHead>Stay</TableHead>
-                    <TableHead>Rooms</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
+                    <TableHead className="w-9"><span className="sr-only">Open</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {bookings.map((b) => (
-                    <TableRow key={b.id}>
+                    <TableRow key={b.id} className="relative hover:bg-milk">
                       <TableCell className="font-medium text-ink-900">{b.bookingReference}</TableCell>
                       <TableCell>
                         <p>{b.guestName}</p>
-                        <p className="text-xs text-ink-600">{b.guestEmail}</p>
                       </TableCell>
                       <TableCell>
                         <p>{formatStayRange(b.checkInDate, b.checkOutDate)}</p>
                         <p className="text-xs text-ink-600">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
                       </TableCell>
-                      <TableCell className="text-ink-700" title={b.roomsSummary}>{b.roomsCount}</TableCell>
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
                       <TableCell><Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge></TableCell>
                       <TableCell className="text-ink-700">{paymentStatusLabel(b.paymentStatus)}</TableCell>
+                      <TableCell className="text-ink-400"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/admin/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
