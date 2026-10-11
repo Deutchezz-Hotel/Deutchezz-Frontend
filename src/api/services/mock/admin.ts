@@ -19,6 +19,7 @@ import type {
   SaveSettingsRequest,
   SaveStaffRequest,
   Staff,
+  UploadedImage,
 } from '@/types';
 import { initialsOf, newId } from '@/lib/id';
 import { effectiveRoomStatus, readDb, writeDb, type MockDbData } from './db';
@@ -427,5 +428,19 @@ export const mockAdminApi = {
     pushActivity(db, 'RoomStatusChanged', 'Hotel settings updated', ACTOR(actor));
     writeDb(db);
     return db.settings;
+  },
+
+  async uploadImage(file: File): Promise<UploadedImage> {
+    await simulateLatency();
+    const db = readDb();
+    requireRole(['Administrator'], db);
+    if (!file.type.startsWith('image/')) {
+      throw new ApiError({ status: 400, title: 'Bad request', detail: 'Only image files are allowed' });
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      throw new ApiError({ status: 400, title: 'Bad request', detail: 'File size must be 10MB or less' });
+    }
+    // Mock host: an in-session object URL (real uploads go to Cloudinary).
+    return { url: URL.createObjectURL(file), publicId: `mock-${Math.random().toString(36).slice(2, 10)}` };
   },
 };

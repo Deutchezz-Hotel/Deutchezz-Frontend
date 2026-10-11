@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ImageUploader } from '@/components/image-uploader';
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { formatMoney } from '@/lib/format';
 import { toast } from 'sonner';
@@ -132,8 +133,8 @@ export default function AdminRoomTypesPage() {
               <Input value={form.features.join(', ')} onChange={(e) => setForm({ ...form, features: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} placeholder="AC, En-suite, Balcony" />
             </div>
             <div className="space-y-2">
-              <Label>Image URLs (comma separated)</Label>
-              <Input value={form.imageUrls.join(', ')} onChange={(e) => setForm({ ...form, imageUrls: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} placeholder="https://…" />
+              <Label>Photos</Label>
+              <ImageUploader value={form.imageUrls} onChange={(imageUrls) => setForm({ ...form, imageUrls })} />
             </div>
           </div>
           <DialogFooter>

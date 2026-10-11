@@ -37,6 +37,7 @@ import type {
   SaveStaffRequest,
   SaveSettingsRequest,
   Staff,
+  UploadedImage,
   User,
 } from '@/types';
 
@@ -130,6 +131,8 @@ export interface AdminApi {
   listNotifications(params: PaginationParams): Promise<Paginated<AppNotification>>;
   getSettings(): Promise<HotelSettings>;
   updateSettings(request: SaveSettingsRequest): Promise<HotelSettings>;
+  /** Upload a single image (admin only) and get its hosted URL back. */
+  uploadImage(file: File): Promise<UploadedImage>;
 }
 
 export interface ServiceCollection {

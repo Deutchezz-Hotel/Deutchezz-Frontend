@@ -18,6 +18,8 @@ const BASE_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:5144/
 export interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
+  /** Multipart payload; mutually exclusive with `body`. The browser sets the boundary header. */
+  formData?: FormData;
   headers?: Record<string, string>;
   signal?: AbortSignal;
   /** Skip the Bearer header (public endpoints). Default false. */
@@ -96,7 +98,7 @@ async function rawFetch(options: HttpOptions): Promise<Response> {
   return fetch(`${BASE_URL}${options.path}`, {
     method: options.method ?? 'GET',
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: options.formData ?? (options.body !== undefined ? JSON.stringify(options.body) : undefined),
     signal: options.signal,
   });
 }
