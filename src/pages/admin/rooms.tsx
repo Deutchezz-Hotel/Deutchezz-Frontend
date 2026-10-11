@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { useAdminRooms, useAdminRoomMutations, usePublicRoomTypes } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FormDialog, FormDialogBody, FormDialogContent, FormDialogFooter, FormDialogHeader, FormDialogTitle } from '@/components/ui/form-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DatePicker } from '@/components/date-picker';
 import { DataPager } from '@/components/data-pager';
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { roomStatusLabel } from '@/lib/format';
+import { focusFirstInvalid } from '@/lib/focus';
 import { toast } from 'sonner';
 import { BedDouble, Pencil, Plus } from 'lucide-react';
 import type { Room, RoomStatus, SaveRoomRequest } from '@/types';
@@ -29,6 +30,7 @@ const badgeTone = (status: RoomStatus) =>
   : 'secondary';
 
 const emptyForm: SaveRoomRequest = { roomNumber: '', floor: 1, roomTypeId: '', status: 'Available' };
+const FORM_ID = 'room-form';
 
 export default function AdminRoomsPage() {
   const [date, setDate] = useState<Date>(new Date());
@@ -39,6 +41,8 @@ export default function AdminRoomsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Room | null>(null);
   const [form, setForm] = useState<SaveRoomRequest>(emptyForm);
+  const roomNumberRef = useRef<HTMLInputElement>(null);
+  const roomTypeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -73,7 +77,13 @@ export default function AdminRoomsPage() {
     setOpen(true);
   };
   const save = () => {
-    if (!form.roomNumber.trim() || !form.roomTypeId) {
+    const roomNumberValid = form.roomNumber.trim().length > 0;
+    const roomTypeValid = form.roomTypeId.length > 0;
+    if (!roomNumberValid || !roomTypeValid) {
+      focusFirstInvalid([
+        { valid: roomNumberValid, el: roomNumberRef.current },
+        { valid: roomTypeValid, el: roomTypeRef.current },
+      ]);
       toast.error('Enter a room number and choose a room type');
       return;
     }
@@ -176,51 +186,53 @@ export default function AdminRoomsPage() {
         )
       ) : null}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? `Edit room ${editing.roomNumber}` : 'Add a room'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Room number</Label>
-                <Input value={form.roomNumber} onChange={(e) => setForm({ ...form, roomNumber: e.target.value })} placeholder="e.g. 101" />
+      <FormDialog open={open} onOpenChange={setOpen}>
+        <FormDialogContent className="sm:max-w-md">
+          <FormDialogHeader>
+            <FormDialogTitle>{editing ? `Edit room ${editing.roomNumber}` : 'Add a room'}</FormDialogTitle>
+          </FormDialogHeader>
+          <FormDialogBody>
+            <form id={FORM_ID} className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Room number</Label>
+                  <Input ref={roomNumberRef} value={form.roomNumber} onChange={(e) => setForm({ ...form, roomNumber: e.target.value })} placeholder="e.g. 101" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Floor</Label>
+                  <Input type="number" min={0} value={form.floor} onChange={(e) => setForm({ ...form, floor: Number(e.target.value) })} />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>Floor</Label>
-                <Input type="number" min={0} value={form.floor} onChange={(e) => setForm({ ...form, floor: Number(e.target.value) })} />
+                <Label>Room type</Label>
+                <Select value={form.roomTypeId} onValueChange={(v) => setForm({ ...form, roomTypeId: v })}>
+                  <SelectTrigger ref={roomTypeRef}><SelectValue placeholder="Choose a room type" /></SelectTrigger>
+                  <SelectContent>
+                    {roomTypes.map((rt) => (
+                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Room type</Label>
-              <Select value={form.roomTypeId} onValueChange={(v) => setForm({ ...form, roomTypeId: v })}>
-                <SelectTrigger><SelectValue placeholder="Choose a room type" /></SelectTrigger>
-                <SelectContent>
-                  {roomTypes.map((rt) => (
-                    <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={form.status} onValueChange={(v: RoomStatus) => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ROOM_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>{roomStatusLabel(s)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v: RoomStatus) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ROOM_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>{roomStatusLabel(s)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </form>
+          </FormDialogBody>
+          <FormDialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save} disabled={mutations.createRoom.isPending || mutations.updateRoom.isPending}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button type="submit" form={FORM_ID} disabled={mutations.createRoom.isPending || mutations.updateRoom.isPending}>Save</Button>
+          </FormDialogFooter>
+        </FormDialogContent>
+      </FormDialog>
     </div>
   );
 }

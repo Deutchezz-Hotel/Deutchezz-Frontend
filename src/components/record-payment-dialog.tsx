@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReceptionBookings, useReceptionBooking, useRecordPayment } from '@/hooks/queries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FormDialog, FormDialogBody, FormDialogContent, FormDialogFooter, FormDialogHeader, FormDialogTitle } from '@/components/ui/form-dialog';
 import { formatMoney, paymentMethodLabel } from '@/lib/format';
 import { formatStayRange } from '@/lib/dates';
+import { focusFirstInvalid } from '@/lib/focus';
 import { toast } from 'sonner';
 import { Search } from 'lucide-react';
 import type { PaymentMethod } from '@/types';
 
 const METHODS: PaymentMethod[] = ['Cash', 'POS', 'BankTransfer'];
+const FORM_ID = 'record-payment-form';
 
 interface Props {
   open: boolean;
@@ -33,6 +35,9 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState(emptyErrors);
+  const queryRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const referenceRef = useRef<HTMLInputElement>(null);
 
   const detailQuery = useReceptionBooking(selectedId ?? undefined);
   const detail = detailQuery.data;
@@ -83,9 +88,11 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
     if (!selectedId) {
       next.booking = 'Choose a booking';
       setErrors(next);
+      focusFirstInvalid([{ valid: false, el: queryRef.current }]);
       return;
     }
     const amt = Number(amount);
+    const amountValid = !(!amt || Number.isNaN(amt) || amt <= 0 || (detail ? amt > balance : false));
     if (!amt || Number.isNaN(amt) || amt <= 0) {
       next.amount = 'Enter an amount greater than 0';
     } else if (detail && balance <= 0) {
@@ -93,9 +100,14 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
     } else if (detail && amt > balance) {
       next.amount = `Amount can't exceed the balance due (${formatMoney(balance)})`;
     }
+    const referenceValid = method === 'Cash' || reference.trim().length > 0;
     if (method !== 'Cash' && !reference.trim()) next.reference = 'Transaction reference is required';
     if (Object.values(next).some(Boolean)) {
       setErrors(next);
+      focusFirstInvalid([
+        { valid: amountValid, el: amountRef.current },
+        { valid: referenceValid, el: referenceRef.current },
+      ]);
       return;
     }
     record.mutate(
@@ -118,22 +130,23 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Record a payment</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
+    <FormDialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
+      <FormDialogContent className="sm:max-w-lg">
+        <FormDialogHeader>
+          <FormDialogTitle>Record a payment</FormDialogTitle>
+        </FormDialogHeader>
+        <FormDialogBody>
+          <form id={FORM_ID} className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit(); }}>
           {!selectedId ? (
             <div className="space-y-2">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  ref={queryRef}
                   className="pl-9"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search guest name or booking reference..."
-                  autoFocus
                 />
               </div>
               {matches.length === 0 ? (
@@ -184,7 +197,7 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pay-amount">Amount (₦)</Label>
-              <Input id="pay-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <Input ref={amountRef} id="pay-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
               <p className="text-xs text-destructive">{errors.amount}</p>
             </div>
             <div className="space-y-2">
@@ -200,7 +213,7 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
 
           <div className="space-y-2">
             <Label htmlFor="pay-reference">Transaction reference {method === 'Cash' ? '(optional)' : ''}</Label>
-            <Input id="pay-reference" value={reference} onChange={(e) => setReference(e.target.value)} placeholder={method === 'Cash' ? 'Optional' : 'e.g. POS slip or transfer reference'} />
+            <Input ref={referenceRef} id="pay-reference" value={reference} onChange={(e) => setReference(e.target.value)} placeholder={method === 'Cash' ? 'Optional' : 'e.g. POS slip or transfer reference'} />
             <p className="text-xs text-destructive">{errors.reference}</p>
           </div>
 
@@ -208,12 +221,13 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
             <Label htmlFor="pay-notes">Notes (optional)</Label>
             <Input id="pay-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
-        </div>
-        <DialogFooter>
+          </form>
+        </FormDialogBody>
+        <FormDialogFooter>
           <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>Cancel</Button>
-          <Button onClick={submit} disabled={record.isPending}>{record.isPending ? 'Saving…' : 'Record payment'}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button type="submit" form={FORM_ID} disabled={record.isPending}>{record.isPending ? 'Saving…' : 'Record payment'}</Button>
+        </FormDialogFooter>
+      </FormDialogContent>
+    </FormDialog>
   );
 }

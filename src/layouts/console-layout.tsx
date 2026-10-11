@@ -132,7 +132,7 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
+            <SheetContent side="left" className="flex w-72 flex-col p-0">
               <SheetHeader className="sr-only">
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
