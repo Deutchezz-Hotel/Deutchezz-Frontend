@@ -89,12 +89,6 @@ export interface SaveRoomTypeRequest {
   features: string[];
 }
 
-/** Result of a server-side image upload (Cloudinary-backed). */
-export interface UploadedImage {
-  url: string;
-  publicId: string;
-}
-
 /* ------------------------------- Availability ---------------------------- */
 
 export interface AvailabilitySearchRequest {

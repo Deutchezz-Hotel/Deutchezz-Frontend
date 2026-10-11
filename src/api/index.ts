@@ -1,15 +1,11 @@
 /**
- * Services factory. VITE_USE_MOCKS toggles between real (fetch) and mock
- * (in-memory + localStorage). Consumers import `services` and never touch the
- * implementation directly.
+ * Services factory. Consumers import `services` and never touch the
+ * implementation directly. The app always talks to the real backend API.
  */
 import type { ServiceCollection } from './services/interfaces';
 import { realServices } from './services/real';
-import { mockServices } from './services/mock';
 
-export const useMocks = import.meta.env.VITE_USE_MOCKS === 'true';
-
-export const services: ServiceCollection = useMocks ? mockServices : realServices;
+export const services: ServiceCollection = realServices;
 
 export * from './services/interfaces';
 export * from './problem';

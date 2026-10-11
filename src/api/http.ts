@@ -12,8 +12,9 @@
  */
 import { ApiError, type ProblemDetails } from './problem';
 import { authStorage } from './auth-storage';
+import { env } from '@/config/env';
 
-const BASE_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:5144/api/v1';
+const BASE_URL: string = env.apiUrl;
 
 export interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

@@ -39,7 +39,6 @@ import type {
   SaveSettingsRequest,
   SaveStaffRequest,
   Staff,
-  UploadedImage,
   User,
 } from '@/types';
 import type { BookingFilterParams, PaginationParams, RoomListParams } from '../interfaces';
@@ -381,11 +380,6 @@ export const realAdminApi = {
   },
   updateSettings(request: SaveSettingsRequest): Promise<HotelSettings> {
     return call<c.AdminSettingsResponse>({ path: '/admin/settings', method: 'PUT', body: m.toSettingsPatch(request) }).then(m.toSettings);
-  },
-  uploadImage(file: File): Promise<UploadedImage> {
-    const fd = new FormData();
-    fd.append('file', file);
-    return call<UploadedImage>({ path: '/uploads/images', method: 'POST', formData: fd });
   },
 };
 

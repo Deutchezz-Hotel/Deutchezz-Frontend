@@ -5,7 +5,6 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/app/auth';
 import { useEffect } from 'react';
-import { DevQuickLogin } from '@/components/dev-quick-login';
 import type { BookingFlowState } from '@/features/booking/types';
 
 export default function LoginPage() {
@@ -52,9 +51,6 @@ export default function LoginPage() {
         </CardContent>
       </Card>
       </Reveal>
-      <div className="mt-8">
-        <DevQuickLogin />
-      </div>
     </div>
   );
 }
