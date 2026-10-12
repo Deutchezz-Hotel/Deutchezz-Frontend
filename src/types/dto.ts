@@ -13,6 +13,7 @@
 import type {
   BookingSource,
   BookingStatus,
+  EarlyCheckOutReason,
   NotificationType,
   PaymentMethod,
   PaymentStatus,
@@ -217,6 +218,14 @@ export interface ReceptionCancelBookingRequest {
   refundPaidAmounts: boolean;
 }
 
+/** A live room assignment belonging to a booking line. */
+export interface AssignedRoom {
+  /** `RoomAssignment` id — used to reassign or unassign this specific room. */
+  id: string;
+  roomId: string;
+  roomNumber: string;
+}
+
 export interface BookingRoomLine {
   bookingRoomTypeId: string;
   roomTypeId: string;
@@ -225,7 +234,10 @@ export interface BookingRoomLine {
   ratePerNight: number;
   numberOfNights: number;
   subtotal: number;
+  /** Room numbers of the live assignments, in assignment order. */
   assignedRoomNumbers?: string[];
+  /** Rich live assignments for this line (v1.9); enables per-room actions. */
+  assignedRooms?: AssignedRoom[];
 }
 
 export interface BookingResponse {
@@ -296,6 +308,49 @@ export interface AnonymousCancelBookingRequest {
 
 export interface AssignRoomsRequest {
   assignments: { bookingRoomTypeId: string; roomId: string }[];
+}
+
+/* ------------------------- Stay changes (v1.9) --------------------------- */
+
+/**
+ * Required only when checking out before the scheduled check-out moment.
+ * `guestConsented` is an attested flag recorded for audit; `notes` is required
+ * when the reason is 'Other'.
+ */
+export interface EarlyCheckOutInfo {
+  reason: EarlyCheckOutReason;
+  notes?: string | null;
+  guestConsented: boolean;
+}
+
+/** Optional body for check-out; send `earlyCheckOut` for an early check-out. */
+export interface CheckOutRequest {
+  earlyCheckOut?: EarlyCheckOutInfo | null;
+}
+
+/** Moves part of a room line to a different room type before arrival. */
+export interface ChangeRoomTypeRequest {
+  bookingRoomTypeId: string;
+  newRoomTypeId: string;
+  quantity: number;
+}
+
+/** Result of a room-type change: the updated booking and any released room numbers. */
+export interface ChangeRoomTypeResult {
+  booking: BookingResponse;
+  assignmentsCleared: string[];
+}
+
+/** Swaps one live room assignment for another room of the same type. */
+export interface ReassignRoomRequest {
+  roomAssignmentId: string;
+  newRoomId: string;
+  reason?: string | null;
+}
+
+/** Releases a live room assignment before check-in. */
+export interface UnassignRoomRequest {
+  roomAssignmentId: string;
 }
 
 /* --------------------------------- Rooms --------------------------------- */
@@ -499,6 +554,8 @@ export interface HotelSettings {
   requireFullPaymentAtCheckIn?: boolean;
   /** Check-outs are refused while an amount is outstanding (backend-managed, default off). */
   requirePaymentBeforeCheckOut?: boolean;
+  /** Early check-outs require an administrator, not just a receptionist (default off). */
+  earlyCheckOutRequiresAdmin?: boolean;
 }
 
 export type SaveSettingsRequest = Partial<HotelSettings>;

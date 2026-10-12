@@ -21,7 +21,10 @@ import type {
   BookingLookupRequest,
   BookingResponse,
   CancelBookingRequest,
+  ChangeRoomTypeRequest,
+  ChangeRoomTypeResult,
   ChangeUserRoleRequest,
+  CheckOutRequest,
   CreateBookingRequest,
   ForgotPasswordRequest,
   GuestListItem,
@@ -32,6 +35,7 @@ import type {
   Paginated,
   Payment,
   PaymentListItem,
+  ReassignRoomRequest,
   ReceptionCancelBookingRequest,
   ReceptionCreateBookingRequest,
   RecordPaymentRequest,
@@ -47,6 +51,7 @@ import type {
   SaveSettingsRequest,
   SaveStaffRequest,
   Staff,
+  UnassignRoomRequest,
   UploadedImage,
   User,
   UserListItem,
@@ -77,6 +82,18 @@ function pagedQuery(params?: PaginationParams & { sort?: string; direction?: str
     pageSize: params?.pageSize,
     sort: params?.sort,
     direction: params?.direction,
+  };
+}
+
+function roomQuery(params: RoomListParams): Record<string, string | number | undefined> {
+  return {
+    ...pagedQuery(params),
+    status: params.status,
+    date: params.date,
+    roomTypeId: params.roomTypeId,
+    availableFrom: params.availableFrom,
+    availableTo: params.availableTo,
+    search: params.search,
   };
 }
 
@@ -286,12 +303,30 @@ export const realReceptionApi = {
     await call<c.CheckInResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/check-in`, method: 'POST' });
     return fetchReceptionBooking(id);
   },
-  async checkOut(id: string): Promise<BookingResponse> {
-    await call<c.CheckOutResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/check-out`, method: 'POST' });
+  async checkOut(id: string, request?: CheckOutRequest): Promise<BookingResponse> {
+    const body: c.CheckOutRequest | undefined = request ? { earlyCheckOut: request.earlyCheckOut ?? null } : undefined;
+    await call<c.CheckOutResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/check-out`, method: 'POST', body });
     return fetchReceptionBooking(id);
   },
+  async changeRoomType(id: string, request: ChangeRoomTypeRequest): Promise<ChangeRoomTypeResult> {
+    const body: c.ChangeRoomTypeRequest = {
+      bookingRoomTypeId: request.bookingRoomTypeId,
+      newRoomTypeId: request.newRoomTypeId,
+      quantity: request.quantity,
+    };
+    const resp = await call<c.ChangeRoomTypeResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/change-room-type`, method: 'POST', body });
+    return { booking: m.toBooking(resp.booking), assignmentsCleared: resp.assignmentsCleared };
+  },
+  reassignRoom(id: string, request: ReassignRoomRequest): Promise<BookingResponse> {
+    const body: c.ReassignRoomRequest = { roomAssignmentId: request.roomAssignmentId, newRoomId: request.newRoomId, reason: request.reason ?? null };
+    return call<c.BookingDetailResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/reassign-room`, method: 'POST', body }).then(m.toBooking);
+  },
+  unassignRoom(id: string, request: UnassignRoomRequest): Promise<BookingResponse> {
+    const body: c.UnassignRoomRequest = { roomAssignmentId: request.roomAssignmentId };
+    return call<c.BookingDetailResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/unassign-room`, method: 'POST', body }).then(m.toBooking);
+  },
   listRooms(params: RoomListParams): Promise<Paginated<Room>> {
-    return call<c.Paged<c.RoomListItemResponse>>({ path: `/reception/rooms${buildQuery({ ...pagedQuery(params), status: params.status, date: params.date, search: params.search })}` }).then(
+    return call<c.Paged<c.RoomListItemResponse>>({ path: `/reception/rooms${buildQuery(roomQuery(params))}` }).then(
       (p) => m.mapPage(p, m.toRoom),
     );
   },
@@ -329,7 +364,7 @@ export const realAdminApi = {
   },
   listRooms(params: RoomListParams): Promise<Paginated<Room>> {
     return call<c.Paged<c.RoomListItemResponse>>({
-      path: `/admin/rooms${buildQuery({ ...pagedQuery(params), status: params.status, date: params.date, search: params.search })}`,
+      path: `/admin/rooms${buildQuery(roomQuery(params))}`,
     }).then((p) => m.mapPage(p, m.toRoom));
   },
   createRoom(request: SaveRoomRequest): Promise<Room> {

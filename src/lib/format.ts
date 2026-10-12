@@ -2,6 +2,7 @@ import { appConfig } from '@/config/appConfig';
 import type {
   BookingSource,
   BookingStatus,
+  EarlyCheckOutReason,
   NotificationType,
   PaymentMethod,
   PaymentStatus,
@@ -96,6 +97,13 @@ const staffCancellationReasonLabels: Record<StaffCancellationReason, string> = {
   Other: 'Other',
 };
 
+const earlyCheckOutReasonLabels: Record<EarlyCheckOutReason, string> = {
+  GuestRequest: 'Guest requested early check-out',
+  Emergency: 'Emergency',
+  RoomIssue: 'Room issue',
+  Other: 'Other',
+};
+
 const activityTypeLabels: Record<string, string> = {
   BookingCreated: 'Booking created',
   BookedRoomsAssigned: 'Rooms assigned',
@@ -146,4 +154,7 @@ export function bookingSourceLabel(source: BookingSource): string {
 }
 export function staffCancellationReasonLabel(reason: StaffCancellationReason): string {
   return staffCancellationReasonLabels[reason];
+}
+export function earlyCheckOutReasonLabel(reason: EarlyCheckOutReason): string {
+  return earlyCheckOutReasonLabels[reason];
 }

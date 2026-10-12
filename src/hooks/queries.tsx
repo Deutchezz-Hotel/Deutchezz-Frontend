@@ -20,8 +20,12 @@ import type {
   RecordPaymentRequest,
   AssignRoomsRequest,
   CancelBookingRequest,
+  ChangeRoomTypeRequest,
+  CheckOutRequest,
+  ReassignRoomRequest,
   ReceptionCancelBookingRequest,
   ReceptionCreateBookingRequest,
+  UnassignRoomRequest,
   UserRole,
 } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -210,14 +214,26 @@ export function useReceptionAction() {
       onSuccess: invalidate,
     }),
     checkOut: useMutation({
-      mutationFn: (id: string) => services.reception.checkOut(id),
+      mutationFn: ({ id, request }: { id: string; request?: CheckOutRequest }) => services.reception.checkOut(id, request),
+      onSuccess: invalidate,
+    }),
+    changeRoomType: useMutation({
+      mutationFn: ({ id, request }: { id: string; request: ChangeRoomTypeRequest }) => services.reception.changeRoomType(id, request),
+      onSuccess: invalidate,
+    }),
+    reassignRoom: useMutation({
+      mutationFn: ({ id, request }: { id: string; request: ReassignRoomRequest }) => services.reception.reassignRoom(id, request),
+      onSuccess: invalidate,
+    }),
+    unassignRoom: useMutation({
+      mutationFn: ({ id, request }: { id: string; request: UnassignRoomRequest }) => services.reception.unassignRoom(id, request),
       onSuccess: invalidate,
     }),
   };
 }
 
-export function useReceptionRooms(params: RoomListParams) {
-  return useQuery({ queryKey: keys.receptionRooms(params), queryFn: () => services.reception.listRooms(params) });
+export function useReceptionRooms(params: RoomListParams, enabled = true) {
+  return useQuery({ queryKey: keys.receptionRooms(params), queryFn: () => services.reception.listRooms(params), enabled });
 }
 
 export function useReceptionGuests(params: PaginationParams) {

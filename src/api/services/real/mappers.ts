@@ -11,6 +11,7 @@ import type {
   AdminReports,
   ActivityLog,
   AppNotification,
+  AssignedRoom,
   AvailabilityResponse,
   BookingListItem,
   BookingResponse,
@@ -152,11 +153,17 @@ export function toAvailability(
 
 export function toBooking(d: c.BookingDetailResponse): BookingResponse {
   const { firstName, lastName } = splitName(d.guestFullName);
-  const liveRooms = d.assignments.filter((a) => a.releasedAt == null).map((a) => a.roomNumber);
-  let cursor = 0;
+  // Group live assignments by their room-type line so each line carries its own
+  // rooms (and each room's assignment id) instead of relying on positional order.
+  const liveByLine = new Map<string, AssignedRoom[]>();
+  for (const a of d.assignments) {
+    if (a.releasedAt != null) continue;
+    const list = liveByLine.get(a.bookingRoomTypeId) ?? [];
+    list.push({ id: a.id, roomId: a.roomId, roomNumber: a.roomNumber });
+    liveByLine.set(a.bookingRoomTypeId, list);
+  }
   const rooms = d.lines.map((line) => {
-    const assignedRoomNumbers = liveRooms.slice(cursor, cursor + line.quantity);
-    cursor += line.quantity;
+    const assignedRooms = liveByLine.get(line.id) ?? [];
     return {
       bookingRoomTypeId: line.id,
       roomTypeId: line.roomTypeId,
@@ -165,7 +172,8 @@ export function toBooking(d: c.BookingDetailResponse): BookingResponse {
       ratePerNight: line.ratePerNight,
       numberOfNights: line.numberOfNights,
       subtotal: line.subtotal,
-      assignedRoomNumbers,
+      assignedRooms,
+      assignedRoomNumbers: assignedRooms.map((a) => a.roomNumber),
     };
   });
   return {
@@ -406,6 +414,7 @@ export function toSettings(s: c.AdminSettingsResponse): HotelSettings {
     cancellationWindowHours: s.cancellationWindowHours,
     requireFullPaymentAtCheckIn: s.requireFullPaymentAtCheckIn,
     requirePaymentBeforeCheckOut: s.requirePaymentBeforeCheckOut,
+    earlyCheckOutRequiresAdmin: s.earlyCheckOutRequiresAdmin,
   };
 }
 
@@ -418,5 +427,6 @@ export function toSettingsPatch(request: Partial<HotelSettings>): c.UpdateAdminS
   if (request.cancellationWindowHours !== undefined) patch.cancellationWindowHours = request.cancellationWindowHours;
   if (request.requireFullPaymentAtCheckIn !== undefined) patch.requireFullPaymentAtCheckIn = request.requireFullPaymentAtCheckIn;
   if (request.requirePaymentBeforeCheckOut !== undefined) patch.requirePaymentBeforeCheckOut = request.requirePaymentBeforeCheckOut;
+  if (request.earlyCheckOutRequiresAdmin !== undefined) patch.earlyCheckOutRequiresAdmin = request.earlyCheckOutRequiresAdmin;
   return patch;
 }

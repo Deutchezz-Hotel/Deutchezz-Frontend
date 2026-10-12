@@ -28,6 +28,9 @@ export type StaffCancellationReason =
   | 'BookedInError'
   | 'Other';
 
+/** Why a guest checked out before the scheduled moment (v1.9 early check-out). */
+export type EarlyCheckOutReason = 'GuestRequest' | 'Emergency' | 'RoomIssue' | 'Other';
+
 export type PaymentStatus =
   | 'Pending'
   | 'PartiallyPaid'

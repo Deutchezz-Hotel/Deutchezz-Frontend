@@ -42,3 +42,22 @@ export function formatCheckInDate(isoDate: string): string {
 export function sortDatesDescending(dates: string[]): string[] {
   return [...dates].sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
 }
+
+/**
+ * The scheduled check-out moment for a booking: its check-out date at the hotel's
+ * check-out time (Africa/Lagos, a fixed UTC+1 offset with no daylight saving).
+ */
+export function scheduledCheckOutMoment(checkOutDate: string, checkOutTime = '12:00'): Date {
+  const time = /^\d{2}:\d{2}$/.test(checkOutTime) ? checkOutTime : '12:00';
+  return new Date(`${checkOutDate}T${time}:00+01:00`);
+}
+
+/**
+ * True when the given moment is before a booking's scheduled check-out moment.
+ * Used to offer the early check-out dialog up front; the backend remains the
+ * authority and returns `booking.early_checkout_requires_consent` regardless.
+ */
+export function isEarlyCheckOut(checkOutDate: string, checkOutTime = '12:00', now: Date = new Date()): boolean {
+  const scheduled = scheduledCheckOutMoment(checkOutDate, checkOutTime);
+  return !Number.isNaN(scheduled.getTime()) && now.getTime() < scheduled.getTime();
+}

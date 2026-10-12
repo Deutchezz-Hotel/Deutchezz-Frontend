@@ -20,7 +20,10 @@ import type {
   BookingSource,
   BookingResponse,
   CancelBookingRequest,
+  ChangeRoomTypeRequest,
+  ChangeRoomTypeResult,
   ChangeUserRoleRequest,
+  CheckOutRequest,
   CreateBookingRequest,
   ForgotPasswordRequest,
   GuestListItem,
@@ -31,6 +34,7 @@ import type {
   Paginated,
   Payment,
   PaymentListItem,
+  ReassignRoomRequest,
   ReceptionCancelBookingRequest,
   ReceptionCreateBookingRequest,
   RecordPaymentRequest,
@@ -46,6 +50,7 @@ import type {
   SaveStaffRequest,
   SaveSettingsRequest,
   Staff,
+  UnassignRoomRequest,
   UploadedImage,
   User,
   UserListItem,
@@ -64,6 +69,15 @@ export interface RoomListParams extends PaginationParams {
   status?: string;
   /** "yyyy-MM-dd" occupancy date; defaults to today on the backend. */
   date?: string;
+  /** Restrict to a single room type. */
+  roomTypeId?: string;
+  /**
+   * When both are set ("yyyy-MM-dd", half-open `[availableFrom, availableTo)`)
+   * the backend returns only rooms free for the whole stay. Supplying one alone
+   * (or `from >= to`) is rejected by the backend.
+   */
+  availableFrom?: string;
+  availableTo?: string;
 }
 
 export interface BookingFilterParams extends PaginationParams {
@@ -138,7 +152,14 @@ export interface ReceptionApi {
   cancelBooking(id: string, request: ReceptionCancelBookingRequest): Promise<BookingResponse>;
   assignRooms(id: string, request: AssignRoomsRequest): Promise<BookingResponse>;
   checkIn(id: string): Promise<BookingResponse>;
-  checkOut(id: string): Promise<BookingResponse>;
+  /** Checks out a booking. Pass `earlyCheckOut` when before the scheduled moment. */
+  checkOut(id: string, request?: CheckOutRequest): Promise<BookingResponse>;
+  /** Moves part of a room line to another room type (before check-in). */
+  changeRoomType(id: string, request: ChangeRoomTypeRequest): Promise<ChangeRoomTypeResult>;
+  /** Swaps a live room assignment for another room of the same type. */
+  reassignRoom(id: string, request: ReassignRoomRequest): Promise<BookingResponse>;
+  /** Releases a live room assignment before check-in. */
+  unassignRoom(id: string, request: UnassignRoomRequest): Promise<BookingResponse>;
   listRooms(params: RoomListParams): Promise<Paginated<Room>>;
   listGuests(params: PaginationParams): Promise<Paginated<GuestListItem>>;
   listPayments(params: PaginationParams): Promise<Paginated<PaymentListItem>>;

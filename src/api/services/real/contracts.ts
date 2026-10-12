@@ -188,8 +188,11 @@ export interface BookingRoomTypeLineResponse {
 }
 
 export interface RoomAssignmentResponse {
+  id: string;
   roomId: string;
   roomNumber: string;
+  bookingRoomTypeId: string;
+  roomTypeId: string;
   assignedAt: string;
   releasedAt: string | null;
 }
@@ -257,6 +260,40 @@ export interface CheckOutResponse {
   status: string;
   checkedOutAt: string;
   releasedRoomNumbers: string[];
+  isEarly: boolean;
+  scheduledCheckOutAt: string;
+  actualCheckOutAt: string;
+}
+
+export interface EarlyCheckOutInfo {
+  reason: string;
+  notes?: string | null;
+  guestConsented: boolean;
+}
+
+export interface CheckOutRequest {
+  earlyCheckOut?: EarlyCheckOutInfo | null;
+}
+
+export interface ChangeRoomTypeRequest {
+  bookingRoomTypeId: string;
+  newRoomTypeId: string;
+  quantity: number;
+}
+
+export interface ChangeRoomTypeResponse {
+  booking: BookingDetailResponse;
+  assignmentsCleared: string[];
+}
+
+export interface ReassignRoomRequest {
+  roomAssignmentId: string;
+  newRoomId: string;
+  reason?: string | null;
+}
+
+export interface UnassignRoomRequest {
+  roomAssignmentId: string;
 }
 
 export interface RoomAssignmentLineRequest {
@@ -492,6 +529,7 @@ export interface AdminSettingsResponse {
   cancellationWindowHours: number;
   requireFullPaymentAtCheckIn: boolean;
   requirePaymentBeforeCheckOut: boolean;
+  earlyCheckOutRequiresAdmin: boolean;
 }
 
 export interface UpdateAdminSettingsRequest {
@@ -501,6 +539,7 @@ export interface UpdateAdminSettingsRequest {
   cancellationWindowHours?: number | null;
   requireFullPaymentAtCheckIn?: boolean | null;
   requirePaymentBeforeCheckOut?: boolean | null;
+  earlyCheckOutRequiresAdmin?: boolean | null;
 }
 
 /* ---------------------------- Problem details ---------------------------- */

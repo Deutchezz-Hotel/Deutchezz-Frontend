@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bookingStatusLabel, formatCompactMoney, formatMoney, paymentMethodLabel, roomStatusLabel } from './format';
+import { bookingStatusLabel, earlyCheckOutReasonLabel, formatCompactMoney, formatMoney, paymentMethodLabel, roomStatusLabel } from './format';
 
 describe('formatMoney', () => {
   it('omits decimals for whole naira amounts', () => {
@@ -43,5 +43,10 @@ describe('friendly labels', () => {
 
   it('labels payment methods', () => {
     expect(paymentMethodLabel('BankTransfer')).toBe('Bank transfer');
+  });
+
+  it('labels early check-out reasons', () => {
+    expect(earlyCheckOutReasonLabel('RoomIssue')).toBe('Room issue');
+    expect(earlyCheckOutReasonLabel('GuestRequest')).toBe('Guest requested early check-out');
   });
 });

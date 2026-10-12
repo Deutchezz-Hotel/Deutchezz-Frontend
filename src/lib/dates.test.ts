@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { addDaysISO, formatDisplayDate, formatStayRange, nightsBetween, sortDatesDescending } from './dates';
+import {
+  addDaysISO,
+  formatDisplayDate,
+  formatStayRange,
+  isEarlyCheckOut,
+  nightsBetween,
+  scheduledCheckOutMoment,
+  sortDatesDescending,
+} from './dates';
 
 describe('nightsBetween', () => {
   it('counts nights without including the check-out day', () => {
@@ -39,5 +47,26 @@ describe('sortDatesDescending', () => {
     const input = ['2026-10-01', '2026-12-01', '2026-11-01'];
     expect(sortDatesDescending(input)).toEqual(['2026-12-01', '2026-11-01', '2026-10-01']);
     expect(input).toEqual(['2026-10-01', '2026-12-01', '2026-11-01']);
+  });
+});
+
+describe('scheduledCheckOutMoment', () => {
+  it('reads the check-out time in Africa/Lagos (UTC+1)', () => {
+    expect(scheduledCheckOutMoment('2026-10-15', '12:00').toISOString()).toBe('2026-10-15T11:00:00.000Z');
+  });
+
+  it('falls back to 12:00 when the time is malformed', () => {
+    expect(scheduledCheckOutMoment('2026-10-15', 'noon').toISOString()).toBe('2026-10-15T11:00:00.000Z');
+  });
+});
+
+describe('isEarlyCheckOut', () => {
+  it('is true before the scheduled moment', () => {
+    expect(isEarlyCheckOut('2026-10-15', '12:00', new Date('2026-10-15T10:00:00Z'))).toBe(true);
+  });
+
+  it('is false at or after the scheduled moment', () => {
+    expect(isEarlyCheckOut('2026-10-15', '12:00', new Date('2026-10-15T11:00:00Z'))).toBe(false);
+    expect(isEarlyCheckOut('2026-10-15', '12:00', new Date('2026-10-15T12:00:00Z'))).toBe(false);
   });
 });
