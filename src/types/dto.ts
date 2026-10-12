@@ -70,17 +70,31 @@ export interface ForgotPasswordRequest {
 
 export interface ResetPasswordRequest {
   email: string;
-  token: string;
+  code: string;
   newPassword: string;
 }
 
-export interface ConfirmEmailRequest {
+export interface VerifyEmailRequest {
   email: string;
-  token: string;
+  code: string;
+}
+
+export interface ResendCodeRequest {
+  email: string;
 }
 
 export interface MessageResponse {
   message: string;
+}
+
+/**
+ * Neutral acknowledgment for register/resend/forgot. The backend never reveals
+ * whether an email/phone already exists, so these always succeed (202).
+ */
+export interface RegisterPendingResponse {
+  message: string;
+  /** Seconds before another code may be requested for this email. */
+  resendAvailableInSeconds: number;
 }
 
 /* -------------------------------- Uploads -------------------------------- */

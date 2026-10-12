@@ -19,7 +19,6 @@ import type {
   BookingLookupRequest,
   BookingResponse,
   CancelBookingRequest,
-  ConfirmEmailRequest,
   CreateBookingRequest,
   ForgotPasswordRequest,
   GuestListItem,
@@ -31,7 +30,9 @@ import type {
   Payment,
   PaymentListItem,
   RecordPaymentRequest,
+  RegisterPendingResponse,
   RegisterRequest,
+  ResendCodeRequest,
   ResetPasswordRequest,
   Room,
   RoomTypeResponse,
@@ -43,6 +44,7 @@ import type {
   Staff,
   UploadedImage,
   User,
+  VerifyEmailRequest,
 } from '@/types';
 
 export interface PaginationParams {
@@ -68,13 +70,18 @@ export interface BookingFilterParams extends PaginationParams {
 }
 
 export interface AuthApi {
-  register(request: RegisterRequest): Promise<AuthResponse>;
+  /** Starts account creation. Returns 202 with a neutral body; no session yet. */
+  register(request: RegisterRequest): Promise<RegisterPendingResponse>;
+  /** Confirms the emailed code and signs the new customer in. */
+  verifyEmail(request: VerifyEmailRequest): Promise<AuthResponse>;
+  /** Re-sends the verification code (rate-limited); neutral 202 body. */
+  resendCode(request: ResendCodeRequest): Promise<RegisterPendingResponse>;
   login(request: LoginRequest): Promise<AuthResponse>;
   logout(): Promise<void>;
   me(): Promise<User>;
-  forgotPassword(request: ForgotPasswordRequest): Promise<MessageResponse>;
+  /** Sends a reset code; always neutral 202. */
+  forgotPassword(request: ForgotPasswordRequest): Promise<RegisterPendingResponse>;
   resetPassword(request: ResetPasswordRequest): Promise<MessageResponse>;
-  confirmEmail(request: ConfirmEmailRequest): Promise<MessageResponse>;
 }
 
 export interface RoomTypesApi {

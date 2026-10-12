@@ -12,6 +12,8 @@ export interface ProblemDetails {
   status: number;
   detail?: string;
   instance?: string;
+  /** Machine-readable error code from the backend (ProblemDetails extension). */
+  code?: string;
   errors?: Record<string, string[]>;
 }
 
@@ -80,4 +82,38 @@ export function friendlyAuthError(error: unknown): string | null {
     return error.userMessage;
   }
   return 'Something went wrong. Please try again.';
+}
+
+/**
+ * User-facing message for one-time code entry (verify email / reset password).
+ * Kept deliberately vague so an incorrect code is indistinguishable from an
+ * expired or unknown one (no account enumeration).
+ */
+export function friendlyCodeError(error: unknown): string | null {
+  if (!error) return null;
+  if (isApiError(error)) {
+    if (error.problem.code === 'auth.invalid_or_expired_code') {
+      return 'That code is incorrect or has expired. Request a new code and try again.';
+    }
+    if (error.status === 429) return 'Too many attempts. Please wait a minute and try again.';
+    if (error.status === 400) return error.problem.detail ?? 'Please check the code and try again.';
+    return error.userMessage;
+  }
+  return 'Something went wrong. Please try again.';
+}
+
+/**
+ * Maps a backend auth error code to the form field it belongs to, so the UI can
+ * surface it inline instead of only in a banner.
+ */
+export function authCodeField(code: string | undefined): 'email' | 'phoneNumber' | null {
+  switch (code) {
+    case 'auth.phone_in_use':
+    case 'auth.invalid_phone':
+      return 'phoneNumber';
+    case 'auth.email_in_use':
+      return 'email';
+    default:
+      return null;
+  }
 }

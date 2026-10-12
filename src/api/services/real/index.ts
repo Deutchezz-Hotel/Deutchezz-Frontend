@@ -21,7 +21,6 @@ import type {
   BookingLookupRequest,
   BookingResponse,
   CancelBookingRequest,
-  ConfirmEmailRequest,
   CreateBookingRequest,
   ForgotPasswordRequest,
   GuestListItem,
@@ -33,7 +32,9 @@ import type {
   Payment,
   PaymentListItem,
   RecordPaymentRequest,
+  RegisterPendingResponse,
   RegisterRequest,
+  ResendCodeRequest,
   ResetPasswordRequest,
   Room,
   RoomTypeResponse,
@@ -45,6 +46,7 @@ import type {
   Staff,
   UploadedImage,
   User,
+  VerifyEmailRequest,
 } from '@/types';
 import type { BookingFilterParams, PaginationParams, RoomListParams } from '../interfaces';
 import * as c from './contracts';
@@ -98,8 +100,15 @@ async function finishAuth(tokens: c.LoginResponse): Promise<AuthResponse> {
 }
 
 export const realAuthApi = {
-  register(request: RegisterRequest): Promise<AuthResponse> {
-    return call<c.LoginResponse>({ path: '/auth/register', method: 'POST', body: request, skipAuth: true }).then(finishAuth);
+  register(request: RegisterRequest): Promise<RegisterPendingResponse> {
+    return call<c.RegisterPendingResponse>({ path: '/auth/register', method: 'POST', body: request, skipAuth: true });
+  },
+  async verifyEmail(request: VerifyEmailRequest): Promise<AuthResponse> {
+    const tokens = await call<c.LoginResponse>({ path: '/auth/verify-email', method: 'POST', body: request, skipAuth: true });
+    return finishAuth(tokens);
+  },
+  resendCode(request: ResendCodeRequest): Promise<RegisterPendingResponse> {
+    return call<c.RegisterPendingResponse>({ path: '/auth/resend-code', method: 'POST', body: request, skipAuth: true });
   },
   async login(request: LoginRequest): Promise<AuthResponse> {
     const tokens = await call<c.LoginResponse>({ path: '/auth/login', method: 'POST', body: request, skipAuth: true });
@@ -116,14 +125,11 @@ export const realAuthApi = {
     const me = await call<c.CurrentUserResponse>({ path: '/auth/me' });
     return m.toUser(me);
   },
-  async forgotPassword(request: ForgotPasswordRequest): Promise<MessageResponse> {
-    return call<c.MessageResponse>({ path: '/auth/forgot-password', method: 'POST', body: request, skipAuth: true });
+  async forgotPassword(request: ForgotPasswordRequest): Promise<RegisterPendingResponse> {
+    return call<c.RegisterPendingResponse>({ path: '/auth/forgot-password', method: 'POST', body: request, skipAuth: true });
   },
   async resetPassword(request: ResetPasswordRequest): Promise<MessageResponse> {
     return call<c.MessageResponse>({ path: '/auth/reset-password', method: 'POST', body: request, skipAuth: true });
-  },
-  async confirmEmail(request: ConfirmEmailRequest): Promise<MessageResponse> {
-    return call<c.MessageResponse>({ path: '/auth/confirm-email', method: 'POST', body: request, skipAuth: true });
   },
 };
 

@@ -5,8 +5,12 @@ import type {
   AvailabilitySearchRequest,
   BookingLookupRequest,
   CreateBookingRequest,
+  ForgotPasswordRequest,
   LoginRequest,
   RegisterRequest,
+  ResendCodeRequest,
+  ResetPasswordRequest,
+  VerifyEmailRequest,
   SaveProfileRequest,
   SaveRoomRequest,
   SaveRoomTypeRequest,
@@ -97,14 +101,38 @@ export function useLogin() {
   });
 }
 
+/**
+ * Starts account creation. No session is issued here — the backend replies 202
+ * with a neutral body and emails a 6-digit code; call `useVerifyEmail` next.
+ * Tokens are set by `services.auth.verifyEmail` once the code is confirmed.
+ */
 export function useRegister() {
+  return useMutation({ mutationFn: (request: RegisterRequest) => services.auth.register(request) });
+}
+
+/** Confirms the emailed code and signs the customer in (sets tokens). */
+export function useVerifyEmail() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: (request: RegisterRequest) => services.auth.register(request),
-    onSuccess: (data) => {
-      authStorage.setAccessToken(data.accessToken);
-      authStorage.setRefreshToken(data.refreshToken);
-    },
+    mutationFn: (request: VerifyEmailRequest) => services.auth.verifyEmail(request),
+    // Seed the AuthProvider's `me` cache so guards see the new session immediately
+    // (otherwise the post-verify redirect would bounce back to /login).
+    onSuccess: (data) => qc.setQueryData(['auth', 'me'], data.user),
   });
+}
+
+/** Re-sends the verification code; rate-limited server-side. */
+export function useResendCode() {
+  return useMutation({ mutationFn: (request: ResendCodeRequest) => services.auth.resendCode(request) });
+}
+
+/** Sends a password-reset code; always resolves with a neutral body. */
+export function useForgotPassword() {
+  return useMutation({ mutationFn: (request: ForgotPasswordRequest) => services.auth.forgotPassword(request) });
+}
+
+export function useResetPassword() {
+  return useMutation({ mutationFn: (request: ResetPasswordRequest) => services.auth.resetPassword(request) });
 }
 
 /* ------------------------------ Customer --------------------------------- */

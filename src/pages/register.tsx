@@ -3,26 +3,25 @@ import { Reveal } from '@/components/reveal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRegister } from '@/hooks/queries';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
-import { useAuth } from '@/app/auth';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { friendlyAuthError } from '@/api/problem';
+import { authCodeField, friendlyAuthError, isApiError } from '@/api/problem';
+import { verifyStateFor } from '@/features/auth/flow';
 import type { BookingFlowState } from '@/features/booking/types';
 
 const schema = z
   .object({
-    firstName: z.string().min(2),
-    lastName: z.string().min(2),
-    email: z.string().email(),
-    phoneNumber: z.string().min(8),
-    password: z.string().min(8),
-    confirm: z.string().min(8),
+    firstName: z.string().trim().min(2, 'Enter your first name'),
+    lastName: z.string().trim().min(2, 'Enter your last name'),
+    email: z.string().trim().email('Enter a valid email address'),
+    phoneNumber: z.string().trim().regex(/^\+?[\d\s()-]{8,20}$/, 'Enter a valid phone number'),
+    password: z.string().min(8, 'Use at least 8 characters'),
+    confirm: z.string().min(8, 'Use at least 8 characters'),
   })
   .refine((v) => v.password === v.confirm, { path: ['confirm'], message: 'Passwords do not match' });
 
@@ -31,18 +30,35 @@ export default function RegisterPage() {
   const nav = useNavigate();
   const location = useLocation() as { state?: BookingFlowState };
   const flow = location.state;
-  const { user, refetch } = useAuth();
-  const form = useForm({ resolver: zodResolver(schema), defaultValues: { firstName: '', lastName: '', email: '', phoneNumber: '', password: '', confirm: '' } });
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: { firstName: '', lastName: '', email: '', phoneNumber: '', password: '', confirm: '' },
+  });
 
-  useEffect(() => {
-    if (!user) return;
-    if (flow) nav('/booking/review', { state: flow, replace: true });
-    else if (user.role === 'Administrator') nav('/admin', { replace: true });
-    else if (user.role === 'Receptionist') nav('/reception', { replace: true });
-    else nav('/dashboard', { replace: true });
-  }, [user, flow, nav]);
+  const submit = form.handleSubmit((v) => {
+    register.mutate(
+      { firstName: v.firstName, lastName: v.lastName, email: v.email, phoneNumber: v.phoneNumber, password: v.password },
+      {
+        onSuccess: (data) => {
+          // No session yet: the backend replied 202 and emailed a 6-digit code.
+          nav('/verify-email', {
+            state: verifyStateFor(v.email, data.resendAvailableInSeconds, flow),
+          });
+        },
+        onError: (error) => {
+          const code = isApiError(error) ? error.problem.code : undefined;
+          const field = authCodeField(code);
+          if (field === 'phoneNumber') {
+            form.setError('phoneNumber', { message: isApiError(error) ? error.problem.detail : undefined });
+          }
+        },
+      },
+    );
+  });
 
-  const registerError = friendlyAuthError(register.error);
+  const code = isApiError(register.error) ? register.error.problem.code : undefined;
+  const showBanner = Boolean(register.error) && !authCodeField(code);
+  const errorMessage = showBanner ? friendlyAuthError(register.error) : null;
 
   return (
     <>
@@ -51,25 +67,13 @@ export default function RegisterPage() {
         <Reveal>
           <Card className="mx-auto max-w-xl">
           <CardContent className="space-y-6 p-8">
-            {registerError ? (
+            {errorMessage ? (
               <Alert variant="destructive">
-                <AlertDescription>{registerError}</AlertDescription>
+                <AlertDescription>{errorMessage}</AlertDescription>
               </Alert>
             ) : null}
             <Form {...form}>
-              <form
-                className="space-y-4"
-                onSubmit={form.handleSubmit((v) =>
-                  register.mutate(
-                    { firstName: v.firstName, lastName: v.lastName, email: v.email, phoneNumber: v.phoneNumber, password: v.password },
-                    {
-                      onSuccess: () => {
-                        void refetch();
-                      },
-                    },
-                  ),
-                )}
-              >
+              <form className="space-y-4" onSubmit={submit}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -78,7 +82,7 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>First name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input autoComplete="given-name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -91,7 +95,7 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Last name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input autoComplete="family-name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -105,7 +109,7 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} />
+                        <Input type="email" autoComplete="email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -118,8 +122,9 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>Phone</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input type="tel" inputMode="tel" autoComplete="tel" placeholder="0803 123 4567" {...field} />
                       </FormControl>
+                      <FormDescription>e.g. 0803 123 4567 or +234 803 123 4567</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -132,7 +137,7 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" {...field} />
+                          <Input type="password" autoComplete="new-password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -145,14 +150,16 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Confirm password</FormLabel>
                         <FormControl>
-                          <Input type="password" {...field} />
+                          <Input type="password" autoComplete="new-password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={register.isPending}>Create account</Button>
+                <Button type="submit" className="w-full" disabled={register.isPending}>
+                  {register.isPending ? 'Creating account…' : 'Create account'}
+                </Button>
               </form>
             </Form>
           </CardContent>

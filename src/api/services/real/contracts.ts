@@ -38,6 +38,12 @@ export interface MessageResponse {
   message: string;
 }
 
+/** 202 body for register/resend/forgot (no account enumeration). */
+export interface RegisterPendingResponse {
+  message: string;
+  resendAvailableInSeconds: number;
+}
+
 export interface RegisterRequest {
   firstName: string;
   lastName: string;

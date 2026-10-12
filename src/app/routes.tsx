@@ -16,6 +16,9 @@ const About = withSuspense(lazy(() => import('@/pages/about')));
 const Contact = withSuspense(lazy(() => import('@/pages/contact')));
 const Login = withSuspense(lazy(() => import('@/pages/login')));
 const Register = withSuspense(lazy(() => import('@/pages/register')));
+const ForgotPassword = withSuspense(lazy(() => import('@/pages/forgot-password')));
+const ResetPassword = withSuspense(lazy(() => import('@/pages/reset-password')));
+const VerifyEmail = withSuspense(lazy(() => import('@/pages/verify-email')));
 const Forbidden = withSuspense(lazy(() => import('@/pages/forbidden')));
 const NotFound = withSuspense(lazy(() => import('@/pages/not-found')));
 
@@ -61,6 +64,9 @@ export const appRoutes: RouteObject[] = [
       { path: '/contact', element: <Contact /> },
       { path: '/login', element: <Login /> },
       { path: '/register', element: <Register /> },
+      { path: '/forgot-password', element: <ForgotPassword /> },
+      { path: '/reset-password', element: <ResetPassword /> },
+      { path: '/verify-email', element: <VerifyEmail /> },
       { path: '/forbidden', element: <Forbidden /> },
       { path: '*', element: <NotFound /> },
     ],
