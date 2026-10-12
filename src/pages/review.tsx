@@ -21,10 +21,11 @@ export default function ReviewPage() {
   const location = useLocation() as { state?: BookingFlowState };
   const flow = location.state;
   const { user } = useAuth();
-  const [idempotencyKey] = useState(() => location.state?.idempotencyKey ?? newIdempotencyKey());
+  const [idempotencyKey, setIdempotencyKey] = useState(() => location.state?.idempotencyKey ?? newIdempotencyKey());
   const [showGuestDialog, setShowGuestDialog] = useState(false);
-  const createBooking = useCreateBooking(idempotencyKey);
+  const createBooking = useCreateBooking();
   const [error, setError] = useState<ApiError | null>(null);
+  const [duplicate, setDuplicate] = useState<{ reference?: string; minutesAgo?: number } | null>(null);
 
   useEffect(() => {
     if (!flow) nav('/book', { replace: true });
@@ -35,17 +36,37 @@ export default function ReviewPage() {
   const { draft } = flow;
   const total = estimateTotal(draft);
 
-  const submit = () => {
+  const runCreate = (acknowledgeDuplicate: boolean, key: string) => {
     setError(null);
     createBooking.mutate(
-      { request: draft.request },
+      {
+        request: { ...draft.request, ...(acknowledgeDuplicate ? { acknowledgeDuplicate: true } : {}) },
+        idempotencyKey: key,
+      },
       {
         onSuccess: (booking) => {
           nav(`/booking/confirmation/${booking.bookingReference}`, { state: booking, replace: true });
         },
-        onError: (e) => setError(e as ApiError),
+        onError: (e) => {
+          const err = e as ApiError;
+          if (!acknowledgeDuplicate && err.problem.code === 'booking.possible_duplicate') {
+            setDuplicate({ reference: err.problem.reference, minutesAgo: err.problem.minutesAgo });
+            return;
+          }
+          setError(err);
+        },
       },
     );
+  };
+
+  const submit = () => runCreate(false, idempotencyKey);
+
+  // A duplicate acknowledged: retry with a fresh idempotency key (the body differs).
+  const continueAnyway = () => {
+    const key = newIdempotencyKey();
+    setIdempotencyKey(key);
+    setDuplicate(null);
+    runCreate(true, key);
   };
 
   const handleConfirmClick = () => {
@@ -157,6 +178,35 @@ export default function ReviewPage() {
             <AlertDialogCancel onClick={() => nav('/register', { state: flow })}>Create account</AlertDialogCancel>
             <AlertDialogCancel onClick={() => nav('/login', { state: flow })}>Log in</AlertDialogCancel>
             <Button onClick={submit} disabled={createBooking.isPending}>Continue as guest</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={duplicate !== null} onOpenChange={(o) => { if (!o) setDuplicate(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>You may already have this booking</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-2 text-left">
+                <p>
+                  A booking for these details was created
+                  {duplicate?.minutesAgo != null
+                    ? ` ${duplicate.minutesAgo} minute${duplicate.minutesAgo === 1 ? '' : 's'} ago`
+                    : ' a few moments ago'}
+                  {duplicate?.reference ? ` (reference ${duplicate.reference})` : ''}.
+                </p>
+                <p>
+                  Check your email for the confirmation before booking again. Only continue if you
+                  really do want a second reservation.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel onClick={() => setDuplicate(null)}>Go back</AlertDialogCancel>
+            <Button onClick={continueAnyway} disabled={createBooking.isPending}>
+              {createBooking.isPending ? 'Confirming…' : 'Create another booking'}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

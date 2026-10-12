@@ -145,6 +145,8 @@ export interface CreateBookingRequest {
   guest: GuestInfoRequest;
   rooms: BookingRoomRequest[];
   specialRequests?: string | null;
+  /** Proceed past the possible-duplicate warning (SoT v1.10, 7m). */
+  acknowledgeDuplicate?: boolean;
 }
 
 export interface ReceptionGuestRequest {
@@ -238,6 +240,8 @@ export interface BookingListItemResponse {
   source: string;
   createdByName: string | null;
   totalAmount: number;
+  /** Outstanding balance (total minus paid payments); 0 once fully paid. */
+  balanceDue: number;
 }
 
 export interface CreateBookingResponse {
@@ -552,4 +556,7 @@ export interface ProblemDetails {
   instance?: string;
   code?: string;
   errors?: Record<string, string[]>;
+  minutesAgo?: number;
+  reference?: string;
+  bookingId?: string;
 }

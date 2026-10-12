@@ -213,6 +213,7 @@ export function toBookingListItem(item: c.BookingListItemResponse): BookingListI
     roomsCount: 0,
     roomsSummary: '',
     totalAmount: item.totalAmount,
+    balanceDue: item.balanceDue,
     source: item.source as BookingSource,
     createdByName: item.createdByName,
     createdAt: item.checkInDate,

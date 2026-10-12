@@ -15,6 +15,13 @@ export interface ProblemDetails {
   /** Machine-readable error code from the backend (ProblemDetails extension). */
   code?: string;
   errors?: Record<string, string[]>;
+  /* --- Extra extension fields (e.g. the duplicate-booking warning, 7m) --- */
+  /** Whole minutes since the likely-duplicate booking was created. */
+  minutesAgo?: number;
+  /** Booking reference of the likely duplicate (masked for anonymous guests). */
+  reference?: string;
+  /** Id of the likely duplicate; only sent to authenticated callers. */
+  bookingId?: string;
 }
 
 export class ApiError extends Error {

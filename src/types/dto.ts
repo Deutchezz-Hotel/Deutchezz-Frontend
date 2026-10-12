@@ -187,6 +187,11 @@ export interface CreateBookingRequest {
   guest: BookingGuest;
   rooms: BookingRoomRequest[];
   specialRequests?: string | null;
+  /**
+   * Set to true to proceed past the "possible duplicate booking" guard. Only
+   * sent after the guest has reviewed the warning and chosen to continue.
+   */
+  acknowledgeDuplicate?: boolean;
 }
 
 /**
@@ -288,6 +293,8 @@ export interface BookingListItem {
   roomsCount: number;
   roomsSummary: string;
   totalAmount: number;
+  /** Outstanding balance (total minus paid payments). Zero once fully paid. */
+  balanceDue: number;
   source: BookingSource;
   /** Staff member who created the booking at the desk; null for online bookings. */
   createdByName: string | null;

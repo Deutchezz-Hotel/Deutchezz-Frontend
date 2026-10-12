@@ -104,10 +104,11 @@ function bookingQuery(params: BookingFilterParams): Record<string, string | numb
     status: params.status,
     source: params.source,
     overdueArrivals: params.overdueArrivals ? 'true' : undefined,
+    hasBalanceDue: params.hasBalanceDue ? 'true' : undefined,
     sort: params.sort,
     direction: params.direction,
-    // The backend filters bookings by reference, not free-text search.
-    reference: params.search,
+    // Free-text over guest full name or booking reference (SoT v1.10, 7l).
+    search: params.search,
     from: params.dateFrom,
     to: params.dateTo,
   };

@@ -73,9 +73,9 @@ export function useAvailability(query: AvailabilitySearchRequest, enabled = true
   return useQuery({ queryKey: keys.availability(query), queryFn: () => services.availability.search(query), enabled });
 }
 
-export function useCreateBooking(idempotencyKey: string | null) {
+export function useCreateBooking() {
   return useMutation({
-    mutationFn: ({ request }: { request: CreateBookingRequest }) => {
+    mutationFn: ({ request, idempotencyKey }: { request: CreateBookingRequest; idempotencyKey: string }) => {
       if (!idempotencyKey) throw new Error('idempotencyKey missing');
       return services.bookings.create(request, idempotencyKey);
     },

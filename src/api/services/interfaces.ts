@@ -88,6 +88,8 @@ export interface BookingFilterParams extends PaginationParams {
   source?: BookingSource;
   /** Reception only: confirmed bookings whose check-in date has already passed. */
   overdueArrivals?: boolean;
+  /** Only bookings that still owe money (excludes cancelled and fully paid). */
+  hasBalanceDue?: boolean;
   /** Column to order the filtered results by. */
   sort?: 'createdAt' | 'updatedAt';
   direction?: 'asc' | 'desc';
