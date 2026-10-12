@@ -21,16 +21,20 @@ import type {
   BookingLookupRequest,
   BookingResponse,
   CancelBookingRequest,
+  ConfirmEmailRequest,
   CreateBookingRequest,
+  ForgotPasswordRequest,
   GuestListItem,
   HotelSettings,
   LoginRequest,
   MeProfile,
+  MessageResponse,
   Paginated,
   Payment,
   PaymentListItem,
   RecordPaymentRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   Room,
   RoomTypeResponse,
   SaveProfileRequest,
@@ -39,6 +43,7 @@ import type {
   SaveSettingsRequest,
   SaveStaffRequest,
   Staff,
+  UploadedImage,
   User,
 } from '@/types';
 import type { BookingFilterParams, PaginationParams, RoomListParams } from '../interfaces';
@@ -111,6 +116,15 @@ export const realAuthApi = {
     const me = await call<c.CurrentUserResponse>({ path: '/auth/me' });
     return m.toUser(me);
   },
+  async forgotPassword(request: ForgotPasswordRequest): Promise<MessageResponse> {
+    return call<c.MessageResponse>({ path: '/auth/forgot-password', method: 'POST', body: request, skipAuth: true });
+  },
+  async resetPassword(request: ResetPasswordRequest): Promise<MessageResponse> {
+    return call<c.MessageResponse>({ path: '/auth/reset-password', method: 'POST', body: request, skipAuth: true });
+  },
+  async confirmEmail(request: ConfirmEmailRequest): Promise<MessageResponse> {
+    return call<c.MessageResponse>({ path: '/auth/confirm-email', method: 'POST', body: request, skipAuth: true });
+  },
 };
 
 /* ----------------------------- room types -------------------------------- */
@@ -126,12 +140,12 @@ async function loadRoomTypes(base: string, skipAuth: boolean, includeInactive: b
     path: `${base}${buildQuery({ pageSize: 100, includeInactive: includeInactive ? 'true' : undefined })}`,
     skipAuth,
   });
-  // GET /room-types/{id} only returns active types, so fetching the detail of an
-  // inactive type 404s. Skip those (fall back to the list DTO) and tolerate any
-  // other detail failure so one bad row can't break the whole list.
+  // Fetch the detail of each type for its description/images/features. Public reads only
+  // ever contain active types; the admin detail endpoint (used when skipAuth is false)
+  // returns inactive ones too. Tolerate any detail failure so one bad row can't break
+  // the whole list.
   const list = await Promise.all(
     page.items.map(async (item): Promise<RoomTypeResponse> => {
-      if (!item.isActive) return m.toRoomTypeFromList(item);
       try {
         const detail = await call<c.RoomTypeResponse>({ path: `${base}/${encodeURIComponent(item.id)}`, skipAuth });
         return m.toRoomType(detail);
@@ -149,6 +163,17 @@ export const realRoomTypesApi = {
   },
   get(id: string): Promise<RoomTypeResponse> {
     return call<c.RoomTypeResponse>({ path: `/room-types/${encodeURIComponent(id)}`, skipAuth: true }).then(m.toRoomType);
+  },
+};
+
+/* -------------------------------- uploads --------------------------------- */
+
+export const realUploadsApi = {
+  uploadImage(file: File): Promise<UploadedImage> {
+    const formData = new FormData();
+    formData.append('file', file);
+    // The browser sets the multipart boundary; do not set Content-Type manually.
+    return call<c.UploadedImage>({ path: '/uploads/images', method: 'POST', formData });
   },
 };
 
@@ -173,7 +198,9 @@ async function fetchReceptionBooking(id: string): Promise<BookingResponse> {
 
 export const realBookingsApi = {
   create(request: CreateBookingRequest, idempotencyKey: string): Promise<BookingResponse> {
-    return call<c.CreateBookingResponse>({ path: '/bookings', method: 'POST', body: request, skipAuth: true, idempotencyKey }).then((r) => m.toBooking(r.booking));
+    // No skipAuth: when a customer is signed in the Bearer token links the booking to their
+    // account (CreatedByUserId). Anonymous visitors simply have no token to send.
+    return call<c.CreateBookingResponse>({ path: '/bookings', method: 'POST', body: request, idempotencyKey }).then((r) => m.toBooking(r.booking));
   },
   lookup(request: BookingLookupRequest): Promise<BookingResponse> {
     return call<c.BookingDetailResponse>({ path: '/bookings/lookup', method: 'POST', body: request, skipAuth: true }).then(m.toBooking);
@@ -304,18 +331,18 @@ export const realAdminApi = {
     return call<c.RoomTypeResponse>({ path: `/admin/room-types/${encodeURIComponent(id)}` }).then(m.toRoomType);
   },
   updateRoomType(id: string, request: SaveRoomTypeRequest): Promise<RoomTypeResponse> {
-    // Inactive room types have no detail endpoint, so their description/images/
-    // features load empty. Only send optional fields when set, otherwise the
-    // backend (which applies non-null fields) would wipe the stored values.
+    // Send every field the form owns, including empty image/feature arrays, so that
+    // removing the last image (or feature) actually clears it server-side. The admin
+    // detail endpoint now returns inactive types, so nothing is blanked accidentally.
     const body: c.SaveRoomTypeRequest = {
       name: request.name,
+      description: request.description,
       basePrice: request.basePrice,
       maximumOccupancy: request.maximumOccupancy,
+      bedType: request.bedType,
+      imageUrls: request.imageUrls,
+      features: request.features,
     };
-    if (request.bedType?.trim()) body.bedType = request.bedType;
-    if (request.description?.trim()) body.description = request.description;
-    if (request.imageUrls?.length) body.imageUrls = request.imageUrls;
-    if (request.features?.length) body.features = request.features;
     return call<c.RoomTypeResponse>({ path: `/admin/room-types/${encodeURIComponent(id)}`, method: 'PUT', body }).then(m.toRoomType);
   },
   updateRoomTypeStatus(id: string, isActive: boolean): Promise<RoomTypeResponse> {
@@ -387,6 +414,7 @@ export const realServices = {
   auth: realAuthApi,
   roomTypes: realRoomTypesApi,
   availability: realAvailabilityApi,
+  uploads: realUploadsApi,
   bookings: realBookingsApi,
   me: realMeApi,
   reception: realReceptionApi,

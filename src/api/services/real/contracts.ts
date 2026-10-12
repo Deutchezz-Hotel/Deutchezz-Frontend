@@ -34,6 +34,10 @@ export interface CurrentUserResponse {
   role: string;
 }
 
+export interface MessageResponse {
+  message: string;
+}
+
 export interface RegisterRequest {
   firstName: string;
   lastName: string;
@@ -45,6 +49,13 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+/* -------------------------------- Uploads -------------------------------- */
+
+export interface UploadedImage {
+  url: string;
+  publicId: string;
 }
 
 /* ------------------------------ Room types ------------------------------- */

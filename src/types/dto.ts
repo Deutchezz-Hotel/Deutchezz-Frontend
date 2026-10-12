@@ -64,6 +64,32 @@ export interface RefreshRequest {
   refreshToken: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  token: string;
+  newPassword: string;
+}
+
+export interface ConfirmEmailRequest {
+  email: string;
+  token: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
+/* -------------------------------- Uploads -------------------------------- */
+
+export interface UploadedImage {
+  url: string;
+  publicId: string;
+}
+
 /* -------------------------------- Room types ----------------------------- */
 
 export interface RoomTypeResponse {

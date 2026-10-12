@@ -19,16 +19,20 @@ import type {
   BookingLookupRequest,
   BookingResponse,
   CancelBookingRequest,
+  ConfirmEmailRequest,
   CreateBookingRequest,
+  ForgotPasswordRequest,
   GuestListItem,
   HotelSettings,
   LoginRequest,
   MeProfile,
+  MessageResponse,
   Paginated,
   Payment,
   PaymentListItem,
   RecordPaymentRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   Room,
   RoomTypeResponse,
   SaveProfileRequest,
@@ -37,6 +41,7 @@ import type {
   SaveStaffRequest,
   SaveSettingsRequest,
   Staff,
+  UploadedImage,
   User,
 } from '@/types';
 
@@ -67,6 +72,9 @@ export interface AuthApi {
   login(request: LoginRequest): Promise<AuthResponse>;
   logout(): Promise<void>;
   me(): Promise<User>;
+  forgotPassword(request: ForgotPasswordRequest): Promise<MessageResponse>;
+  resetPassword(request: ResetPasswordRequest): Promise<MessageResponse>;
+  confirmEmail(request: ConfirmEmailRequest): Promise<MessageResponse>;
 }
 
 export interface RoomTypesApi {
@@ -76,6 +84,11 @@ export interface RoomTypesApi {
 
 export interface AvailabilityApi {
   search(request: AvailabilitySearchRequest): Promise<AvailabilityResponse>;
+}
+
+export interface UploadsApi {
+  /** Uploads a room image to Cloudinary via POST /uploads/images (admin only). */
+  uploadImage(file: File): Promise<UploadedImage>;
 }
 
 export interface BookingsApi {
@@ -136,6 +149,7 @@ export interface ServiceCollection {
   auth: AuthApi;
   roomTypes: RoomTypesApi;
   availability: AvailabilityApi;
+  uploads: UploadsApi;
   bookings: BookingsApi;
   me: MeApi;
   reception: ReceptionApi;
