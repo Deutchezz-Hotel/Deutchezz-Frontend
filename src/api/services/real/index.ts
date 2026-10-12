@@ -32,6 +32,8 @@ import type {
   Paginated,
   Payment,
   PaymentListItem,
+  ReceptionCancelBookingRequest,
+  ReceptionCreateBookingRequest,
   RecordPaymentRequest,
   RegisterPendingResponse,
   RegisterRequest,
@@ -78,11 +80,13 @@ function pagedQuery(params?: PaginationParams & { sort?: string; direction?: str
   };
 }
 
-function bookingQuery(params: BookingFilterParams): Record<string, string | number | undefined> {
+function bookingQuery(params: BookingFilterParams): Record<string, string | number | boolean | undefined> {
   return {
     page: params.page,
     pageSize: params.pageSize,
     status: params.status,
+    source: params.source,
+    overdueArrivals: params.overdueArrivals ? 'true' : undefined,
     sort: params.sort,
     direction: params.direction,
     // The backend filters bookings by reference, not free-text search.
@@ -252,8 +256,28 @@ export const realReceptionApi = {
   getBooking(id: string): Promise<BookingResponse> {
     return fetchReceptionBooking(id);
   },
-  createBooking(request: CreateBookingRequest, idempotencyKey: string): Promise<BookingResponse> {
-    return call<c.CreateBookingResponse>({ path: '/reception/bookings', method: 'POST', body: request, idempotencyKey }).then((r) => m.toBooking(r.booking));
+  createBooking(request: ReceptionCreateBookingRequest, idempotencyKey: string): Promise<BookingResponse> {
+    const body: c.ReceptionCreateBookingRequest = {
+      checkInDate: request.checkInDate,
+      checkOutDate: request.checkOutDate,
+      adults: request.adults,
+      children: request.children,
+      guest: {
+        firstName: request.guest.firstName,
+        lastName: request.guest.lastName,
+        phoneNumber: request.guest.phoneNumber,
+      },
+      rooms: request.rooms.map((r) => ({ roomTypeId: r.roomTypeId, quantity: r.quantity })),
+    };
+    return call<c.CreateBookingResponse>({ path: '/reception/bookings', method: 'POST', body, idempotencyKey }).then((r) => m.toBooking(r.booking));
+  },
+  cancelBooking(id: string, request: ReceptionCancelBookingRequest): Promise<BookingResponse> {
+    const body: c.ReceptionCancelBookingRequest = {
+      reason: request.reason,
+      notes: request.notes ?? null,
+      refundPaidAmounts: request.refundPaidAmounts,
+    };
+    return call<c.BookingDetailResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/cancel`, method: 'POST', body }).then(m.toBooking);
   },
   assignRooms(id: string, request: AssignRoomsRequest): Promise<BookingResponse> {
     return call<c.BookingDetailResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/assign-rooms`, method: 'POST', body: request }).then(m.toBooking);

@@ -18,6 +18,16 @@ export type BookingStatus =
   | 'CheckedOut'
   | 'Cancelled';
 
+/** How a booking was created. Walk-ins are recorded at the front desk. */
+export type BookingSource = 'Online' | 'WalkIn';
+
+/** Staff-recorded cancellation reasons (staff cancel / no-show). */
+export type StaffCancellationReason =
+  | 'GuestRequest'
+  | 'NoShow'
+  | 'BookedInError'
+  | 'Other';
+
 export type PaymentStatus =
   | 'Pending'
   | 'PartiallyPaid'

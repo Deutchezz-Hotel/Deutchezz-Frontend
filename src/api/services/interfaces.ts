@@ -17,6 +17,7 @@ import type {
   AvailabilitySearchRequest,
   BookingListItem,
   BookingLookupRequest,
+  BookingSource,
   BookingResponse,
   CancelBookingRequest,
   ChangeUserRoleRequest,
@@ -30,6 +31,8 @@ import type {
   Paginated,
   Payment,
   PaymentListItem,
+  ReceptionCancelBookingRequest,
+  ReceptionCreateBookingRequest,
   RecordPaymentRequest,
   RegisterPendingResponse,
   RegisterRequest,
@@ -67,6 +70,10 @@ export interface BookingFilterParams extends PaginationParams {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
+  /** Filter by how the booking was created. */
+  source?: BookingSource;
+  /** Reception only: confirmed bookings whose check-in date has already passed. */
+  overdueArrivals?: boolean;
   /** Column to order the filtered results by. */
   sort?: 'createdAt' | 'updatedAt';
   direction?: 'asc' | 'desc';
@@ -125,7 +132,10 @@ export interface MeApi {
 export interface ReceptionApi {
   listBookings(params: BookingFilterParams): Promise<Paginated<BookingListItem>>;
   getBooking(id: string): Promise<BookingResponse>;
-  createBooking(request: CreateBookingRequest, idempotencyKey: string): Promise<BookingResponse>;
+  /** Creates a walk-in booking. Sends the guest to the desk's email, never the client. */
+  createBooking(request: ReceptionCreateBookingRequest, idempotencyKey: string): Promise<BookingResponse>;
+  /** Cancels a Pending/Confirmed booking with a reason and refund choice. */
+  cancelBooking(id: string, request: ReceptionCancelBookingRequest): Promise<BookingResponse>;
   assignRooms(id: string, request: AssignRoomsRequest): Promise<BookingResponse>;
   checkIn(id: string): Promise<BookingResponse>;
   checkOut(id: string): Promise<BookingResponse>;

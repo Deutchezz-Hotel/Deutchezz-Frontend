@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { RecordPaymentDialog } from '@/components/record-payment-dialog';
+import { CancelBookingDialog } from '@/components/cancel-booking-dialog';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { formatMoney, bookingStatusLabel, paymentStatusLabel } from '@/lib/format';
 import { formatDisplayDate, formatStayRange } from '@/lib/dates';
 import { toast } from 'sonner';
-import { ArrowLeft, KeyRound, LogIn, LogOut, ReceiptText } from 'lucide-react';
+import { ArrowLeft, KeyRound, LogIn, LogOut, ReceiptText, XCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export function BookingDetail({ backHref }: { backHref: string }) {
@@ -21,6 +22,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const availableRoomsQuery = useReceptionRooms({ pageSize: 200, status: 'Available', date: booking?.checkInDate });
   const [pendingAction, setPendingAction] = useState<'checkIn' | 'checkOut' | null>(null);
   const [payOpen, setPayOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   if (isLoading) return <PageSkeleton rows={4} />;
   if (isError || !booking) return <ErrorBanner message="We couldn't load this booking" retry={() => refetch()} />;
@@ -33,6 +35,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const canCheckIn = (booking.status === 'Confirmed' || booking.status === 'Pending') && fullyAssigned;
   const canCheckOut = booking.status === 'CheckedIn';
   const needsRooms = booking.status === 'Pending' || booking.status === 'Confirmed';
+  const canCancel = booking.status === 'Pending' || booking.status === 'Confirmed';
 
   const runAction = (kind: 'checkIn' | 'checkOut') => {
     const target = kind === 'checkIn' ? action.checkIn : action.checkOut;
@@ -54,8 +57,12 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             <h1 className="heading-2">{booking.bookingReference}</h1>
             <Badge variant="secondary">{bookingStatusLabel(booking.status)}</Badge>
             <Badge variant="outline">{paymentStatusLabel(booking.paymentStatus)}</Badge>
+            {booking.source === 'WalkIn' ? <Badge variant="warning">Walk-in</Badge> : null}
           </div>
-          <p className="mt-1 text-sm text-ink-600">Created {formatDisplayDate(booking.createdAt)}</p>
+          <p className="mt-1 text-sm text-ink-600">
+            Created {formatDisplayDate(booking.createdAt)}
+            {booking.createdByName ? ` · Booked by ${booking.createdByName}` : ''}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {needsRooms ? (
@@ -66,6 +73,11 @@ export function BookingDetail({ backHref }: { backHref: string }) {
           {canCheckOut ? (
             <Button size="sm" variant="outline" onClick={() => setPendingAction('checkOut')}>
               <LogOut className="mr-2 h-4 w-4" /> Check out
+            </Button>
+          ) : null}
+          {canCancel ? (
+            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setCancelOpen(true)}>
+              <XCircle className="mr-2 h-4 w-4" /> Cancel booking
             </Button>
           ) : null}
         </div>
@@ -124,8 +136,12 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
               <p className="font-medium text-ink-900">{booking.guest.firstName} {booking.guest.lastName}</p>
-              <p className="text-ink-600">{booking.guest.email}</p>
               {booking.guest.phoneNumber ? <p className="text-ink-600">{booking.guest.phoneNumber}</p> : null}
+              {booking.guest.email ? <p className="text-ink-600">{booking.guest.email}</p> : null}
+              {booking.source === 'WalkIn' && !booking.guest.email ? (
+                <p className="text-ink-500">Walk-in guest — no email on record.</p>
+              ) : null}
+              {booking.createdByName ? <p className="pt-1 text-xs text-ink-500">Booked by {booking.createdByName}</p> : null}
               {booking.specialRequests ? <p className="mt-3 rounded-lg bg-milk p-3 text-ink-700">Special requests: {booking.specialRequests}</p> : null}
             </CardContent>
           </Card>
@@ -192,6 +208,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
       </AlertDialog>
 
       <RecordPaymentDialog open={payOpen} onOpenChange={setPayOpen} preselectedBookingId={booking.id} />
+      <CancelBookingDialog booking={booking} open={cancelOpen} onOpenChange={setCancelOpen} />
     </div>
   );
 }

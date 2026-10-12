@@ -147,6 +147,27 @@ export interface CreateBookingRequest {
   specialRequests?: string | null;
 }
 
+export interface ReceptionGuestRequest {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+}
+
+export interface ReceptionCreateBookingRequest {
+  checkInDate: string;
+  checkOutDate: string;
+  adults: number;
+  children: number;
+  guest: ReceptionGuestRequest;
+  rooms: BookingRoomRequest[];
+}
+
+export interface ReceptionCancelBookingRequest {
+  reason: string;
+  notes?: string | null;
+  refundPaidAmounts: boolean;
+}
+
 export interface BookingLookupRequest {
   bookingReference: string;
   email: string;
@@ -182,7 +203,8 @@ export interface BookingDetailResponse {
   id: string;
   bookingReference: string;
   guestFullName: string;
-  guestEmail: string;
+  guestEmail: string | null;
+  guestPhoneNumber: string | null;
   checkInDate: string;
   checkOutDate: string;
   nights: number;
@@ -191,6 +213,8 @@ export interface BookingDetailResponse {
   specialRequests: string | null;
   status: string;
   paymentStatus: string;
+  source: string;
+  createdByName: string | null;
   totalAmount: number;
   lines: BookingRoomTypeLineResponse[];
   assignments: RoomAssignmentResponse[];
@@ -202,10 +226,14 @@ export interface BookingListItemResponse {
   id: string;
   bookingReference: string;
   guestFullName: string;
+  guestEmail: string | null;
+  guestPhoneNumber: string | null;
   checkInDate: string;
   checkOutDate: string;
   status: string;
   paymentStatus: string;
+  source: string;
+  createdByName: string | null;
   totalAmount: number;
 }
 

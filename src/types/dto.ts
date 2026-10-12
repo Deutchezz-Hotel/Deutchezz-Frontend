@@ -11,11 +11,13 @@
  *  - Money is a decimal number in NGN (no taxes or fees exist yet).
  */
 import type {
+  BookingSource,
   BookingStatus,
   NotificationType,
   PaymentMethod,
   PaymentStatus,
   RoomStatus,
+  StaffCancellationReason,
   StaffRole,
   UserRole,
 } from './enums';
@@ -166,7 +168,8 @@ export interface AvailabilityResponse {
 export interface BookingGuest {
   firstName: string;
   lastName: string;
-  email: string;
+  /** Null for walk-in guests recorded at the front desk without an email. */
+  email: string | null;
   phoneNumber: string;
 }
 
@@ -183,6 +186,35 @@ export interface CreateBookingRequest {
   guest: BookingGuest;
   rooms: BookingRoomRequest[];
   specialRequests?: string | null;
+}
+
+/**
+ * Front-desk guest details. Walk-ins have no email and no special requests —
+ * the booking summary is emailed to the staff member who created it.
+ */
+export interface ReceptionGuestRequest {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+}
+
+/** Front-desk (walk-in) booking creation. No email, no special requests. */
+export interface ReceptionCreateBookingRequest {
+  checkInDate: string;
+  checkOutDate: string;
+  adults: number;
+  children: number;
+  guest: ReceptionGuestRequest;
+  rooms: BookingRoomRequest[];
+}
+
+/** Staff cancellation with an explicit reason and refund choice. */
+export interface ReceptionCancelBookingRequest {
+  reason: StaffCancellationReason;
+  /** Required when reason is 'Other'. */
+  notes?: string | null;
+  /** True refunds any Paid amounts; false keeps them and records the choice. */
+  refundPaidAmounts: boolean;
 }
 
 export interface BookingRoomLine {
@@ -211,6 +243,10 @@ export interface BookingResponse {
   specialRequests: string | null;
   totalAmount: number;
   createdAt: string;
+  /** How the booking was created. */
+  source: BookingSource;
+  /** Staff member who created the booking at the desk; null for online bookings. */
+  createdByName: string | null;
   /** "yyyy-MM-dd" — bumped on any lifecycle change (rooms assigned, checked in, payment recorded, cancelled). */
   updatedAt: string;
   /**
@@ -235,10 +271,14 @@ export interface BookingListItem {
   checkOutDate: string;
   nights: number;
   guestName: string;
-  guestEmail: string;
+  guestEmail: string | null;
+  guestPhoneNumber: string;
   roomsCount: number;
   roomsSummary: string;
   totalAmount: number;
+  source: BookingSource;
+  /** Staff member who created the booking at the desk; null for online bookings. */
+  createdByName: string | null;
   createdAt: string;
   updatedAt: string;
 }

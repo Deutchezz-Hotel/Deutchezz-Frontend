@@ -38,7 +38,7 @@ export default function ConfirmationPage() {
   const runCancel = () => {
     if (!data) return;
     cancel.mutate(
-      { bookingReference: data.bookingReference, email: data.guest.email, reason: reason.trim() || undefined },
+      { bookingReference: data.bookingReference, email: data.guest.email ?? '', reason: reason.trim() || undefined },
       {
         onSuccess: (updated) => {
           setBooking(updated);

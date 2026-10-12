@@ -67,7 +67,12 @@ export default function ReceptionBookingsPage() {
                   {bookings.map((b) => (
                     <TableRow key={b.id} className="relative hover:bg-milk">
                       <TableCell>
-                        <p className="font-medium text-ink-900">{b.guestName}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-ink-900">{b.guestName}</p>
+                          {b.source === 'WalkIn' ? <Badge variant="warning">Walk-in</Badge> : null}
+                        </div>
+                        {b.guestPhoneNumber ? <p className="text-xs text-ink-600">{b.guestPhoneNumber}</p> : null}
+                        {b.createdByName ? <p className="text-xs text-ink-500">Booked by {b.createdByName}</p> : null}
                       </TableCell>
                       <TableCell className="text-ink-700">{b.bookingReference}</TableCell>
                       <TableCell>

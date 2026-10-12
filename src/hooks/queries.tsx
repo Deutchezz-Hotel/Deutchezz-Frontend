@@ -20,6 +20,8 @@ import type {
   RecordPaymentRequest,
   AssignRoomsRequest,
   CancelBookingRequest,
+  ReceptionCancelBookingRequest,
+  ReceptionCreateBookingRequest,
   UserRole,
 } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -180,7 +182,7 @@ export function useReceptionBooking(id: string | undefined) {
 export function useReceptionCreateBooking(idempotencyKey: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (request: CreateBookingRequest) => services.reception.createBooking(request, idempotencyKey ?? ''),
+    mutationFn: (request: ReceptionCreateBookingRequest) => services.reception.createBooking(request, idempotencyKey ?? ''),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['reception'] });
       qc.invalidateQueries({ queryKey: ['admin'] });
@@ -197,6 +199,10 @@ export function useReceptionAction() {
   return {
     assignRooms: useMutation({
       mutationFn: ({ id, request }: { id: string; request: AssignRoomsRequest }) => services.reception.assignRooms(id, request),
+      onSuccess: invalidate,
+    }),
+    cancelBooking: useMutation({
+      mutationFn: ({ id, request }: { id: string; request: ReceptionCancelBookingRequest }) => services.reception.cancelBooking(id, request),
       onSuccess: invalidate,
     }),
     checkIn: useMutation({
