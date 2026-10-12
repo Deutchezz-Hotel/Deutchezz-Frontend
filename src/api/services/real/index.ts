@@ -21,6 +21,7 @@ import type {
   BookingLookupRequest,
   BookingResponse,
   CancelBookingRequest,
+  ChangeUserRoleRequest,
   CreateBookingRequest,
   ForgotPasswordRequest,
   GuestListItem,
@@ -46,9 +47,10 @@ import type {
   Staff,
   UploadedImage,
   User,
+  UserListItem,
   VerifyEmailRequest,
 } from '@/types';
-import type { BookingFilterParams, PaginationParams, RoomListParams } from '../interfaces';
+import type { BookingFilterParams, PaginationParams, RoomListParams, UserListParams } from '../interfaces';
 import * as c from './contracts';
 import * as m from './mappers';
 
@@ -363,6 +365,15 @@ export const realAdminApi = {
     return call<c.Paged<c.GuestResponse>>({
       path: `/admin/guests${buildQuery({ ...pagedQuery(params), search: params.search, from: undefined, to: undefined })}`,
     }).then((p) => m.mapPage(p, m.toGuest));
+  },
+  listUsers(params: UserListParams): Promise<Paginated<UserListItem>> {
+    return call<c.Paged<c.UserListItemResponse>>({
+      path: `/admin/users${buildQuery({ ...pagedQuery(params), search: params.search, role: params.role })}`,
+    }).then((p) => m.mapPage(p, m.toUserListItem));
+  },
+  changeUserRole(id: string, request: ChangeUserRoleRequest): Promise<UserListItem> {
+    const body: c.ChangeUserRoleRequest = { role: request.role };
+    return call<c.UserListItemResponse>({ path: `/admin/users/${encodeURIComponent(id)}/role`, method: 'PATCH', body }).then(m.toUserListItem);
   },
   listStaff(params: PaginationParams & { isActive?: boolean; role?: string }): Promise<Paginated<Staff>> {
     return call<c.Paged<c.StaffResponse>>({

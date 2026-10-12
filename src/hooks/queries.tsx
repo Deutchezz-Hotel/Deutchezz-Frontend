@@ -1,5 +1,5 @@
 import { authStorage, services } from '@/api';
-import type { BookingFilterParams, PaginationParams, RoomListParams } from '@/api';
+import type { BookingFilterParams, PaginationParams, RoomListParams, UserListParams } from '@/api';
 import type {
   AnonymousCancelBookingRequest,
   AvailabilitySearchRequest,
@@ -20,6 +20,7 @@ import type {
   RecordPaymentRequest,
   AssignRoomsRequest,
   CancelBookingRequest,
+  UserRole,
 } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -39,6 +40,7 @@ export const keys = {
   adminRoomTypes: (params: PaginationParams) => ['admin', 'room-types', params] as const,
   adminBookings: (params: BookingFilterParams) => ['admin', 'bookings', params] as const,
   adminGuests: (params: PaginationParams) => ['admin', 'guests', params] as const,
+  adminUsers: (params: UserListParams) => ['admin', 'users', params] as const,
   adminStaff: (params: PaginationParams) => ['admin', 'staff', params] as const,
   adminPayments: (params: PaginationParams) => ['admin', 'payments', params] as const,
   adminReports: ['admin', 'reports'] as const,
@@ -277,6 +279,25 @@ export function useAdminBookings(params: BookingFilterParams) {
 
 export function useAdminGuests(params: PaginationParams) {
   return useQuery({ queryKey: keys.adminGuests(params), queryFn: () => services.admin.listGuests(params) });
+}
+
+export function useAdminUsers(params: UserListParams) {
+  return useQuery({ queryKey: keys.adminUsers(params), queryFn: () => services.admin.listUsers(params) });
+}
+
+/**
+ * Changes a user's single role. A role change moves the person between the user
+ * (customer) directory and the staff list, so both caches are invalidated.
+ */
+export function useChangeUserRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, role }: { id: string; role: UserRole }) => services.admin.changeUserRole(id, { role }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'users'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'staff'] });
+    },
+  });
 }
 
 export function useAdminStaff(params: PaginationParams) {

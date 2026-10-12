@@ -318,6 +318,33 @@ export interface SaveStaffRequest {
   password?: string;
 }
 
+/* --------------------------- Users (directory) --------------------------- */
+
+/**
+ * A customer account as shown in the admin user directory. Staff are managed
+ * through the staff section instead; this is where customer accounts live and
+ * where an administrator can promote one to a staff role.
+ */
+export interface UserListItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  role: UserRole;
+  isActive: boolean;
+  emailConfirmed: boolean;
+  createdAt: string;
+  lastLoginAt?: string | null;
+  bookingsCount: number;
+  initials: string;
+}
+
+/** Exactly one role per account; sending this replaces the current role. */
+export interface ChangeUserRoleRequest {
+  role: UserRole;
+}
+
 /* -------------------------------- Payments ------------------------------- */
 
 export interface RecordPaymentRequest {

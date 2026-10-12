@@ -324,6 +324,26 @@ export interface StaffResponse {
   createdAt: string;
 }
 
+/* --------------------------------- Users --------------------------------- */
+
+export interface UserListItemResponse {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string | null;
+  role: string;
+  isActive: boolean;
+  emailConfirmed: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+  bookingsCount: number;
+}
+
+export interface ChangeUserRoleRequest {
+  role: string;
+}
+
 /* -------------------------------- Payments ------------------------------- */
 
 export interface RecordPaymentRequest {

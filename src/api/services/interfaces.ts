@@ -19,6 +19,7 @@ import type {
   BookingLookupRequest,
   BookingResponse,
   CancelBookingRequest,
+  ChangeUserRoleRequest,
   CreateBookingRequest,
   ForgotPasswordRequest,
   GuestListItem,
@@ -44,6 +45,8 @@ import type {
   Staff,
   UploadedImage,
   User,
+  UserListItem,
+  UserRole,
   VerifyEmailRequest,
 } from '@/types';
 
@@ -66,6 +69,13 @@ export interface BookingFilterParams extends PaginationParams {
   dateTo?: string;
   /** Column to order the filtered results by. */
   sort?: 'createdAt' | 'updatedAt';
+  direction?: 'asc' | 'desc';
+}
+
+/** Admin user directory: customers by default; broaden with `role`. */
+export interface UserListParams extends PaginationParams {
+  role?: UserRole;
+  sort?: 'firstName' | 'lastName' | 'email' | 'isActive' | 'createdAt' | 'lastLoginAt';
   direction?: 'asc' | 'desc';
 }
 
@@ -139,11 +149,12 @@ export interface AdminApi {
   updateRoomTypeStatus(id: string, isActive: boolean): Promise<RoomTypeResponse>;
   listBookings(params: BookingFilterParams): Promise<Paginated<BookingListItem>>;
   listGuests(params: PaginationParams): Promise<Paginated<GuestListItem>>;
-  listStaff(params: PaginationParams): Promise<Paginated<Staff>>;
-  createStaff(request: SaveStaffRequest): Promise<Staff>;
+  listUsers(params: UserListParams): Promise<Paginated<UserListItem>>;
+  listStaff(params: PaginationParams): Promise<Paginated<Staff>>;  createStaff(request: SaveStaffRequest): Promise<Staff>;
   getStaff(id: string): Promise<Staff>;
   updateStaff(id: string, request: SaveStaffRequest): Promise<Staff>;
   updateStaffStatus(id: string, isActive: boolean): Promise<Staff>;
+  changeUserRole(id: string, request: ChangeUserRoleRequest): Promise<UserListItem>;
   listPayments(params: PaginationParams): Promise<Paginated<PaymentListItem>>;
   reports(): Promise<AdminReports>;
   listActivityLogs(params: PaginationParams): Promise<Paginated<ActivityLog>>;

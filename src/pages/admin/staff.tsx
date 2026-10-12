@@ -11,19 +11,22 @@ import { FormDialog, FormDialogBody, FormDialogContent, FormDialogFooter, FormDi
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
+import { ChangeRoleDialog, type ChangeRoleTarget } from '@/components/change-role-dialog';
 import { staffRoleLabel } from '@/lib/format';
 import { focusFirstInvalid } from '@/lib/focus';
 import { toast } from 'sonner';
-import { Pencil, Plus, ShieldCheck } from 'lucide-react';
+import { Pencil, Plus, ShieldCheck, UserCog } from 'lucide-react';
 import type { SaveStaffRequest, Staff, StaffRole } from '@/types';
 
 const ROLES: StaffRole[] = ['Receptionist', 'Administrator'];
+const ROLE_OPTIONS: ChangeRoleTarget['role'][] = ['Receptionist', 'Administrator', 'Customer'];
 const emptyForm: SaveStaffRequest = { firstName: '', lastName: '', email: '', phoneNumber: '', role: 'Receptionist' };
 const FORM_ID = 'staff-form';
 
 export default function AdminStaffPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Staff | null>(null);
+  const [roleTarget, setRoleTarget] = useState<ChangeRoleTarget | null>(null);
   const [form, setForm] = useState<SaveStaffRequest>(emptyForm);
   const [search, setSearch] = useState('');
   const firstNameRef = useRef<HTMLInputElement>(null);
@@ -111,7 +114,7 @@ export default function AdminStaffPage() {
                           </Avatar>
                           <div>
                             <p className="font-medium text-ink-900">{s.firstName} {s.lastName}</p>
-                            <p className="text-xs text-ink-600">{s.email} · {s.phoneNumber ?? ''}</p>
+                            <p className="text-xs text-ink-600">{s.phoneNumber ? `${s.email} · ${s.phoneNumber}` : s.email}</p>
                           </div>
                         </div>
                       </TableCell>
@@ -127,7 +130,16 @@ export default function AdminStaffPage() {
                         />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(s)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(s)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setRoleTarget({ id: s.id, name: `${s.firstName} ${s.lastName}`.trim(), role: s.role })}
+                          >
+                            <UserCog className="mr-2 h-4 w-4" /> Change role
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -186,6 +198,14 @@ export default function AdminStaffPage() {
           </FormDialogFooter>
         </FormDialogContent>
       </FormDialog>
+
+      <ChangeRoleDialog
+        target={roleTarget}
+        roles={ROLE_OPTIONS}
+        title="Change staff role"
+        description={roleTarget ? `Set a new role for ${roleTarget.name}, or move them to Customer to remove front-desk access.` : undefined}
+        onOpenChange={(next) => { if (!next) setRoleTarget(null); }}
+      />
     </div>
   );
 }

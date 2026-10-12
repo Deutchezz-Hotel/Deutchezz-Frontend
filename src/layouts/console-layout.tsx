@@ -263,6 +263,7 @@ const adminGroups: ConsoleNavGroup[] = [
   {
     label: 'Administration',
     items: [
+      { to: '/admin/users', label: 'Users', icon: UserRound },
       { to: '/admin/staff', label: 'Staff', icon: ShieldCheck },
       { to: '/admin/activity', label: 'Activity log', icon: Activity },
       { to: '/admin/notifications', label: 'Notifications', icon: Bell },

@@ -26,6 +26,7 @@ import type {
   RoomTypeResponse,
   Staff,
   User,
+  UserListItem,
   UserRole,
 } from '@/types';
 import { appConfig } from '@/config/appConfig';
@@ -260,8 +261,26 @@ export function toStaff(s: c.StaffResponse): Staff {
   };
 }
 
-/* -------------------------------- payments ------------------------------- */
+/* -------------------------------- users ---------------------------------- */
 
+export function toUserListItem(u: c.UserListItemResponse): UserListItem {
+  return {
+    id: u.id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    email: u.email,
+    phoneNumber: u.phoneNumber ?? undefined,
+    role: u.role as UserRole,
+    isActive: u.isActive,
+    emailConfirmed: u.emailConfirmed,
+    createdAt: u.createdAt,
+    lastLoginAt: u.lastLoginAt,
+    bookingsCount: u.bookingsCount,
+    initials: initialsOf(u.firstName, u.lastName),
+  };
+}
+
+/* -------------------------------- payments ------------------------------- */
 export function toPaymentListItem(p: c.PaymentListItemResponse): PaymentListItem {
   return {
     id: p.id,

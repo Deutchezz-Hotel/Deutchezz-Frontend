@@ -41,6 +41,7 @@ const AdminRoomTypes = withSuspense(lazy(() => import('@/pages/admin/room-types'
 const AdminBookings = withSuspense(lazy(() => import('@/pages/admin/bookings')));
 const AdminBookingDetail = withSuspense(lazy(() => import('@/pages/admin/booking-detail')));
 const AdminGuests = withSuspense(lazy(() => import('@/pages/admin/guests')));
+const AdminUsers = withSuspense(lazy(() => import('@/pages/admin/users')));
 const AdminStaff = withSuspense(lazy(() => import('@/pages/admin/staff')));
 const AdminPayments = withSuspense(lazy(() => import('@/pages/admin/payments')));
 const AdminReports = withSuspense(lazy(() => import('@/pages/admin/reports')));
@@ -115,6 +116,7 @@ export const appRoutes: RouteObject[] = [
           { path: '/admin/bookings/new', element: <ReceptionCreateBooking /> },
           { path: '/admin/bookings/:id', element: <AdminBookingDetail /> },
           { path: '/admin/guests', element: <AdminGuests /> },
+          { path: '/admin/users', element: <AdminUsers /> },
           { path: '/admin/staff', element: <AdminStaff /> },
           { path: '/admin/payments', element: <AdminPayments /> },
           { path: '/admin/reports', element: <AdminReports /> },
