@@ -116,6 +116,57 @@ export default function AdminSettingsPage() {
               />
             </div>
           </div>
+          <div className="border-t pt-4">
+            <h3 className="mb-1 text-sm font-semibold text-foreground">Stay times &amp; policy</h3>
+            <p className="mb-3 text-xs text-muted-foreground">Guests pick from these windows; times align to the slot grid. Lagos time.</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Earliest check-in</Label>
+                <Input type="time" value={form.earliestCheckInTime ?? ''} onChange={(e) => setForm({ ...form, earliestCheckInTime: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Latest check-in</Label>
+                <Input type="time" value={form.latestCheckInTime ?? ''} onChange={(e) => setForm({ ...form, latestCheckInTime: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Earliest check-out</Label>
+                <Input type="time" value={form.earliestCheckOutTime ?? ''} onChange={(e) => setForm({ ...form, earliestCheckOutTime: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Latest check-out</Label>
+                <Input type="time" value={form.latestCheckOutTime ?? ''} onChange={(e) => setForm({ ...form, latestCheckOutTime: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Slot grid (minutes)</Label>
+                <Input
+                  type="number"
+                  min={5}
+                  step={5}
+                  value={form.timeSlotMinutes ?? 30}
+                  onChange={(e) => setForm({ ...form, timeSlotMinutes: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Max extra hours per stay</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={form.maxExtraHoursPerStay ?? 0}
+                  onChange={(e) => setForm({ ...form, maxExtraHoursPerStay: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Turnaround (minutes)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={5}
+                  value={form.turnaroundMinutes ?? 0}
+                  onChange={(e) => setForm({ ...form, turnaroundMinutes: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+          </div>
           <Button onClick={save} disabled={update.isPending}>{update.isPending ? 'Saving…' : 'Save settings'}</Button>
         </CardContent>
       </Card>

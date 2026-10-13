@@ -1,5 +1,6 @@
 import { authStorage, services } from '@/api';
 import type { BookingFilterParams, PaginationParams, RoomListParams, UserListParams } from '@/api';
+import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import type {
   AnonymousCancelBookingRequest,
   AvailabilitySearchRequest,
@@ -32,6 +33,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const keys = {
   roomTypes: ['room-types'] as const,
+  stayPolicy: ['stay-policy'] as const,
   availability: (q: AvailabilitySearchRequest) => ['availability', q] as const,
   meBookings: (params: BookingFilterParams) => ['me', 'bookings', params] as const,
   meBooking: (id: string) => ['me', 'bookings', id] as const,
@@ -84,6 +86,19 @@ export function useCreateBooking() {
 
 export function useBookingLookup() {
   return useMutation({ mutationFn: (request: BookingLookupRequest) => services.bookings.lookup(request) });
+}
+
+/**
+ * Public stay policy (accepted times, slot grid, turnaround). Seeds with the
+ * backend defaults so forms render immediately, then refines from the API.
+ */
+export function useStayPolicy() {
+  return useQuery({
+    queryKey: keys.stayPolicy,
+    queryFn: () => services.stay.getPolicy(),
+    staleTime: 5 * 60 * 1000,
+    placeholderData: DEFAULT_STAY_POLICY,
+  });
 }
 
 export function useAnonymousCancelBooking() {

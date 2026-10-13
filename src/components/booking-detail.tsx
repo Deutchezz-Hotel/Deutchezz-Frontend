@@ -13,11 +13,10 @@ import { ReassignRoomDialog } from '@/components/reassign-room-dialog';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { formatMoney, bookingStatusLabel, paymentStatusLabel } from '@/lib/format';
 import { bookingStatusTone, paymentStatusTone } from '@/lib/status';
-import { formatDisplayDate, formatStayRange, isEarlyCheckOut } from '@/lib/dates';
-import { appConfig } from '@/config/appConfig';
-import { toApiError } from '@/api';
+import { formatDisplayDate, formatInstant, formatStayRange, formatTime12h, isEarlyCheckOut } from '@/lib/dates';
+import { toApiError, type ApiError } from '@/api';
 import { toast } from 'sonner';
-import { ArrowLeft, KeyRound, LogIn, LogOut, ReceiptText, RefreshCw, Shuffle, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, KeyRound, LogIn, LogOut, ReceiptText, RefreshCw, Shuffle, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import type { AssignedRoom, BookingRoomLine } from '@/types';
 
@@ -26,7 +25,8 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const nav = useNavigate();
   const { data: booking, isLoading, isError, refetch } = useReceptionBooking(id);
   const action = useReceptionAction();
-  const availableRoomsQuery = useReceptionRooms({ pageSize: 200, status: 'Available', date: booking?.checkInDate });
+  const boardAt = booking?.checkInTime ? `${booking.checkInDate}T${booking.checkInTime}` : undefined;
+  const availableRoomsQuery = useReceptionRooms({ pageSize: 200, at: boardAt });
   const [pendingAction, setPendingAction] = useState<'checkIn' | 'checkOut' | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -34,6 +34,8 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const [roomTypeTarget, setRoomTypeTarget] = useState<BookingRoomLine | null>(null);
   const [reassignTarget, setReassignTarget] = useState<{ line: BookingRoomLine; assignment: AssignedRoom } | null>(null);
   const [unassignTarget, setUnassignTarget] = useState<AssignedRoom | null>(null);
+  const [lateTarget, setLateTarget] = useState<{ bookingRoomTypeId: string; roomId: string; roomNumber: string; availableFrom?: string } | null>(null);
+  const [conflictError, setConflictError] = useState<ApiError | null>(null);
 
   if (isLoading) return <PageSkeleton rows={4} />;
   if (isError || !booking) return <ErrorBanner message="We couldn't load this booking" retry={() => refetch()} />;
@@ -50,7 +52,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const canChangeRoomType = booking.status === 'Pending' || booking.status === 'Confirmed';
   const canReassign = booking.status === 'Confirmed' || booking.status === 'CheckedIn';
   const canUnassign = booking.status === 'Pending' || booking.status === 'Confirmed';
-  const checkOutIsEarly = isEarlyCheckOut(booking.checkOutDate, appConfig.checkOutTime);
+  const checkOutIsEarly = isEarlyCheckOut(booking.checkOutDate, booking.checkOutTime);
 
   const runCheckIn = () => {
     action.checkIn.mutate(booking.id, {
@@ -92,6 +94,27 @@ export function BookingDetail({ backHref }: { backHref: string }) {
     );
   };
 
+  const runAssignRoom = (bookingRoomTypeId: string, roomId: string, acknowledgeLateAvailability = false) => {
+    action.assignRooms.mutate(
+      { id: booking.id, request: { assignments: [{ bookingRoomTypeId, roomId }], acknowledgeLateAvailability } },
+      {
+        onSuccess: () => { toast.success('Room assigned'); setLateTarget(null); },
+        onError: (error) => {
+          const api = toApiError(error);
+          setLateTarget(null);
+          if (api.problem.code === 'room.available_later') {
+            const room = availableRooms.find((r) => r.id === roomId);
+            setLateTarget({ bookingRoomTypeId, roomId, roomNumber: api.problem.roomNumber ?? room?.roomNumber ?? '', availableFrom: api.problem.availableFrom });
+          } else if (api.problem.code === 'room.occupied_until') {
+            setConflictError(api);
+          } else {
+            toast.error(api.userMessage);
+          }
+        },
+      },
+    );
+  };
+
   return (
     <div className="space-y-6">
       <button onClick={() => nav(backHref)} className="inline-flex items-center gap-1 text-sm font-medium text-primary">
@@ -103,6 +126,9 @@ export function BookingDetail({ backHref }: { backHref: string }) {
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="heading-2">{booking.bookingReference}</h1>
             <Badge variant={bookingStatusTone(booking.status)}>{bookingStatusLabel(booking.status)}</Badge>
+            {booking.isOverdueCheckOut ? (
+              <Badge variant="destructive"><AlertTriangle className="mr-1 h-3 w-3" /> Overdue check-out</Badge>
+            ) : null}
             <Badge variant={paymentStatusTone(booking.paymentStatus)}>{paymentStatusLabel(booking.paymentStatus)}</Badge>
             {booking.source === 'WalkIn' ? <Badge variant="warning">Walk-in</Badge> : null}
           </div>
@@ -140,7 +166,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
               {booking.rooms.map((line) => {
                 const assigned = line.assignedRooms ?? [];
                 const missing = line.quantity - assigned.length;
-                const candidates = availableRooms.filter((r) => r.roomTypeId === line.roomTypeId);
+                const candidates = availableRooms.filter((r) => r.roomTypeId === line.roomTypeId && (r.effectiveStatus ?? r.status) === 'Available');
                 return (
                   <div key={line.bookingRoomTypeId} className="rounded-lg border p-4">
                     <div className="flex flex-wrap items-start justify-between gap-2">
@@ -188,13 +214,10 @@ export function BookingDetail({ backHref }: { backHref: string }) {
                         {candidates.length === 0 ? (
                           <span className="text-sm text-warning">No available {line.roomTypeName} rooms.</span>
                         ) : (
-                          <Select onValueChange={(roomId) => action.assignRooms.mutate(
-                            { id: booking.id, request: { assignments: [{ bookingRoomTypeId: line.bookingRoomTypeId, roomId }] } },
-                            { onSuccess: () => toast.success('Room assigned'), onError: () => toast.error('Could not assign that room') },
-                          )}>
-                            <SelectTrigger className="w-44"><SelectValue placeholder="Choose a room" /></SelectTrigger>
+                          <Select onValueChange={(roomId) => runAssignRoom(line.bookingRoomTypeId, roomId)}>
+                            <SelectTrigger className="w-52"><SelectValue placeholder="Choose a room" /></SelectTrigger>
                             <SelectContent>
-                              {candidates.map((r) => <SelectItem key={r.id} value={r.id}>Room {r.roomNumber}</SelectItem>)}
+                              {candidates.map((r) => <SelectItem key={r.id} value={r.id}>{`Room ${r.roomNumber} · Floor ${r.floor}`}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         )}
@@ -230,9 +253,12 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             </CardHeader>
             <CardContent className="space-y-1 text-sm text-muted-foreground">
               <p>{formatStayRange(booking.checkInDate, booking.checkOutDate)}</p>
+              <p>{`Check-in ${formatTime12h(booking.checkInTime)} · check-out ${formatTime12h(booking.checkOutTime)}`}</p>
+              {booking.actualCheckInAt ? <p>Actual check-in {formatInstant(booking.actualCheckInAt)}</p> : null}
+              {booking.actualCheckOutAt ? <p>Actual check-out {formatInstant(booking.actualCheckOutAt)}</p> : null}
               <p>{booking.nights} {booking.nights === 1 ? 'night' : 'nights'} · {booking.adults} adults · {booking.children} children</p>
               {canCheckOut ? (
-                <p className="text-xs text-muted-foreground">Scheduled check-out: {formatDisplayDate(booking.checkOutDate)} at {appConfig.checkOutTime}</p>
+                <p className="text-xs text-muted-foreground">Scheduled check-out: {formatDisplayDate(booking.checkOutDate)} at {formatTime12h(booking.checkOutTime)}</p>
               ) : null}
               <p className="pt-2 text-2xl font-semibold text-primary">{formatMoney(booking.totalAmount)}</p>
             </CardContent>
@@ -312,6 +338,52 @@ export function BookingDetail({ backHref }: { backHref: string }) {
         open={reassignTarget !== null}
         onOpenChange={(o) => { if (!o) setReassignTarget(null); }}
       />
+
+      <AlertDialog open={lateTarget !== null} onOpenChange={(o) => { if (!o) setLateTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Room {lateTarget?.roomNumber} isn&apos;t free right now</AlertDialogTitle>
+            <AlertDialogDescription>
+              {lateTarget?.availableFrom
+                ? `${lateTarget.roomNumber ? `Room ${lateTarget.roomNumber}` : 'It'} frees up at ${formatInstant(lateTarget.availableFrom)}. You can still assign it now.`
+                : 'It will free up before this stay begins. You can still assign it now.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Choose another room</AlertDialogCancel>
+            <Button
+              disabled={action.assignRooms.isPending}
+              onClick={() => lateTarget && runAssignRoom(lateTarget.bookingRoomTypeId, lateTarget.roomId, true)}
+            >
+              {action.assignRooms.isPending ? 'Assigning…' : 'Assign anyway'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={conflictError !== null} onOpenChange={(o) => { if (!o) setConflictError(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>That room is occupied for this stay</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-2 text-left">
+                <p>These rooms clash with the requested stay. Choose another room.</p>
+                <ul className="space-y-1 text-sm">
+                  {(conflictError?.roomConflicts ?? []).map((c) => (
+                    <li key={c.roomId} className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+                      <span className="font-medium">Room {c.roomNumber}</span>
+                      {c.occupiedUntil ? <span className="text-muted-foreground">until {formatInstant(c.occupiedUntil)}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setConflictError(null)}>Choose another room</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -5,10 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { estimateTotal, type BookingFlowState } from '@/features/booking/types';
-import { formatStayRange } from '@/lib/dates';
+import { formatStayRange, formatTime12h } from '@/lib/dates';
 import { formatMoney } from '@/lib/format';
 import { newIdempotencyKey } from '@/lib/id';
-import { appConfig } from '@/config/appConfig';
 import { useCreateBooking } from '@/hooks/queries';
 import { useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -98,7 +97,8 @@ export default function ReviewPage() {
             <div className="space-y-2">
               <p className="font-semibold text-foreground">Stay</p>
               <p className="text-muted-foreground">{formatStayRange(draft.request.checkInDate, draft.request.checkOutDate)} · {draft.nights} {draft.nights === 1 ? 'night' : 'nights'}</p>
-              <p className="text-sm text-muted-foreground">{draft.request.adults} adults · {draft.request.children} children · Check-in from {appConfig.checkInTime}</p>
+              <p className="text-sm text-muted-foreground">{`Check-in ${formatTime12h(draft.request.checkInTime)} · check-out ${formatTime12h(draft.request.checkOutTime)}`}</p>
+              <p className="text-sm text-muted-foreground">{draft.request.adults} adults · {draft.request.children} children</p>
             </div>
 
             <div className="space-y-3">

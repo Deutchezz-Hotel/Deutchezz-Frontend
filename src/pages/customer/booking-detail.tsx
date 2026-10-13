@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { formatMoney, bookingStatusLabel, paymentStatusLabel } from '@/lib/format';
 import { bookingStatusTone, paymentStatusTone } from '@/lib/status';
-import { formatDisplayDate, formatStayRange } from '@/lib/dates';
+import { formatDisplayDate, formatStayRange, formatTime12h } from '@/lib/dates';
 import { ArrowLeft } from 'lucide-react';
 
 export default function CustomerBookingDetailPage() {
@@ -25,6 +25,7 @@ export default function CustomerBookingDetailPage() {
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="heading-2">{booking.bookingReference}</h1>
           <Badge variant={bookingStatusTone(booking.status)}>{bookingStatusLabel(booking.status)}</Badge>
+          {booking.isOverdueCheckOut ? <Badge variant="destructive">Overdue check-out</Badge> : null}
           <Badge variant={paymentStatusTone(booking.paymentStatus)}>{paymentStatusLabel(booking.paymentStatus)}</Badge>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">Booked {formatDisplayDate(booking.createdAt)}</p>
@@ -74,6 +75,8 @@ export default function CustomerBookingDetailPage() {
             </CardHeader>
             <CardContent className="space-y-1 text-sm text-muted-foreground">
               <p>{formatStayRange(booking.checkInDate, booking.checkOutDate)}</p>
+              <p>{`Check-in ${formatTime12h(booking.checkInTime)} · check-out ${formatTime12h(booking.checkOutTime)}`}</p>
+              {booking.actualCheckInAt ? <p>Actual check-in {formatTime12h(booking.actualCheckInAt.slice(11, 16))}</p> : null}
               <p>{booking.nights} {booking.nights === 1 ? 'night' : 'nights'} · {booking.adults} adults · {booking.children} children</p>
               <p className="pt-2 text-2xl font-semibold text-primary">{formatMoney(booking.totalAmount)}</p>
             </CardContent>

@@ -27,6 +27,7 @@ import type {
   Room,
   RoomTypeResponse,
   Staff,
+  StayPolicy,
   User,
   UserListItem,
   UserRole,
@@ -142,9 +143,13 @@ export function toAvailability(
   });
   return {
     checkInDate: resp.checkInDate,
+    checkInTime: resp.checkInTime,
     checkOutDate: resp.checkOutDate,
+    checkOutTime: resp.checkOutTime,
+    checkInAt: resp.checkInAt,
+    checkOutAt: resp.checkOutAt,
     nights,
-    totalAvailableRooms: roomTypes.reduce((sum, rt) => sum + rt.availableRooms, 0),
+    totalAvailableRooms: roomTypes.reduce((acc, rt) => acc + rt.availableRooms, 0),
     roomTypes,
   };
 }
@@ -182,7 +187,14 @@ export function toBooking(d: c.BookingDetailResponse): BookingResponse {
     status: d.status as BookingResponse['status'],
     paymentStatus: d.paymentStatus as BookingResponse['paymentStatus'],
     checkInDate: d.checkInDate,
+    checkInTime: d.checkInTime,
     checkOutDate: d.checkOutDate,
+    checkOutTime: d.checkOutTime,
+    checkInAt: d.checkInAt,
+    checkOutAt: d.checkOutAt,
+    actualCheckInAt: d.actualCheckInAt,
+    actualCheckOutAt: d.actualCheckOutAt,
+    isOverdueCheckOut: isOverdue(d.status, d.actualCheckOutAt, d.checkOutAt),
     nights: d.nights,
     adults: d.adults,
     children: d.children,
@@ -198,6 +210,17 @@ export function toBooking(d: c.BookingDetailResponse): BookingResponse {
   };
 }
 
+/**
+ * True when a guest is checked in, has not checked out, and the scheduled
+ * check-out instant has passed (Africa/Lagos is fixed UTC+1).
+ */
+export function isOverdue(status: string, actualCheckOutAt: string | null, scheduledCheckOutAt: string): boolean {
+  if (actualCheckOutAt != null) return false;
+  if (status.toLowerCase() !== 'checkedin') return false;
+  const scheduled = new Date(scheduledCheckOutAt).getTime();
+  return Number.isFinite(scheduled) && Date.now() > scheduled;
+}
+
 export function toBookingListItem(item: c.BookingListItemResponse): BookingListItem {
   return {
     id: item.id,
@@ -205,7 +228,14 @@ export function toBookingListItem(item: c.BookingListItemResponse): BookingListI
     status: item.status as BookingListItem['status'],
     paymentStatus: item.paymentStatus as BookingListItem['paymentStatus'],
     checkInDate: item.checkInDate,
+    checkInTime: item.checkInTime,
     checkOutDate: item.checkOutDate,
+    checkOutTime: item.checkOutTime,
+    checkInAt: item.checkInAt,
+    checkOutAt: item.checkOutAt,
+    actualCheckInAt: item.actualCheckInAt,
+    actualCheckOutAt: item.actualCheckOutAt,
+    isOverdueCheckOut: isOverdue(item.status, item.actualCheckOutAt, item.checkOutAt),
     nights: nightsBetween(item.checkInDate, item.checkOutDate),
     guestName: item.guestFullName,
     guestEmail: item.guestEmail,
@@ -234,6 +264,7 @@ export function mapPage<TIn, TOut>(page: c.Paged<TIn>, map: (item: TIn) => TOut)
 /* --------------------------------- rooms --------------------------------- */
 
 export function toRoom(r: c.RoomListItemResponse | c.RoomResponse): Room {
+  const board = 'occupiedUntil' in r ? r : undefined;
   return {
     id: r.id,
     roomNumber: r.roomNumber,
@@ -242,6 +273,14 @@ export function toRoom(r: c.RoomListItemResponse | c.RoomResponse): Room {
     roomTypeName: r.roomTypeName,
     status: r.status as Room['status'],
     effectiveStatus: (r.effectiveStatus ?? r.status) as Room['status'],
+    occupiedUntil: board?.occupiedUntil ?? null,
+    availableAgainAt: board?.availableAgainAt ?? null,
+    currentGuestName: board?.currentGuestName ?? null,
+    currentBookingId: board?.currentBookingId ?? null,
+    currentBookingReference: board?.currentBookingReference ?? null,
+    isOverdueCheckOut: board?.isOverdueCheckOut ?? false,
+    nextArrivalAt: board?.nextArrivalAt ?? null,
+    nextArrivalGuestName: board?.nextArrivalGuestName ?? null,
   };
 }
 
@@ -339,8 +378,12 @@ export function toDashboard(d: c.DashboardResponse, report?: c.ReportResponse): 
     activeBookings: d.activeBookings,
     monthlyRevenue: d.revenueToday,
     totalRevenue: d.revenueToday,
-    revenueTrend: report ? report.daily.map((day) => ({ date: day.date, revenue: day.revenue })) : [],
-    bookingsByStatus: [],
+    availableNow: d.availableNow,
+    inHouse: d.inHouse,
+    overdueCheckOuts: d.overdueCheckOuts,
+    roomsFreeingToday: d.roomsFreeingToday,
+    revenueTrend: (d.revenueTrend?.length ? d.revenueTrend.map((r) => ({ date: r.date, revenue: r.revenue })) : report?.daily.map((r) => ({ date: r.date, revenue: r.revenue }))) ?? [],
+    bookingsByStatus: (d.bookingsByStatus ?? []).map((b) => ({ status: b.status as AdminDashboard['bookingsByStatus'][number]['status'], count: b.count })),
     roomTypePerformance: [],
   };
 }
@@ -416,6 +459,13 @@ export function toSettings(s: c.AdminSettingsResponse): HotelSettings {
     requireFullPaymentAtCheckIn: s.requireFullPaymentAtCheckIn,
     requirePaymentBeforeCheckOut: s.requirePaymentBeforeCheckOut,
     earlyCheckOutRequiresAdmin: s.earlyCheckOutRequiresAdmin,
+    timeSlotMinutes: s.timeSlotMinutes,
+    earliestCheckInTime: s.earliestCheckInTime,
+    latestCheckInTime: s.latestCheckInTime,
+    earliestCheckOutTime: s.earliestCheckOutTime,
+    latestCheckOutTime: s.latestCheckOutTime,
+    maxExtraHoursPerStay: s.maxExtraHoursPerStay,
+    turnaroundMinutes: s.turnaroundMinutes,
   };
 }
 
@@ -429,5 +479,18 @@ export function toSettingsPatch(request: Partial<HotelSettings>): c.UpdateAdminS
   if (request.requireFullPaymentAtCheckIn !== undefined) patch.requireFullPaymentAtCheckIn = request.requireFullPaymentAtCheckIn;
   if (request.requirePaymentBeforeCheckOut !== undefined) patch.requirePaymentBeforeCheckOut = request.requirePaymentBeforeCheckOut;
   if (request.earlyCheckOutRequiresAdmin !== undefined) patch.earlyCheckOutRequiresAdmin = request.earlyCheckOutRequiresAdmin;
+  if (request.timeSlotMinutes !== undefined) patch.timeSlotMinutes = request.timeSlotMinutes;
+  if (request.earliestCheckInTime !== undefined) patch.earliestCheckInTime = request.earliestCheckInTime;
+  if (request.latestCheckInTime !== undefined) patch.latestCheckInTime = request.latestCheckInTime;
+  if (request.earliestCheckOutTime !== undefined) patch.earliestCheckOutTime = request.earliestCheckOutTime;
+  if (request.latestCheckOutTime !== undefined) patch.latestCheckOutTime = request.latestCheckOutTime;
+  if (request.maxExtraHoursPerStay !== undefined) patch.maxExtraHoursPerStay = request.maxExtraHoursPerStay;
+  if (request.turnaroundMinutes !== undefined) patch.turnaroundMinutes = request.turnaroundMinutes;
   return patch;
+}
+
+/* ------------------------------ stay policy ------------------------------ */
+
+export function toStayPolicy(p: c.StayPolicyResponse): StayPolicy {
+  return { ...p };
 }
