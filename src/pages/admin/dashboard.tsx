@@ -35,14 +35,25 @@ export default function AdminDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Rooms" value={`${data.occupiedRooms} / ${data.totalRooms}`} hint={`${data.availableRooms} available · ${data.occupiedRooms} occupied`} />
         <StatCard label="Occupancy" value={`${data.occupancyRate}%`} hint="of rooms currently occupied" />
-        <StatCard label="Active bookings" value={String(data.activeBookings)} hint="pending, confirmed & in-house" />
+        <StatCard label="Active bookings" value={String(data.activeBookings)} to="/admin/bookings?activeOnly=true" hint="pending, confirmed & in-house" />
         <StatCard label="Revenue today" value={formatMoney(data.monthlyRevenue)} hint="payments recorded today" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Available now" value={String(data.availableNow)} hint={`${data.inHouse} in house`} />
-        <StatCard label="Overdue check-outs" value={String(data.overdueCheckOuts)} hint="Checked in past check-out time" />
-        <StatCard label="Rooms freeing today" value={String(data.roomsFreeingToday)} hint="Available again before midnight" />
+        <StatCard
+          label="Overdue check-outs"
+          value={String(data.overdueCheckOuts)}
+          hint="Checked in past check-out time"
+          to="/admin/bookings?overdueCheckOuts=true"
+          tone={data.overdueCheckOuts > 0 ? 'warning' : undefined}
+        />
+        <StatCard
+          label="Rooms freeing today"
+          value={String(data.roomsFreeingToday)}
+          hint="Available again before midnight"
+          to="/admin/bookings?checkOutToday=true"
+        />
         <StatCard label="Room types" value={String(data.roomTypePerformance.length)} hint="With recorded performance" />
       </div>
 
@@ -235,16 +246,23 @@ export default function AdminDashboardPage() {
   );
 }
 
-function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <Card>
+function StatCard({ label, value, hint, to, tone }: { label: string; value: string; hint: string; to?: string; tone?: 'warning' }) {
+  const card = (
+    <Card className={tone === 'warning' ? 'border-warning/60 transition-colors' : to ? 'transition-colors hover:border-primary/50' : undefined}>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
+        <p className={tone === 'warning' ? 'text-2xl font-semibold text-warning' : 'text-2xl font-semibold text-foreground'}>{value}</p>
         <p className="text-xs text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>
+  );
+
+  if (!to) return card;
+  return (
+    <Link to={to} className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      {card}
+    </Link>
   );
 }

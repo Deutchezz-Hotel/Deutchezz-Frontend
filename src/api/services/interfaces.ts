@@ -97,6 +97,10 @@ export interface BookingFilterParams extends PaginationParams {
   overdueCheckOuts?: boolean;
   /** Only bookings that still owe money (excludes cancelled and fully paid). */
   hasBalanceDue?: boolean;
+  /** Admin dashboard drill-down: only active bookings (Pending/Confirmed/CheckedIn). */
+  activeOnly?: boolean;
+  /** Admin dashboard drill-down: bookings whose check-out falls today. */
+  checkOutToday?: boolean;
   /** Column to order the filtered results by. */
   sort?: 'createdAt' | 'updatedAt';
   direction?: 'asc' | 'desc';
@@ -193,6 +197,8 @@ export interface AdminApi {
   updateRoomType(id: string, request: SaveRoomTypeRequest): Promise<RoomTypeResponse>;
   updateRoomTypeStatus(id: string, isActive: boolean): Promise<RoomTypeResponse>;
   listBookings(params: BookingFilterParams): Promise<Paginated<BookingListItem>>;
+  /** Recovers a cancelled booking back to Confirmed (admin recovery). */
+  restoreBooking(id: string): Promise<BookingResponse>;
   listGuests(params: PaginationParams): Promise<Paginated<GuestListItem>>;
   listUsers(params: UserListParams): Promise<Paginated<UserListItem>>;
   listStaff(params: PaginationParams): Promise<Paginated<Staff>>;

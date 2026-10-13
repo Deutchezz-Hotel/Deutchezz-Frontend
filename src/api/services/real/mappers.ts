@@ -207,6 +207,9 @@ export function toBooking(d: c.BookingDetailResponse): BookingResponse {
     source: d.source as BookingSource,
     createdByName: d.createdByName,
     payments: d.payments,
+    cancelledAt: d.cancelledAt ?? null,
+    purgeScheduledAt: d.purgeScheduledAt ?? null,
+    hasPayments: d.hasPayments ?? false,
   };
 }
 

@@ -123,7 +123,15 @@ export async function http<T>(options: HttpOptions): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
   }
-  return (await response.json()) as T;
+
+  // Some endpoints answer 200 with an empty body. Parsing those as JSON throws a
+  // `SyntaxError: Unexpected end of JSON input`, which callers then surface as a bogus
+  // "Network error". Read the text first and only parse when there is something to parse.
+  const text = await response.text();
+  if (text.length === 0) {
+    return undefined as T;
+  }
+  return JSON.parse(text) as T;
 }
 
 export function getApiBaseUrl(): string {

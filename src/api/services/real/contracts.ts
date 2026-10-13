@@ -267,6 +267,12 @@ export interface BookingDetailResponse {
   assignments: RoomAssignmentResponse[];
   payments: PaymentSummary;
   createdAt: string;
+  /** ISO-8601 instant the booking was cancelled, or null (retention, SoT v1.12). */
+  cancelledAt?: string | null;
+  /** When a cancelled, unpaid booking will be permanently purged, or null. */
+  purgeScheduledAt?: string | null;
+  /** True when at least one payment exists (holds a cancelled booking for refund review). */
+  hasPayments?: boolean;
 }
 
 export interface BookingListItemResponse {

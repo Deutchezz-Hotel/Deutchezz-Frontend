@@ -110,6 +110,8 @@ function bookingQuery(params: BookingFilterParams): Record<string, string | numb
     overdueArrivals: params.overdueArrivals ? 'true' : undefined,
     overdueCheckOuts: params.overdueCheckOuts ? 'true' : undefined,
     hasBalanceDue: params.hasBalanceDue ? 'true' : undefined,
+    activeOnly: params.activeOnly ? 'true' : undefined,
+    checkOutToday: params.checkOutToday ? 'true' : undefined,
     sort: params.sort,
     direction: params.direction,
     // Free-text over guest full name or booking reference (SoT v1.10, 7l).
@@ -440,6 +442,9 @@ export const realAdminApi = {
     return call<c.Paged<c.BookingListItemResponse>>({ path: `/admin/bookings${buildQuery(bookingQuery(params))}` }).then((p) =>
       m.mapPage(p, m.toBookingListItem),
     );
+  },
+  restoreBooking(id: string): Promise<BookingResponse> {
+    return call<c.BookingDetailResponse>({ path: `/admin/bookings/${encodeURIComponent(id)}/restore`, method: 'POST' }).then(m.toBooking);
   },
   listGuests(params: PaginationParams): Promise<Paginated<GuestListItem>> {
     return call<c.Paged<c.GuestResponse>>({
