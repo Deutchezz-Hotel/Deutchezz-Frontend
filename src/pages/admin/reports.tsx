@@ -18,7 +18,7 @@ export default function AdminReportsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="heading-2">Reports</h1>
-        <p className="text-sm text-ink-600">Performance across the month.</p>
+        <p className="text-sm text-muted-foreground">Performance across the month.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -34,18 +34,49 @@ export default function AdminReportsPage() {
             <CardTitle>Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-4 text-2xl font-semibold text-forest-700">{formatMoney(data.totalRevenue)}</p>
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trend} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--ink-200)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} stroke="var(--ink-400)" />
-                  <YAxis tick={{ fontSize: 11 }} stroke="var(--ink-400)" />
-                  <Tooltip formatter={(value: number) => [formatMoney(value), 'Revenue']} contentStyle={{ borderRadius: 8, border: '1px solid var(--ink-200)' }} />
-                  <Line type="monotone" dataKey="revenue" stroke="var(--forest-600)" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <p className="mb-4 text-2xl font-semibold text-primary">{formatMoney(data.totalRevenue)}</p>
+            {trend.length === 0 ? (
+              <div className="flex h-56 items-center justify-center rounded-lg border border-dashed">
+                <p className="text-sm text-muted-foreground">No revenue recorded this month.</p>
+              </div>
+            ) : (
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trend} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      interval="preserveStartEnd"
+                      minTickGap={24}
+                      stroke="hsl(var(--border))"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      width={64}
+                      stroke="hsl(var(--border))"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      cursor={{ stroke: 'hsl(var(--border))' }}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: 8,
+                        color: 'hsl(var(--popover-foreground))',
+                        fontSize: 12,
+                      }}
+                      labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
+                      formatter={(value: number) => [formatMoney(value), 'Revenue']}
+                    />
+                    <Line type="monotone" dataKey="revenue" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -56,12 +87,12 @@ export default function AdminReportsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {data.bookingsByStatus.length === 0 ? (
-                <p className="text-sm text-ink-600">Not available from the API.</p>
+                <p className="text-sm text-muted-foreground">Not available from the API.</p>
               ) : (
                 data.bookingsByStatus.map((row) => (
                   <div key={row.status} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-ink-700">{bookingStatusLabel(row.status)}</span>
-                    <span className="text-sm font-semibold text-ink-900">{row.count}</span>
+                    <span className="text-sm text-muted-foreground">{bookingStatusLabel(row.status)}</span>
+                    <span className="text-sm font-semibold text-foreground">{row.count}</span>
                   </div>
                 ))
               )}
@@ -73,12 +104,12 @@ export default function AdminReportsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {data.bookingsByPaymentMethod.length === 0 ? (
-                <p className="text-sm text-ink-600">Not available from the API.</p>
+                <p className="text-sm text-muted-foreground">Not available from the API.</p>
               ) : (
                 data.bookingsByPaymentMethod.map((row) => (
                   <div key={row.paymentMethod} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-ink-700">{paymentMethodLabel(row.paymentMethod)}</span>
-                    <span className="text-sm font-semibold text-ink-900">{row.count}</span>
+                    <span className="text-sm text-muted-foreground">{paymentMethodLabel(row.paymentMethod)}</span>
+                    <span className="text-sm font-semibold text-foreground">{row.count}</span>
                   </div>
                 ))
               )}
@@ -94,10 +125,10 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-ink-600">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold text-ink-900">{value}</p>
+        <p className="text-2xl font-semibold text-foreground">{value}</p>
       </CardContent>
     </Card>
   );

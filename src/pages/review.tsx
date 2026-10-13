@@ -89,45 +89,45 @@ export default function ReviewPage() {
           <Card className="mx-auto max-w-2xl">
           <CardContent className="space-y-8 p-10">
             <div className="space-y-2">
-              <p className="font-semibold text-ink-900">Guest</p>
-              <p className="text-ink-700">{draft.request.guest.firstName} {draft.request.guest.lastName}</p>
-              <p className="text-sm text-ink-600">{draft.request.guest.email} · {draft.request.guest.phoneNumber}</p>
-              {draft.request.specialRequests ? <p className="text-sm text-ink-600">Special requests: {draft.request.specialRequests}</p> : null}
+              <p className="font-semibold text-foreground">Guest</p>
+              <p className="text-muted-foreground">{draft.request.guest.firstName} {draft.request.guest.lastName}</p>
+              <p className="text-sm text-muted-foreground">{draft.request.guest.email} · {draft.request.guest.phoneNumber}</p>
+              {draft.request.specialRequests ? <p className="text-sm text-muted-foreground">Special requests: {draft.request.specialRequests}</p> : null}
             </div>
 
             <div className="space-y-2">
-              <p className="font-semibold text-ink-900">Stay</p>
-              <p className="text-ink-700">{formatStayRange(draft.request.checkInDate, draft.request.checkOutDate)} · {draft.nights} {draft.nights === 1 ? 'night' : 'nights'}</p>
-              <p className="text-sm text-ink-600">{draft.request.adults} adults · {draft.request.children} children · Check-in from {appConfig.checkInTime}</p>
+              <p className="font-semibold text-foreground">Stay</p>
+              <p className="text-muted-foreground">{formatStayRange(draft.request.checkInDate, draft.request.checkOutDate)} · {draft.nights} {draft.nights === 1 ? 'night' : 'nights'}</p>
+              <p className="text-sm text-muted-foreground">{draft.request.adults} adults · {draft.request.children} children · Check-in from {appConfig.checkInTime}</p>
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-ink-900">Rooms</p>
+              <p className="font-semibold text-foreground">Rooms</p>
               <ul className="divide-y rounded-lg border">
                 {draft.lines.map((line) => (
                   <li key={line.roomTypeId} className="flex items-center justify-between px-4 py-3 text-sm">
-                    <span className="text-ink-700">{line.quantity} × {line.name} <span className="text-ink-500">({formatMoney(line.pricePerNight)} / night)</span></span>
-                    <span className="font-medium text-ink-900">{formatMoney(line.pricePerNight * line.quantity * draft.nights)}</span>
+                    <span className="text-muted-foreground">{line.quantity} × {line.name} <span className="text-muted-foreground">({formatMoney(line.pricePerNight)} / night)</span></span>
+                    <span className="font-medium text-foreground">{formatMoney(line.pricePerNight * line.quantity * draft.nights)}</span>
                   </li>
                 ))}
               </ul>
               <div className="flex items-center justify-between border-t pt-4">
-                <span className="font-semibold text-ink-900">Estimated total</span>
-                <span className="text-xl font-semibold text-forest-700">{formatMoney(total)}</span>
+                <span className="font-semibold text-foreground">Estimated total</span>
+                <span className="text-xl font-semibold text-primary">{formatMoney(total)}</span>
               </div>
-              <p className="flex items-start gap-2 text-xs text-ink-500">
+              <p className="flex items-start gap-2 text-xs text-muted-foreground">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 This is an estimate. The hotel confirms the final total when your booking is placed.
               </p>
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-ink-900">Payment</p>
+              <p className="font-semibold text-foreground">Payment</p>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium">
-                  <Check className="h-4 w-4 text-forest-700" /> Pay at the hotel on arrival
+                  <Check className="h-4 w-4 text-primary" /> Pay at the hotel on arrival
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-ink-500">
+                <span className="inline-flex items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
                   Pay online
                   <Badge variant="secondary">Coming soon</Badge>
                 </span>
@@ -135,7 +135,7 @@ export default function ReviewPage() {
             </div>
 
             {error ? (
-              <div className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              <div className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive-text">
                 <p>{error.userMessage}</p>
                 {isConflict ? (
                   <Button size="sm" variant="outline" onClick={() => nav('/book', { state: { restart: true } })}>
@@ -167,9 +167,9 @@ export default function ReviewPage() {
               <div className="space-y-4 pt-2 text-left">
                 <p>You can continue without an account, or sign in to manage this booking later.</p>
                 <ul className="space-y-2 text-sm">
-                  <li className="flex items-start gap-2"><Sparkles className="mt-0.5 h-4 w-4 text-forest-600" /> View and manage all your reservations in one place</li>
-                  <li className="flex items-start gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 text-forest-600" /> Check in faster on arrival</li>
-                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-forest-600" /> Keep your booking details safe across devices</li>
+                  <li className="flex items-start gap-2"><Sparkles className="mt-0.5 h-4 w-4 text-primary" /> View and manage all your reservations in one place</li>
+                  <li className="flex items-start gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 text-primary" /> Check in faster on arrival</li>
+                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-primary" /> Keep your booking details safe across devices</li>
                 </ul>
               </div>
             </AlertDialogDescription>

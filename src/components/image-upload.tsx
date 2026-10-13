@@ -120,20 +120,20 @@ export function ImageUpload({ value, onChange, max = DEFAULT_MAX }: ImageUploadP
         onDrop={onDrop}
         className={cn(
           'flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-500 focus-visible:ring-offset-2',
-          dragActive && 'border-forest-500 bg-forest-50',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          dragActive && 'border-primary bg-accent',
           disabled && 'pointer-events-none opacity-60',
         )}
       >
         {uploading ? (
-          <Loader2 className="h-5 w-5 animate-spin text-ink-500" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         ) : (
-          <UploadCloud className="h-5 w-5 text-ink-500" />
+          <UploadCloud className="h-5 w-5 text-muted-foreground" />
         )}
-        <p className="text-sm font-medium text-ink-700">
+        <p className="text-sm font-medium text-muted-foreground">
           {uploading ? 'Uploading…' : dragActive ? 'Drop to upload' : 'Drag & drop images here'}
         </p>
-        <p className="text-xs text-ink-500">
+        <p className="text-xs text-muted-foreground">
           or click to choose from your device · JPEG, PNG, WEBP, HEIC · up to 10MB · {value.length}/{max}
         </p>
       </div>
@@ -151,7 +151,7 @@ export function ImageUpload({ value, onChange, max = DEFAULT_MAX }: ImageUploadP
       />
 
       {value.length > 0 ? (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {value.map((url, index) => (
             <div
               key={`${url}-${index}`}
@@ -169,7 +169,7 @@ export function ImageUpload({ value, onChange, max = DEFAULT_MAX }: ImageUploadP
                 type="button"
                 onClick={() => onChange(value.filter((_, i) => i !== index))}
                 aria-label={`Remove image ${index + 1}`}
-                className="absolute right-1.5 top-1.5 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                className="absolute right-1.5 top-1.5 rounded-full bg-overlay/60 p-1 text-on-media opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
               >
                 <X className="h-3.5 w-3.5" />
               </button>

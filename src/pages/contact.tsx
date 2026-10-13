@@ -74,12 +74,12 @@ export default function ContactPage() {
           <div className="space-y-6">
             {contactDetails.map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-forest-50 text-forest-700 ring-1 ring-forest-100">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent text-primary ring-1 ring-border">
                   <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-wider text-ink-600">{label}</p>
-                  <p className="mt-1 text-lg text-ink-900">{value}</p>
+                  <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+                  <p className="mt-1 text-lg text-foreground">{value}</p>
                 </div>
               </div>
             ))}
@@ -91,7 +91,7 @@ export default function ContactPage() {
               <div>
                 <p className="eyebrow">Send a message</p>
                 <h2 className="heading-3 mt-3">We'd love to hear from you</h2>
-                <p className="mt-2 text-ink-700">
+                <p className="mt-2 text-muted-foreground">
                   Whether it's a room inquiry, a special request, or feedback on a recent stay — fill in the
                   form below and we'll get back to you.
                 </p>
@@ -146,7 +146,7 @@ export default function ContactPage() {
                     <Send className="h-4 w-4" />
                     Send message
                   </Button>
-                  <p className="text-sm text-ink-600">We usually reply within one business day.</p>
+                  <p className="text-sm text-muted-foreground">We usually reply within one business day.</p>
                 </form>
               </Form>
             </CardContent>

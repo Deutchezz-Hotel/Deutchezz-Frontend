@@ -70,7 +70,7 @@ export default function AdminRoomTypesPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Room types</h1>
-          <p className="text-sm text-ink-600">The categories you sell, from Standard to Executive.</p>
+          <p className="text-sm text-muted-foreground">The categories you sell, from Standard to Executive.</p>
         </div>
         <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> Add room type</Button>
       </div>
@@ -88,13 +88,13 @@ export default function AdminRoomTypesPage() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-ink-900">{rt.name}</p>
-                      <p className="text-sm text-ink-600">{rt.bedType} · sleeps {rt.maximumOccupancy}</p>
+                      <p className="font-semibold text-foreground">{rt.name}</p>
+                      <p className="text-sm text-muted-foreground">{rt.bedType} · sleeps {rt.maximumOccupancy}</p>
                     </div>
                     <Badge variant={rt.isActive ? 'success' : 'secondary'}>{rt.isActive ? 'Active' : 'Inactive'}</Badge>
                   </div>
-                  <p className="mt-3 line-clamp-2 text-sm text-ink-600">{rt.description}</p>
-                  <p className="mt-3 text-sm font-semibold text-forest-700">{formatMoney(rt.basePrice)} / night</p>
+                  <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{rt.description}</p>
+                  <p className="mt-3 text-sm font-semibold text-primary">{formatMoney(rt.basePrice)} / night</p>
                   <div className="mt-4 flex items-center justify-between">
                     <Button variant="outline" size="sm" onClick={() => openEdit(rt)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
                     <Switch
@@ -120,7 +120,7 @@ export default function AdminRoomTypesPage() {
           </FormDialogHeader>
           <FormDialogBody>
             <form id={FORM_ID} className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input ref={nameRef} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Deluxe King" />

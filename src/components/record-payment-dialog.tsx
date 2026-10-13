@@ -176,7 +176,7 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
                       {bookingsQuery.isLoading ? (
                         <div className="py-6 text-center text-sm text-muted-foreground">Loading…</div>
                       ) : bookingsQuery.isError ? (
-                        <div className="py-6 text-center text-sm text-destructive">Couldn&apos;t load bookings</div>
+                        <div className="py-6 text-center text-sm text-destructive-text">Couldn&apos;t load bookings</div>
                       ) : options.length === 0 ? (
                         <CommandEmpty>No bookings with an outstanding balance.</CommandEmpty>
                       ) : (
@@ -189,8 +189,8 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
                               className="flex-col items-start gap-1"
                             >
                               <div className="flex w-full items-center justify-between gap-3">
-                                <span className="font-medium text-ink-900">{b.guestName}</span>
-                                <span className="text-sm font-medium text-forest-700">{formatMoney(b.balanceDue)} due</span>
+                                <span className="font-medium text-foreground">{b.guestName}</span>
+                                <span className="text-sm font-medium text-primary">{formatMoney(b.balanceDue)} due</span>
                               </div>
                               <span className="text-xs text-muted-foreground">
                                 {b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}
@@ -203,14 +203,14 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
                   </Command>
                 </PopoverContent>
               </Popover>
-              <p className="text-xs text-destructive">{errors.booking}</p>
+              <p className="text-xs text-destructive-text">{errors.booking}</p>
             </div>
           ) : (
-            <div className="space-y-3 rounded-lg border border-border bg-milk p-3 text-sm">
+            <div className="space-y-3 rounded-lg border border-border bg-accent p-3 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="font-medium text-ink-900">{guestName}</p>
-                  <p className="text-xs text-ink-600">
+                  <p className="font-medium text-foreground">{guestName}</p>
+                  <p className="text-xs text-muted-foreground">
                     {detail?.bookingReference ?? selectedItem?.bookingReference}
                     {detail ? ` · ${formatStayRange(detail.checkInDate, detail.checkOutDate)}` : selectedItem ? ` · ${formatStayRange(selectedItem.checkInDate, selectedItem.checkOutDate)}` : ''}
                   </p>
@@ -218,18 +218,18 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
                 <Button type="button" size="sm" variant="outline" onClick={() => { setSelectedId(null); setSelectedItem(null); }}>Change</Button>
               </div>
               <div className="grid gap-1 pt-1 sm:grid-cols-3">
-                <div className="flex justify-between sm:flex-col"><span className="text-ink-600">Total</span><span className="font-medium text-ink-900">{formatMoney(totalAmount)}</span></div>
-                <div className="flex justify-between sm:flex-col"><span className="text-ink-600">Paid so far</span><span className="font-medium text-ink-900">{detail ? formatMoney(paid) : '—'}</span></div>
-                <div className="flex justify-between sm:flex-col"><span className="text-ink-600">Balance due</span><span className="font-medium text-forest-700">{formatMoney(balance)}</span></div>
+                <div className="flex justify-between sm:flex-col"><span className="text-muted-foreground">Total</span><span className="font-medium text-foreground">{formatMoney(totalAmount)}</span></div>
+                <div className="flex justify-between sm:flex-col"><span className="text-muted-foreground">Paid so far</span><span className="font-medium text-foreground">{detail ? formatMoney(paid) : '—'}</span></div>
+                <div className="flex justify-between sm:flex-col"><span className="text-muted-foreground">Balance due</span><span className="font-medium text-primary">{formatMoney(balance)}</span></div>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="pay-amount">Amount (₦)</Label>
               <Input ref={amountRef} id="pay-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
-              <p className="text-xs text-destructive">{errors.amount}</p>
+              <p className="text-xs text-destructive-text">{errors.amount}</p>
             </div>
             <div className="space-y-2">
               <Label>Method</Label>
@@ -245,7 +245,7 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
           <div className="space-y-2">
             <Label htmlFor="pay-reference">Transaction reference {method === 'Cash' ? '(optional)' : ''}</Label>
             <Input ref={referenceRef} id="pay-reference" value={reference} onChange={(e) => setReference(e.target.value)} placeholder={method === 'Cash' ? 'Optional' : 'e.g. POS slip or transfer reference'} />
-            <p className="text-xs text-destructive">{errors.reference}</p>
+            <p className="text-xs text-destructive-text">{errors.reference}</p>
           </div>
 
           <div className="space-y-2">

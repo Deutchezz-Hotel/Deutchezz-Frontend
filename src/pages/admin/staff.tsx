@@ -75,7 +75,7 @@ export default function AdminStaffPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Staff</h1>
-          <p className="text-sm text-ink-600">The people who run the front desk.</p>
+          <p className="text-sm text-muted-foreground">The people who run the front desk.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Input className="w-full sm:w-56" placeholder="Search name or email..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -112,11 +112,11 @@ export default function AdminStaffPage() {
                               <AvatarFallback className="bg-primary text-xs text-primary-foreground">{s.initials}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-ink-900">
+                              <p className="font-medium text-foreground">
                                 {s.firstName} {s.lastName}
                                 {isSelf ? <Badge variant="secondary" className="ml-2 align-middle">You</Badge> : null}
                               </p>
-                              <p className="text-xs text-ink-600">{s.phoneNumber ? `${s.email} · ${s.phoneNumber}` : s.email}</p>
+                              <p className="text-xs text-muted-foreground">{s.phoneNumber ? `${s.email} · ${s.phoneNumber}` : s.email}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -162,7 +162,7 @@ export default function AdminStaffPage() {
           </FormDialogHeader>
           <FormDialogBody>
             <form id={FORM_ID} className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="staff-first-name">First name</Label>
                   <Input id="staff-first-name" ref={firstNameRef} value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />

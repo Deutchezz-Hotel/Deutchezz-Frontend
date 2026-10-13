@@ -9,8 +9,8 @@ export function BrandLink() {
     <Link to="/" className="flex items-center gap-3">
       <img src={appConfig.logoUrl} alt="Deutchezz Hotel Ispahan" className="h-10 w-10" />
       <div className="flex flex-col leading-none">
-        <span className="font-semibold tracking-widest text-ink-900">DEUTCHEZZ</span>
-        <span className="text-xs tracking-[0.3em] text-ink-600">HOTEL ISPAHAN</span>
+        <span className="font-semibold tracking-widest text-foreground">DEUTCHEZZ</span>
+        <span className="text-xs tracking-[0.3em] text-muted-foreground">HOTEL ISPAHAN</span>
       </div>
     </Link>
   );
@@ -46,8 +46,8 @@ export function PageHero({
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-ink-950/70 via-ink-950/55 to-ink-950/75" />
         <div className="container-x relative py-24 text-center sm:py-32">
           <p className="eyebrow-light mx-auto mb-4">{eyebrow}</p>
-          <h1 className={cn('heading-1 mx-auto mb-6 max-w-4xl text-white', titleClassName)}>{title}</h1>
-          <p className="mx-auto max-w-2xl text-lg text-white/85">{description}</p>
+          <h1 className={cn('heading-1 mx-auto mb-6 max-w-4xl text-on-media', titleClassName)}>{title}</h1>
+          <p className="mx-auto max-w-2xl text-lg text-on-media/85">{description}</p>
           {action ? (
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">{action}</div>
           ) : null}
@@ -57,12 +57,12 @@ export function PageHero({
   }
 
   return (
-    <section className={cn('border-b border-forest-100 bg-milk', className)}>
+    <section className={cn('border-b border-border bg-accent', className)}>
       <div className="section-pad container-x text-center">
         <div className="mx-auto mb-6 h-px w-16 bg-gold/60" />
         <p className="eyebrow mx-auto mb-4">{eyebrow}</p>
         <h1 className={cn('heading-1 mx-auto mb-6 max-w-4xl', titleClassName)}>{title}</h1>
-        <p className="mx-auto max-w-2xl text-lg text-ink-600">{description}</p>
+        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">{description}</p>
         {action ? (
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">{action}</div>
         ) : null}

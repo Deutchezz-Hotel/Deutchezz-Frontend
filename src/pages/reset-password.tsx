@@ -149,12 +149,12 @@ export default function ResetPasswordPage() {
                   </Button>
                 </form>
               </Form>
-              <p className="text-center text-sm text-ink-600">
-                <Link to="/login" className="text-forest-700 hover:underline">
+              <p className="text-center text-sm text-muted-foreground">
+                <Link to="/login" className="text-primary hover:underline">
                   Back to sign in
                 </Link>
                 {' · '}
-                <Link to="/forgot-password" className="text-forest-700 hover:underline">
+                <Link to="/forgot-password" className="text-primary hover:underline">
                   Request a new code
                 </Link>
               </p>

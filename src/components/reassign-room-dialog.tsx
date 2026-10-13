@@ -93,7 +93,7 @@ export function ReassignRoomDialog({ booking, line, assignment, open, onOpenChan
         <FormDialogBody>
           <div className="space-y-5">
             {booking ? (
-              <p className="rounded-lg bg-milk p-3 text-xs text-ink-600">Stay: {formatStayRange(booking.checkInDate, booking.checkOutDate)}</p>
+              <p className="rounded-lg bg-accent p-3 text-xs text-muted-foreground">Stay: {formatStayRange(booking.checkInDate, booking.checkOutDate)}</p>
             ) : null}
 
             <div className="space-y-2">
@@ -109,7 +109,7 @@ export function ReassignRoomDialog({ booking, line, assignment, open, onOpenChan
                 </SelectContent>
               </Select>
               {!roomsQuery.isLoading && candidates.length === 0 ? (
-                <p className="text-xs text-amber-600">No free {line?.roomTypeName ?? ''} rooms for this stay.</p>
+                <p className="text-xs text-warning">No free {line?.roomTypeName ?? ''} rooms for this stay.</p>
               ) : null}
             </div>
 
@@ -123,7 +123,7 @@ export function ReassignRoomDialog({ booking, line, assignment, open, onOpenChan
               />
             </div>
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error ? <p className="text-sm text-destructive-text">{error}</p> : null}
           </div>
         </FormDialogBody>
         <FormDialogFooter>

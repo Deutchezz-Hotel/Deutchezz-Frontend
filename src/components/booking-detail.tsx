@@ -12,6 +12,7 @@ import { ChangeRoomTypeDialog } from '@/components/change-room-type-dialog';
 import { ReassignRoomDialog } from '@/components/reassign-room-dialog';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { formatMoney, bookingStatusLabel, paymentStatusLabel } from '@/lib/format';
+import { bookingStatusTone, paymentStatusTone } from '@/lib/status';
 import { formatDisplayDate, formatStayRange, isEarlyCheckOut } from '@/lib/dates';
 import { appConfig } from '@/config/appConfig';
 import { toApiError } from '@/api';
@@ -93,7 +94,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => nav(backHref)} className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">
+      <button onClick={() => nav(backHref)} className="inline-flex items-center gap-1 text-sm font-medium text-primary">
         <ArrowLeft className="h-4 w-4" /> All bookings
       </button>
 
@@ -101,11 +102,11 @@ export function BookingDetail({ backHref }: { backHref: string }) {
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="heading-2">{booking.bookingReference}</h1>
-            <Badge variant="secondary">{bookingStatusLabel(booking.status)}</Badge>
-            <Badge variant="outline">{paymentStatusLabel(booking.paymentStatus)}</Badge>
+            <Badge variant={bookingStatusTone(booking.status)}>{bookingStatusLabel(booking.status)}</Badge>
+            <Badge variant={paymentStatusTone(booking.paymentStatus)}>{paymentStatusLabel(booking.paymentStatus)}</Badge>
             {booking.source === 'WalkIn' ? <Badge variant="warning">Walk-in</Badge> : null}
           </div>
-          <p className="mt-1 text-sm text-ink-600">
+          <p className="mt-1 text-sm text-muted-foreground">
             Created {formatDisplayDate(booking.createdAt)}
             {booking.createdByName ? ` · Booked by ${booking.createdByName}` : ''}
           </p>
@@ -122,7 +123,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             </Button>
           ) : null}
           {canCancel ? (
-            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setCancelOpen(true)}>
+            <Button size="sm" variant="destructive-outline" onClick={() => setCancelOpen(true)}>
               <XCircle className="mr-2 h-4 w-4" /> Cancel booking
             </Button>
           ) : null}
@@ -144,11 +145,11 @@ export function BookingDetail({ backHref }: { backHref: string }) {
                   <div key={line.bookingRoomTypeId} className="rounded-lg border p-4">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <p className="font-medium text-ink-900">{line.quantity} × {line.roomTypeName}</p>
-                        <p className="text-xs text-ink-600">{formatMoney(line.ratePerNight)} / night · {formatMoney(line.subtotal)} total</p>
+                        <p className="font-medium text-foreground">{line.quantity} × {line.roomTypeName}</p>
+                        <p className="text-xs text-muted-foreground">{formatMoney(line.ratePerNight)} / night · {formatMoney(line.subtotal)} total</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm text-ink-700">{assigned.length} of {line.quantity} assigned</p>
+                        <p className="text-sm text-muted-foreground">{assigned.length} of {line.quantity} assigned</p>
                         {canChangeRoomType ? (
                           <Button size="sm" variant="ghost" onClick={() => setRoomTypeTarget(line)}>
                             <Shuffle className="mr-2 h-4 w-4" /> Change type
@@ -160,8 +161,8 @@ export function BookingDetail({ backHref }: { backHref: string }) {
                     {assigned.length > 0 ? (
                       <ul className="mt-3 space-y-2">
                         {assigned.map((room) => (
-                          <li key={room.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-milk px-3 py-2">
-                            <span className="text-sm font-medium text-ink-900">Room {room.roomNumber}</span>
+                          <li key={room.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-accent px-3 py-2">
+                            <span className="text-sm font-medium text-foreground">Room {room.roomNumber}</span>
                             {canReassign || canUnassign ? (
                               <div className="flex items-center gap-1">
                                 {canReassign ? (
@@ -170,7 +171,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
                                   </Button>
                                 ) : null}
                                 {canUnassign ? (
-                                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setUnassignTarget(room)}>
+                                  <Button size="sm" variant="destructive-outline" onClick={() => setUnassignTarget(room)}>
                                     Unassign
                                   </Button>
                                 ) : null}
@@ -183,9 +184,9 @@ export function BookingDetail({ backHref }: { backHref: string }) {
 
                     {missing > 0 ? (
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-ink-600">Assign room:</span>
+                        <span className="text-sm text-muted-foreground">Assign room:</span>
                         {candidates.length === 0 ? (
-                          <span className="text-sm text-amber-600">No available {line.roomTypeName} rooms.</span>
+                          <span className="text-sm text-warning">No available {line.roomTypeName} rooms.</span>
                         ) : (
                           <Select onValueChange={(roomId) => action.assignRooms.mutate(
                             { id: booking.id, request: { assignments: [{ bookingRoomTypeId: line.bookingRoomTypeId, roomId }] } },
@@ -210,14 +211,14 @@ export function BookingDetail({ backHref }: { backHref: string }) {
               <CardTitle>Guest</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
-              <p className="font-medium text-ink-900">{booking.guest.firstName} {booking.guest.lastName}</p>
-              {booking.guest.phoneNumber ? <p className="text-ink-600">{booking.guest.phoneNumber}</p> : null}
-              {booking.guest.email ? <p className="text-ink-600">{booking.guest.email}</p> : null}
+              <p className="font-medium text-foreground">{booking.guest.firstName} {booking.guest.lastName}</p>
+              {booking.guest.phoneNumber ? <p className="text-muted-foreground">{booking.guest.phoneNumber}</p> : null}
+              {booking.guest.email ? <p className="text-muted-foreground">{booking.guest.email}</p> : null}
               {booking.source === 'WalkIn' && !booking.guest.email ? (
-                <p className="text-ink-500">Walk-in guest — no email on record.</p>
+                <p className="text-muted-foreground">Walk-in guest — no email on record.</p>
               ) : null}
-              {booking.createdByName ? <p className="pt-1 text-xs text-ink-500">Booked by {booking.createdByName}</p> : null}
-              {booking.specialRequests ? <p className="mt-3 rounded-lg bg-milk p-3 text-ink-700">Special requests: {booking.specialRequests}</p> : null}
+              {booking.createdByName ? <p className="pt-1 text-xs text-muted-foreground">Booked by {booking.createdByName}</p> : null}
+              {booking.specialRequests ? <p className="mt-3 rounded-lg bg-accent p-3 text-muted-foreground">Special requests: {booking.specialRequests}</p> : null}
             </CardContent>
           </Card>
         </div>
@@ -227,13 +228,13 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             <CardHeader>
               <CardTitle>Stay</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-1 text-sm text-ink-700">
+            <CardContent className="space-y-1 text-sm text-muted-foreground">
               <p>{formatStayRange(booking.checkInDate, booking.checkOutDate)}</p>
               <p>{booking.nights} {booking.nights === 1 ? 'night' : 'nights'} · {booking.adults} adults · {booking.children} children</p>
               {canCheckOut ? (
-                <p className="text-xs text-ink-600">Scheduled check-out: {formatDisplayDate(booking.checkOutDate)} at {appConfig.checkOutTime}</p>
+                <p className="text-xs text-muted-foreground">Scheduled check-out: {formatDisplayDate(booking.checkOutDate)} at {appConfig.checkOutTime}</p>
               ) : null}
-              <p className="pt-2 text-2xl font-semibold text-forest-700">{formatMoney(booking.totalAmount)}</p>
+              <p className="pt-2 text-2xl font-semibold text-primary">{formatMoney(booking.totalAmount)}</p>
             </CardContent>
           </Card>
 
@@ -243,15 +244,15 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-sm text-ink-700">
-                  <p><span className="text-ink-600">Paid {formatMoney(paidTotal)}</span> · <span className="text-ink-600">Balance</span> {formatMoney(balance)}</p>
-                  <Badge variant="outline" className="mt-1">{paymentStatusLabel(booking.paymentStatus)}</Badge>
+                <div className="text-sm text-muted-foreground">
+                  <p><span className="text-muted-foreground">Paid {formatMoney(paidTotal)}</span> · <span className="text-muted-foreground">Balance</span> {formatMoney(balance)}</p>
+                  <Badge variant={paymentStatusTone(booking.paymentStatus)} className="mt-1">{paymentStatusLabel(booking.paymentStatus)}</Badge>
                 </div>
                 <Button size="sm" onClick={() => setPayOpen(true)} disabled={balance <= 0}>
                   <ReceiptText className="mr-2 h-4 w-4" /> Record payment
                 </Button>
               </div>
-              <p className="text-sm text-ink-600">
+              <p className="text-sm text-muted-foreground">
                 {booking.payments ? 'Amounts reflect everything recorded against this booking.' : 'Payment totals update as money is recorded.'}
               </p>
             </CardContent>
@@ -260,8 +261,8 @@ export function BookingDetail({ backHref }: { backHref: string }) {
       </div>
 
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 p-5 text-sm text-ink-600">
-          <KeyRound className="h-4 w-4 text-forest-700" />
+        <CardContent className="flex flex-wrap items-center gap-2 p-5 text-sm text-muted-foreground">
+          <KeyRound className="h-4 w-4 text-primary" />
           <p>Assign all rooms before checking in. After check-out, rooms return to Available automatically.</p>
         </CardContent>
       </Card>

@@ -8,23 +8,23 @@ import { cn } from '@/lib/utils';
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <div className="flex min-h-screen flex-col bg-canvas">
-      <header className="sticky top-0 z-40 border-b bg-white/90 backdrop-blur">
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-40 border-b bg-card/90 backdrop-blur">
         <div className="container-x flex h-16 items-center justify-between">
           <Link to="/" className="group flex items-center gap-3">
             <img src={appConfig.logoUrl} alt="Deutchezz Hotel Ispahan logo" className="h-10 w-10 transition-transform group-hover:scale-105" />
             <div className="flex flex-col leading-none">
-              <span className="font-semibold tracking-widest text-ink-900">DEUTCHEZZ</span>
+              <span className="font-semibold tracking-widest text-foreground">DEUTCHEZZ</span>
               <span className="text-xs font-semibold tracking-[0.3em] text-gold">HOTEL ISPAHAN</span>
             </div>
           </Link>
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
-            <NavLink to="/" end className={({ isActive }) => cn('nav-link', isActive ? 'text-ink-900 after:scale-x-100 after:origin-left' : 'text-ink-600 hover:text-ink-900')}>Home</NavLink>
-            <NavLink to="/rooms" className={({ isActive }) => cn('nav-link', isActive ? 'text-ink-900 after:scale-x-100 after:origin-left' : 'text-ink-600 hover:text-ink-900')}>Rooms</NavLink>
-            <NavLink to="/about" className={({ isActive }) => cn('nav-link', isActive ? 'text-ink-900 after:scale-x-100 after:origin-left' : 'text-ink-600 hover:text-ink-900')}>The Hotel</NavLink>
-            <NavLink to="/contact" className={({ isActive }) => cn('nav-link', isActive ? 'text-ink-900 after:scale-x-100 after:origin-left' : 'text-ink-600 hover:text-ink-900')}>Contact</NavLink>
-            <NavLink to="/my-booking" className={({ isActive }) => cn('nav-link', isActive ? 'text-ink-900 after:scale-x-100 after:origin-left' : 'text-ink-600 hover:text-ink-900')}>My Booking</NavLink>
-            <Button asChild size="sm" variant="outline" className="border-forest-700/20 text-forest-800 hover:border-gold hover:bg-gold/10 hover:text-ink-900">
+            <NavLink to="/" end className={({ isActive }) => cn('nav-link', isActive ? 'text-foreground after:scale-x-100 after:origin-left' : 'text-muted-foreground hover:text-foreground')}>Home</NavLink>
+            <NavLink to="/rooms" className={({ isActive }) => cn('nav-link', isActive ? 'text-foreground after:scale-x-100 after:origin-left' : 'text-muted-foreground hover:text-foreground')}>Rooms</NavLink>
+            <NavLink to="/about" className={({ isActive }) => cn('nav-link', isActive ? 'text-foreground after:scale-x-100 after:origin-left' : 'text-muted-foreground hover:text-foreground')}>The Hotel</NavLink>
+            <NavLink to="/contact" className={({ isActive }) => cn('nav-link', isActive ? 'text-foreground after:scale-x-100 after:origin-left' : 'text-muted-foreground hover:text-foreground')}>Contact</NavLink>
+            <NavLink to="/my-booking" className={({ isActive }) => cn('nav-link', isActive ? 'text-foreground after:scale-x-100 after:origin-left' : 'text-muted-foreground hover:text-foreground')}>My Booking</NavLink>
+            <Button asChild size="sm" variant="outline" className="border-primary/20 text-primary hover:border-gold hover:bg-gold/10 hover:text-foreground">
               <Link to="/login">Sign in <ArrowRight className="ml-1 h-4 w-4" /></Link>
             </Button>
           </nav>
@@ -33,7 +33,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
         {mobileOpen ? (
-          <nav className="container-x flex flex-col gap-4 py-4 text-sm text-ink-700 md:hidden">
+          <nav className="container-x flex flex-col gap-4 py-4 text-sm text-muted-foreground md:hidden">
             <NavLink to="/" end onClick={() => setMobileOpen(false)}>Home</NavLink>
             <NavLink to="/rooms" onClick={() => setMobileOpen(false)}>Rooms</NavLink>
             <NavLink to="/about" onClick={() => setMobileOpen(false)}>The Hotel</NavLink>
@@ -77,7 +77,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <p>{appConfig.email}</p>
           </div>
         </div>
-        <div className="container-x flex flex-col gap-2 border-t border-white/10 py-4 text-xs text-milk/60 md:flex-row md:items-center md:justify-between">
+        <div className="container-x flex flex-col gap-2 border-t border-on-media/10 py-4 text-xs text-milk/60 md:flex-row md:items-center md:justify-between">
           <p>© 2026 Deutchezz Hotel Ispahan</p>
           <p>Luxury · Comfort · Hospitality</p>
         </div>

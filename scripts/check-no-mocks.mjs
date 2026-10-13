@@ -34,7 +34,7 @@ const FORBIDDEN = [
 ];
 
 // Browser-storage keys that are allowed to be referenced literally.
-const ALLOWED_STORAGE_KEYS = new Set(['deutchezz.refresh', 'theme']);
+const ALLOWED_STORAGE_KEYS = new Set(['deutchezz.refresh', 'theme', 'deutchezz.sidebar']);
 
 const STORAGE_CALL = /(?:local|session)Storage\s*\.\s*(?:getItem|setItem|removeItem)\s*\(\s*(['"`])([^'"`]+)\1/g;
 

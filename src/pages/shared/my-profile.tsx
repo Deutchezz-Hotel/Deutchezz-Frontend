@@ -44,7 +44,7 @@ export default function MyProfilePage() {
     <div className="space-y-6">
       <div>
         <h1 className="heading-2">My profile</h1>
-        <p className="text-sm text-ink-600">Your details, used for bookings and check-ins.</p>
+        <p className="text-sm text-muted-foreground">Your details, used for bookings and check-ins.</p>
       </div>
 
       <Card className="max-w-xl">

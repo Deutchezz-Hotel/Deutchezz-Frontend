@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { RowLink } from '@/components/shared';
 import { roomStatusLabel, bookingStatusLabel } from '@/lib/format';
+import { bookingStatusTone } from '@/lib/status';
 import { todayISO, formatStayRange } from '@/lib/dates';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Plus } from 'lucide-react';
@@ -40,7 +41,7 @@ export default function ReceptionDashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Good day{user ? `, ${user.firstName}` : ''}.</h1>
-          <p className="text-sm text-ink-600">{today} — here&apos;s the front desk at a glance.</p>
+          <p className="text-sm text-muted-foreground">{today} — here&apos;s the front desk at a glance.</p>
         </div>
         <Button asChild><Link to="/reception/bookings/new"><Plus className="mr-2 h-4 w-4" /> New walk-in</Link></Button>
       </div>
@@ -59,28 +60,28 @@ export default function ReceptionDashboardPage() {
 
           <div className="grid gap-6 lg:grid-cols-2">
             {overdueArrivals.length > 0 ? (
-              <Card className="border-amber-200 bg-amber-50/60 lg:col-span-2">
+              <Card className="border-warning/30 bg-warning-soft/60 lg:col-span-2">
                 <CardHeader className="flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-amber-900">Overdue arrivals ({overdueArrivals.length})</CardTitle>
-                  <Link to="/reception/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-amber-800">
+                  <CardTitle className="text-warning">Overdue arrivals ({overdueArrivals.length})</CardTitle>
+                  <Link to="/reception/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-warning">
                     All bookings <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  <p className="pb-2 text-sm text-amber-800">Confirmed guests whose check-in date has passed. Follow up or cancel.</p>
-                  <ul className="divide-y divide-amber-100">
+                  <p className="pb-2 text-sm text-warning">Confirmed guests whose check-in date has passed. Follow up or cancel.</p>
+                  <ul className="divide-y divide-border">
                     {overdueArrivals.map((b) => (
-                      <li key={b.id} className="relative flex items-center justify-between gap-3 py-3 hover:bg-amber-50">
+                      <li key={b.id} className="relative flex items-center justify-between gap-3 py-3 hover:bg-accent">
                         <div className="min-w-0">
-                          <p className="truncate font-medium text-ink-900">{b.guestName}</p>
-                          <p className="truncate text-xs text-ink-600">
+                          <p className="truncate font-medium text-foreground">{b.guestName}</p>
+                          <p className="truncate text-xs text-muted-foreground">
                             {b.bookingReference} · was due {formatStayRange(b.checkInDate, b.checkOutDate)}
                             {b.guestPhoneNumber ? ` · ${b.guestPhoneNumber}` : ''}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           <Badge variant="warning">{bookingStatusLabel(b.status)}</Badge>
-                          <ArrowUpRight className="h-4 w-4 text-ink-400" />
+                          <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <RowLink to={`/reception/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} />
                       </li>
@@ -93,13 +94,13 @@ export default function ReceptionDashboardPage() {
             <Card>
               <CardHeader className="flex-row items-center justify-between space-y-0">
                 <CardTitle>Arrivals today</CardTitle>
-                <Link to="/reception/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">
+                <Link to="/reception/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-primary">
                   All bookings <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </CardHeader>
               <CardContent>
                 {arrivalsToday.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-ink-600">No arrivals due today.</p>
+                  <p className="py-6 text-center text-sm text-muted-foreground">No arrivals due today.</p>
                 ) : (
                   <ul className="divide-y">
                     {arrivalsToday.map((b) => (
@@ -116,7 +117,7 @@ export default function ReceptionDashboardPage() {
               </CardHeader>
               <CardContent>
                 {departuresToday.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-ink-600">No departures due today.</p>
+                  <p className="py-6 text-center text-sm text-muted-foreground">No departures due today.</p>
                 ) : (
                   <ul className="divide-y">
                     {departuresToday.map((b) => (
@@ -127,17 +128,17 @@ export default function ReceptionDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-forest-200 bg-forest-50/60 lg:col-span-1">
+            <Card className="lg:col-span-1">
               <CardHeader>
-                <CardTitle className="text-forest-900">Checked in now</CardTitle>
+                <CardTitle>Checked in now</CardTitle>
               </CardHeader>
               <CardContent>
                 {inHouse.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-forest-700">No guests in-house right now.</p>
+                  <p className="py-6 text-center text-sm text-muted-foreground">No guests in-house right now.</p>
                 ) : (
-                  <ul className="divide-y divide-forest-100">
+                  <ul className="divide-y">
                     {inHouse.map((b) => (
-                      <BookingRow key={b.id} b={b} tone="forest" />
+                      <BookingRow key={b.id} b={b} />
                     ))}
                   </ul>
                 )}
@@ -150,7 +151,7 @@ export default function ReceptionDashboardPage() {
               </CardHeader>
               <CardContent>
                 {rooms.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-ink-600">No rooms on record.</p>
+                  <p className="py-6 text-center text-sm text-muted-foreground">No rooms on record.</p>
                 ) : (
                   <div className="space-y-1">
                     {(['Occupied', 'Available', 'Maintenance'] as RoomStatus[]).map((s) => {
@@ -158,11 +159,11 @@ export default function ReceptionDashboardPage() {
                       const pct = Math.round((count / Math.max(1, rooms.length)) * 100);
                       return (
                         <div key={s} className="flex items-center gap-3 py-2">
-                          <span className="w-28 shrink-0 text-sm text-ink-700">{roomStatusLabel(s)}</span>
-                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink-100">
-                            <div className="h-full rounded-full bg-forest-600" style={{ width: `${pct}%` }} />
+                          <span className="w-28 shrink-0 text-sm text-muted-foreground">{roomStatusLabel(s)}</span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                            <div className="h-full rounded-full bg-chart-2" style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="w-8 shrink-0 text-right text-sm tabular-nums text-ink-900">{count}</span>
+                          <span className="w-8 shrink-0 text-right text-sm tabular-nums text-foreground">{count}</span>
                         </div>
                       );
                     })}
@@ -177,18 +178,18 @@ export default function ReceptionDashboardPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {bookings.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-ink-600">No bookings yet.</p>
+                  <p className="py-6 text-center text-sm text-muted-foreground">No bookings yet.</p>
                 ) : (
                   <ul className="divide-y">
                     {bookings.slice(0, 8).map((b) => (
-                      <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-milk">
+                      <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent">
                         <div className="min-w-0">
-                          <p className="truncate font-medium text-ink-900">{b.guestName}</p>
-                          <p className="truncate text-xs text-ink-600">{b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}</p>
+                          <p className="truncate font-medium text-foreground">{b.guestName}</p>
+                          <p className="truncate text-xs text-muted-foreground">{b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}</p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
-                          <Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge>
-                          <ArrowUpRight className="h-4 w-4 text-ink-400" />
+                          <Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>
+                          <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <RowLink to={`/reception/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} />
                       </li>
@@ -204,17 +205,16 @@ export default function ReceptionDashboardPage() {
   );
 }
 
-function BookingRow({ b, tone }: { b: BookingListItem; tone?: 'forest' }) {
-  const isForest = tone === 'forest';
+function BookingRow({ b }: { b: BookingListItem }) {
   return (
-    <li className={`relative flex items-center justify-between gap-3 py-3 ${isForest ? 'hover:bg-forest-50' : 'hover:bg-milk'}`}>
+    <li className="relative flex items-center justify-between gap-3 py-3 hover:bg-accent">
       <div className="min-w-0">
-        <p className="truncate font-medium text-ink-900">{b.guestName}</p>
-        <p className="truncate text-xs text-ink-600">{b.bookingReference} · {b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
+        <p className="truncate font-medium text-foreground">{b.guestName}</p>
+        <p className="truncate text-xs text-muted-foreground">{b.bookingReference} · {b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <Badge variant={b.status === 'Confirmed' ? 'default' : 'warning'}>{bookingStatusLabel(b.status)}</Badge>
-        <ArrowUpRight className={`h-4 w-4 ${isForest ? 'text-forest-500' : 'text-ink-400'}`} />
+        <Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>
+        <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
       </div>
       <RowLink to={`/reception/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} />
     </li>
@@ -225,11 +225,11 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint: 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-ink-600">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold text-ink-900">{value}</p>
-        <p className="text-xs text-ink-600">{hint}</p>
+        <p className="text-2xl font-semibold text-foreground">{value}</p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>
   );

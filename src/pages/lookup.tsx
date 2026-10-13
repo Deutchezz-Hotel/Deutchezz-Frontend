@@ -85,13 +85,13 @@ export default function LookupPage() {
                     </FormItem>
                   )}
                 />
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
+                {error ? <p className="text-sm text-destructive-text">{error}</p> : null}
                 <Button type="submit" className="w-full" disabled={lookup.isPending || rateLimited}>
                   {lookup.isPending ? 'Searching…' : 'Find my booking'}
                 </Button>
               </form>
             </Form>
-            <p className="border-t pt-4 text-sm text-ink-600">
+            <p className="border-t pt-4 text-sm text-muted-foreground">
               Once found, you can view the details or cancel the booking using your reference and email. For anything else, contact the hotel on {appConfig.phoneNumber}.
             </p>
           </CardContent>

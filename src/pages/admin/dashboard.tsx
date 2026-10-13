@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PageSkeleton, ErrorBanner, LoadingSkeleton } from '@/components/feedback';
 import { RowLink } from '@/components/shared';
 import { formatMoney, formatCompactMoney, bookingStatusLabel } from '@/lib/format';
+import { bookingStatusTone } from '@/lib/status';
 import { formatStayRange } from '@/lib/dates';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Link } from 'react-router-dom';
@@ -28,7 +29,7 @@ export default function AdminDashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="heading-2">Dashboard</h1>
-        <p className="text-sm text-ink-600">A snapshot of the hotel, right now.</p>
+        <p className="text-sm text-muted-foreground">A snapshot of the hotel, right now.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -44,17 +45,49 @@ export default function AdminDashboardPage() {
             <CardTitle>Revenue — last 30 days</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trend} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--ink-200)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} stroke="var(--ink-400)" />
-                  <YAxis tickFormatter={(v: number) => formatCompactMoney(v)} tick={{ fontSize: 11 }} stroke="var(--ink-400)" />
-                  <Tooltip formatter={(value: number) => [formatMoney(value), 'Revenue']} contentStyle={{ borderRadius: 8, border: '1px solid var(--ink-200)' }} />
-                  <Line type="monotone" dataKey="revenue" stroke="var(--forest-600)" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {trend.length === 0 ? (
+              <div className="flex h-64 items-center justify-center rounded-lg border border-dashed">
+                <p className="text-sm text-muted-foreground">No revenue recorded in the last 30 days.</p>
+              </div>
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trend} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      interval="preserveStartEnd"
+                      minTickGap={24}
+                      stroke="hsl(var(--border))"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tickFormatter={(v: number) => formatCompactMoney(v)}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      width={64}
+                      stroke="hsl(var(--border))"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      cursor={{ stroke: 'hsl(var(--border))' }}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: 8,
+                        color: 'hsl(var(--popover-foreground))',
+                        fontSize: 12,
+                      }}
+                      labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
+                      formatter={(value: number) => [formatMoney(value), 'Revenue']}
+                    />
+                    <Line type="monotone" dataKey="revenue" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -64,12 +97,12 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {data.bookingsByStatus.length === 0 ? (
-              <p className="text-sm text-ink-600">Not available from the API.</p>
+              <p className="text-sm text-muted-foreground">Not available from the API.</p>
             ) : (
               data.bookingsByStatus.map((row) => (
                 <div key={row.status} className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-ink-700">{bookingStatusLabel(row.status)}</span>
-                  <span className="text-sm font-semibold text-ink-900">{row.count}</span>
+                  <span className="text-sm text-muted-foreground">{bookingStatusLabel(row.status)}</span>
+                  <span className="text-sm font-semibold text-foreground">{row.count}</span>
                 </div>
               ))
             )}
@@ -83,19 +116,19 @@ export default function AdminDashboardPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {data.roomTypePerformance.length === 0 ? (
-            <p className="text-sm text-ink-600">Not available from the API.</p>
+            <p className="text-sm text-muted-foreground">Not available from the API.</p>
           ) : (
             data.roomTypePerformance.map((rt, i) => (
             <div key={rt.roomTypeId} className="flex items-center gap-3">
-              <span className="w-6 shrink-0 text-sm text-ink-500">{i + 1}</span>
+              <span className="w-6 shrink-0 text-sm text-muted-foreground">{i + 1}</span>
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex items-baseline justify-between gap-2">
-                  <p className="truncate text-sm font-medium text-ink-900">{rt.name}</p>
-                  <p className="shrink-0 text-sm font-medium text-forest-700">{formatMoney(rt.revenue)}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{rt.name}</p>
+                  <p className="shrink-0 text-sm font-medium text-primary">{formatMoney(rt.revenue)}</p>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-ink-100">
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-forest-600"
+                    className="h-full rounded-full bg-chart-2"
                     style={{ width: `${data.roomTypePerformance[0]?.revenue ? Math.max(4, Math.round((rt.revenue / data.roomTypePerformance[0].revenue) * 100)) : 0}%` }}
                   />
                 </div>
@@ -110,7 +143,7 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle>Latest reservations</CardTitle>
-            <Link to="/admin/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">
+            <Link to="/admin/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-primary">
               View all <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </CardHeader>
@@ -122,7 +155,7 @@ export default function AdminDashboardPage() {
             ) : latestQuery.isError ? (
               <div className="p-4"><ErrorBanner message="We couldn't load the latest reservations" retry={() => latestQuery.refetch()} /></div>
             ) : latest.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-ink-600">No reservations yet.</p>
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">No reservations yet.</p>
             ) : (
               <Table>
                 <TableHeader>
@@ -137,13 +170,13 @@ export default function AdminDashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {latest.map((b) => (
-                    <TableRow key={b.id} className="relative hover:bg-milk">
-                      <TableCell className="font-medium text-ink-900">{b.bookingReference}</TableCell>
+                    <TableRow key={b.id} className="relative hover:bg-accent">
+                      <TableCell className="font-medium text-foreground">{b.bookingReference}</TableCell>
                       <TableCell>{b.guestName}</TableCell>
-                      <TableCell className="text-ink-700">{formatStayRange(b.checkInDate, b.checkOutDate)}</TableCell>
+                      <TableCell className="text-muted-foreground">{formatStayRange(b.checkInDate, b.checkOutDate)}</TableCell>
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
-                      <TableCell><Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge></TableCell>
-                      <TableCell className="w-9 text-ink-400"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/admin/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
+                      <TableCell><Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge></TableCell>
+                      <TableCell className="w-9 text-muted-foreground"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/admin/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -155,7 +188,7 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle>Recent bookings</CardTitle>
-            <Link to="/admin/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">
+            <Link to="/admin/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-primary">
               View all <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </CardHeader>
@@ -167,18 +200,18 @@ export default function AdminDashboardPage() {
             ) : recentQuery.isError ? (
               <div className="p-4"><ErrorBanner message="We couldn't load the recent bookings" retry={() => recentQuery.refetch()} /></div>
             ) : recent.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-ink-600">No bookings yet.</p>
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">No bookings yet.</p>
             ) : (
               <ul className="divide-y">
                 {recent.map((b) => (
-                  <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-milk">
+                  <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent">
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-ink-900">{b.guestName}</p>
-                      <p className="truncate text-xs text-ink-600">{b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}</p>
+                      <p className="truncate font-medium text-foreground">{b.guestName}</p>
+                      <p className="truncate text-xs text-muted-foreground">{b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge>
-                      <ArrowUpRight className="h-4 w-4 text-ink-400" />
+                      <Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <RowLink to={`/admin/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} />
                   </li>
@@ -196,11 +229,11 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint: 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-ink-600">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold text-ink-900">{value}</p>
-        <p className="text-xs text-ink-600">{hint}</p>
+        <p className="text-2xl font-semibold text-foreground">{value}</p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>
   );

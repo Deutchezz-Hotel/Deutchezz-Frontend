@@ -23,7 +23,7 @@ export function EmptyState({ title, description, action }: { title: string; desc
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <h3 className="heading-3 mb-2">{title}</h3>
-      <p className="mb-6 max-w-lg text-ink-600">{description}</p>
+      <p className="mb-6 max-w-lg text-muted-foreground">{description}</p>
       {action}
     </div>
   );

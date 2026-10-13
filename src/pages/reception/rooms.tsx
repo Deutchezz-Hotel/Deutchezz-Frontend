@@ -9,18 +9,12 @@ import { DatePicker } from '@/components/date-picker';
 import { DataPager } from '@/components/data-pager';
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { roomStatusLabel } from '@/lib/format';
+import { roomStatusTone } from '@/lib/status';
 import { Link } from 'react-router-dom';
 import { BedDouble } from 'lucide-react';
-import type { RoomStatus } from '@/types';
 
 const STATUS_FILTERS = ['All', 'Available', 'Occupied', 'Maintenance', 'Inactive'] as const;
 const PAGE_SIZE = 12;
-
-const badgeTone = (status: RoomStatus) =>
-  status === 'Available' ? 'success'
-  : status === 'Occupied' ? 'default'
-  : status === 'Maintenance' ? 'warning'
-  : 'secondary';
 
 export default function ReceptionRoomsPage() {
   const [date, setDate] = useState<Date>(new Date());
@@ -53,7 +47,7 @@ export default function ReceptionRoomsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Room status</h1>
-          <p className="text-sm text-ink-600">Who is in which room, for the selected date.</p>
+          <p className="text-sm text-muted-foreground">Who is in which room, for the selected date.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <DatePicker value={date} onChange={(d) => d && setDate(d)} className="w-44" />
@@ -90,13 +84,13 @@ export default function ReceptionRoomsPage() {
                     <CardContent className="space-y-2 p-5">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-lg font-semibold text-ink-900">Room {room.roomNumber}</p>
-                          <p className="text-sm text-ink-600">{room.roomTypeName} · Floor {room.floor}</p>
+                          <p className="text-lg font-semibold text-foreground">Room {room.roomNumber}</p>
+                          <p className="text-sm text-muted-foreground">{room.roomTypeName} · Floor {room.floor}</p>
                         </div>
-                        <Badge variant={badgeTone(board)}>{roomStatusLabel(board)}</Badge>
+                        <Badge variant={roomStatusTone(board)}>{roomStatusLabel(board)}</Badge>
                       </div>
                       {room.effectiveStatus && room.effectiveStatus !== room.status ? (
-                        <p className="text-xs text-ink-600">Physical status: {roomStatusLabel(room.status)}</p>
+                        <p className="text-xs text-muted-foreground">Physical status: {roomStatusLabel(room.status)}</p>
                       ) : null}
                     </CardContent>
                   </Card>
@@ -108,9 +102,9 @@ export default function ReceptionRoomsPage() {
         )
       ) : null}
 
-      <p className="text-xs text-ink-600">
+      <p className="text-xs text-muted-foreground">
         Need to fix a room for a guest? Go to{' '}
-        <Link to="/reception/bookings" className="font-medium text-forest-700">Bookings</Link>.
+        <Link to="/reception/bookings" className="font-medium text-primary">Bookings</Link>.
       </p>
     </div>
   );

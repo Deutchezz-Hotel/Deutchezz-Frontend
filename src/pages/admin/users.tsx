@@ -25,7 +25,7 @@ export default function AdminUsersPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Users</h1>
-          <p className="text-sm text-ink-600">Customer accounts. Promote one to staff to give front-desk access.</p>
+          <p className="text-sm text-muted-foreground">Customer accounts. Promote one to staff to give front-desk access.</p>
         </div>
         <Input
           className="w-full sm:w-64"
@@ -64,8 +64,8 @@ export default function AdminUsersPage() {
                             <AvatarFallback className="bg-primary text-xs text-primary-foreground">{u.initials}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium text-ink-900">{u.firstName} {u.lastName}</p>
-                            <p className="text-xs text-ink-600">{u.phoneNumber ? `${u.email} · ${u.phoneNumber}` : u.email}</p>
+                            <p className="font-medium text-foreground">{u.firstName} {u.lastName}</p>
+                            <p className="text-xs text-muted-foreground">{u.phoneNumber ? `${u.email} · ${u.phoneNumber}` : u.email}</p>
                           </div>
                         </div>
                       </TableCell>
@@ -76,8 +76,8 @@ export default function AdminUsersPage() {
                           {!u.emailConfirmed ? <Badge variant="warning">Unverified</Badge> : null}
                         </div>
                       </TableCell>
-                      <TableCell className="text-ink-700">{u.bookingsCount}</TableCell>
-                      <TableCell className="text-ink-700">{formatDisplayDate(u.createdAt)}</TableCell>
+                      <TableCell className="text-muted-foreground">{u.bookingsCount}</TableCell>
+                      <TableCell className="text-muted-foreground">{formatDisplayDate(u.createdAt)}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"

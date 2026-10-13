@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { roleLabel } from '@/lib/format';
 import { useAuth } from '@/app/auth';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity,
   BedDouble,
@@ -16,6 +16,8 @@ import {
   ListChecks,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Settings,
   ShieldCheck,
@@ -54,12 +56,16 @@ interface ConsoleLayoutProps {
   children?: React.ReactNode;
 }
 
-function SidebarNav({ groups, onNavigate }: { groups: ConsoleNavGroup[]; onNavigate?: () => void }) {
+function SidebarNav({ groups, onNavigate, collapsed = false }: { groups: ConsoleNavGroup[]; onNavigate?: () => void; collapsed?: boolean }) {
   return (
-    <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
-      {groups.map((group) => (
+    <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+      {groups.map((group, index) => (
         <div key={group.label} className="space-y-1">
-          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</p>
+          {collapsed ? (
+            index > 0 ? <div className="mx-2 mb-2 border-t border-border/60" /> : null
+          ) : (
+            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</p>
+          )}
           {group.items.map((item) => {
             const Icon = item.icon;
             return (
@@ -68,15 +74,18 @@ function SidebarNav({ groups, onNavigate }: { groups: ConsoleNavGroup[]; onNavig
                 to={item.to}
                 end={item.end}
                 onClick={onNavigate}
+                title={collapsed ? item.label : undefined}
+                aria-label={item.label}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                    isActive ? 'bg-primary text-primary-foreground' : 'text-ink-700 hover:bg-milk hover:text-ink-900',
+                    'flex items-center rounded-lg text-sm font-medium transition-colors',
+                    collapsed ? 'justify-center px-2 py-2' : 'gap-3 px-3 py-2',
+                    isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                   )
                 }
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {item.label}
+                {collapsed ? null : <span className="truncate">{item.label}</span>}
               </NavLink>
             );
           })}
@@ -98,34 +107,51 @@ function SidebarLogo() {
   return <img src={appConfig.logoUrl} alt="Deutchezz Hotel Ispahan" className="h-9 w-9" onError={() => setFailed(true)} />;
 }
 
-function SidebarHeader({ sectionLabel }: { sectionLabel: string }) {
+function SidebarHeader({ sectionLabel, collapsed = false }: { sectionLabel: string; collapsed?: boolean }) {
   return (
-    <div className="flex items-center gap-3 border-b px-5 py-4">
+    <div className={cn('flex min-h-[65px] items-center gap-3 border-b py-4', collapsed ? 'justify-center px-2' : 'px-5')}>
       <SidebarLogo />
-      <div className="leading-tight">
-        <p className="text-sm font-semibold tracking-wide text-ink-900">Deutchezz</p>
-        <p className="text-xs text-muted-foreground">{sectionLabel}</p>
-      </div>
+      {collapsed ? null : (
+        <div className="leading-tight">
+          <p className="text-sm font-semibold tracking-wide text-foreground">Deutchezz</p>
+          <p className="text-xs text-muted-foreground">{sectionLabel}</p>
+        </div>
+      )}
     </div>
   );
 }
 
+const SIDEBAR_STORAGE_KEY = 'deutchezz.sidebar';
+
 export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholder = 'Search...', profilePath, children }: ConsoleLayoutProps) {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'collapsed';
+  });
   const { pathname } = useLocation();
   const isDashboard = pathname === '/admin' || pathname === '/reception' || pathname === '/dashboard';
 
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? 'collapsed' : 'expanded');
+  }, [collapsed]);
+
   return (
-    <div className="flex min-h-screen bg-canvas font-sans">
+    <div className="flex min-h-screen bg-background font-sans">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border/50 bg-white md:flex xl:w-64">
-        <SidebarHeader sectionLabel={sectionLabel} />
-        <SidebarNav groups={groups} />
+      <aside
+        className={cn(
+          'hidden shrink-0 flex-col border-r border-border/50 bg-card transition-[width] duration-200 md:flex',
+          collapsed ? 'w-16' : 'w-60 xl:w-64',
+        )}
+      >
+        <SidebarHeader sectionLabel={sectionLabel} collapsed={collapsed} />
+        <SidebarNav groups={groups} collapsed={collapsed} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/50 bg-white px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/50 bg-card px-4 sm:gap-4 sm:px-6">
           {/* Mobile menu */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -142,6 +168,18 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
             </SheetContent>
           </Sheet>
 
+          {/* Desktop collapse toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:inline-flex"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-pressed={collapsed}
+            onClick={() => setCollapsed((value) => !value)}
+          >
+            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          </Button>
+
           <div className="relative hidden max-w-md flex-1 sm:block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -153,7 +191,7 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
 
           <div className="ml-auto flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
-            <Button asChild variant="ghost" size="sm" className="hidden text-ink-600 sm:inline-flex">
+            <Button asChild variant="ghost" size="sm" className="hidden text-muted-foreground sm:inline-flex">
               <Link to="/">View site</Link>
             </Button>
             <DropdownMenu>
@@ -165,7 +203,7 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden text-left leading-tight sm:block">
-                    <span className="block text-sm font-medium text-ink-900">
+                    <span className="block text-sm font-medium text-foreground">
                       {user ? `${user.firstName} ${user.lastName}` : 'Guest'}
                     </span>
                     <span className="block text-xs text-muted-foreground">{user ? roleLabel(user.role) : ''}</span>
