@@ -6,12 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { RecordPaymentDialog } from '@/components/record-payment-dialog';
+import { CancelBookingDialog } from '@/components/cancel-booking-dialog';
+import { EarlyCheckOutDialog } from '@/components/early-checkout-dialog';
+import { ChangeRoomTypeDialog } from '@/components/change-room-type-dialog';
+import { ReassignRoomDialog } from '@/components/reassign-room-dialog';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { formatMoney, bookingStatusLabel, paymentStatusLabel } from '@/lib/format';
-import { formatDisplayDate, formatStayRange } from '@/lib/dates';
+import { formatDisplayDate, formatStayRange, isEarlyCheckOut } from '@/lib/dates';
+import { appConfig } from '@/config/appConfig';
+import { toApiError } from '@/api';
 import { toast } from 'sonner';
-import { ArrowLeft, KeyRound, LogIn, LogOut, ReceiptText } from 'lucide-react';
+import { ArrowLeft, KeyRound, LogIn, LogOut, ReceiptText, RefreshCw, Shuffle, XCircle } from 'lucide-react';
 import { useState } from 'react';
+import type { AssignedRoom, BookingRoomLine } from '@/types';
 
 export function BookingDetail({ backHref }: { backHref: string }) {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +28,11 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const availableRoomsQuery = useReceptionRooms({ pageSize: 200, status: 'Available', date: booking?.checkInDate });
   const [pendingAction, setPendingAction] = useState<'checkIn' | 'checkOut' | null>(null);
   const [payOpen, setPayOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [earlyOpen, setEarlyOpen] = useState(false);
+  const [roomTypeTarget, setRoomTypeTarget] = useState<BookingRoomLine | null>(null);
+  const [reassignTarget, setReassignTarget] = useState<{ line: BookingRoomLine; assignment: AssignedRoom } | null>(null);
+  const [unassignTarget, setUnassignTarget] = useState<AssignedRoom | null>(null);
 
   if (isLoading) return <PageSkeleton rows={4} />;
   if (isError || !booking) return <ErrorBanner message="We couldn't load this booking" retry={() => refetch()} />;
@@ -33,13 +45,50 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const canCheckIn = (booking.status === 'Confirmed' || booking.status === 'Pending') && fullyAssigned;
   const canCheckOut = booking.status === 'CheckedIn';
   const needsRooms = booking.status === 'Pending' || booking.status === 'Confirmed';
+  const canCancel = booking.status === 'Pending' || booking.status === 'Confirmed';
+  const canChangeRoomType = booking.status === 'Pending' || booking.status === 'Confirmed';
+  const canReassign = booking.status === 'Confirmed' || booking.status === 'CheckedIn';
+  const canUnassign = booking.status === 'Pending' || booking.status === 'Confirmed';
+  const checkOutIsEarly = isEarlyCheckOut(booking.checkOutDate, appConfig.checkOutTime);
 
-  const runAction = (kind: 'checkIn' | 'checkOut') => {
-    const target = kind === 'checkIn' ? action.checkIn : action.checkOut;
-    target.mutate(booking.id, {
-      onSuccess: () => { toast.success(kind === 'checkIn' ? 'Checked in' : 'Checked out'); setPendingAction(null); },
+  const runCheckIn = () => {
+    action.checkIn.mutate(booking.id, {
+      onSuccess: () => { toast.success('Checked in'); setPendingAction(null); },
       onError: () => toast.error('Could not update this booking'),
     });
+  };
+
+  const runCheckOut = () => {
+    action.checkOut.mutate(
+      { id: booking.id },
+      {
+        onSuccess: () => { toast.success('Checked out'); setPendingAction(null); },
+        onError: (error) => {
+          const api = toApiError(error);
+          setPendingAction(null);
+          if (api.problem.code === 'booking.early_checkout_requires_consent') {
+            setEarlyOpen(true);
+          } else if (api.problem.code === 'booking.balance_outstanding') {
+            toast.error('Settle the outstanding balance before checking out.');
+          } else if (api.problem.code === 'booking.early_checkout_requires_admin') {
+            toast.error('Early check-outs need an administrator.');
+          } else {
+            toast.error(api.userMessage);
+          }
+        },
+      },
+    );
+  };
+
+  const doUnassign = () => {
+    if (!unassignTarget) return;
+    action.unassignRoom.mutate(
+      { id: booking.id, request: { roomAssignmentId: unassignTarget.id } },
+      {
+        onSuccess: () => { toast.success(`Room ${unassignTarget.roomNumber} unassigned`); setUnassignTarget(null); },
+        onError: (error) => { toast.error(toApiError(error).userMessage); setUnassignTarget(null); },
+      },
+    );
   };
 
   return (
@@ -54,8 +103,12 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             <h1 className="heading-2">{booking.bookingReference}</h1>
             <Badge variant="secondary">{bookingStatusLabel(booking.status)}</Badge>
             <Badge variant="outline">{paymentStatusLabel(booking.paymentStatus)}</Badge>
+            {booking.source === 'WalkIn' ? <Badge variant="warning">Walk-in</Badge> : null}
           </div>
-          <p className="mt-1 text-sm text-ink-600">Created {formatDisplayDate(booking.createdAt)}</p>
+          <p className="mt-1 text-sm text-ink-600">
+            Created {formatDisplayDate(booking.createdAt)}
+            {booking.createdByName ? ` · Booked by ${booking.createdByName}` : ''}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {needsRooms ? (
@@ -64,8 +117,13 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             </Button>
           ) : null}
           {canCheckOut ? (
-            <Button size="sm" variant="outline" onClick={() => setPendingAction('checkOut')}>
+            <Button size="sm" variant="outline" onClick={() => (checkOutIsEarly ? setEarlyOpen(true) : setPendingAction('checkOut'))}>
               <LogOut className="mr-2 h-4 w-4" /> Check out
+            </Button>
+          ) : null}
+          {canCancel ? (
+            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setCancelOpen(true)}>
+              <XCircle className="mr-2 h-4 w-4" /> Cancel booking
             </Button>
           ) : null}
         </div>
@@ -79,21 +137,50 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               {booking.rooms.map((line) => {
-                const assigned = line.assignedRoomNumbers ?? [];
+                const assigned = line.assignedRooms ?? [];
                 const missing = line.quantity - assigned.length;
                 const candidates = availableRooms.filter((r) => r.roomTypeId === line.roomTypeId);
                 return (
                   <div key={line.bookingRoomTypeId} className="rounded-lg border p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <p className="font-medium text-ink-900">{line.quantity} × {line.roomTypeName}</p>
                         <p className="text-xs text-ink-600">{formatMoney(line.ratePerNight)} / night · {formatMoney(line.subtotal)} total</p>
                       </div>
-                      <p className="text-sm text-ink-700">
-                        {assigned.length} of {line.quantity} assigned
-                        {assigned.length ? ` · ${assigned.join(', ')}` : ''}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-ink-700">{assigned.length} of {line.quantity} assigned</p>
+                        {canChangeRoomType ? (
+                          <Button size="sm" variant="ghost" onClick={() => setRoomTypeTarget(line)}>
+                            <Shuffle className="mr-2 h-4 w-4" /> Change type
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
+
+                    {assigned.length > 0 ? (
+                      <ul className="mt-3 space-y-2">
+                        {assigned.map((room) => (
+                          <li key={room.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-milk px-3 py-2">
+                            <span className="text-sm font-medium text-ink-900">Room {room.roomNumber}</span>
+                            {canReassign || canUnassign ? (
+                              <div className="flex items-center gap-1">
+                                {canReassign ? (
+                                  <Button size="sm" variant="ghost" onClick={() => setReassignTarget({ line, assignment: room })}>
+                                    <RefreshCw className="mr-2 h-4 w-4" /> Change room
+                                  </Button>
+                                ) : null}
+                                {canUnassign ? (
+                                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setUnassignTarget(room)}>
+                                    Unassign
+                                  </Button>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+
                     {missing > 0 ? (
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span className="text-sm text-ink-600">Assign room:</span>
@@ -124,8 +211,12 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
               <p className="font-medium text-ink-900">{booking.guest.firstName} {booking.guest.lastName}</p>
-              <p className="text-ink-600">{booking.guest.email}</p>
               {booking.guest.phoneNumber ? <p className="text-ink-600">{booking.guest.phoneNumber}</p> : null}
+              {booking.guest.email ? <p className="text-ink-600">{booking.guest.email}</p> : null}
+              {booking.source === 'WalkIn' && !booking.guest.email ? (
+                <p className="text-ink-500">Walk-in guest — no email on record.</p>
+              ) : null}
+              {booking.createdByName ? <p className="pt-1 text-xs text-ink-500">Booked by {booking.createdByName}</p> : null}
               {booking.specialRequests ? <p className="mt-3 rounded-lg bg-milk p-3 text-ink-700">Special requests: {booking.specialRequests}</p> : null}
             </CardContent>
           </Card>
@@ -139,6 +230,9 @@ export function BookingDetail({ backHref }: { backHref: string }) {
             <CardContent className="space-y-1 text-sm text-ink-700">
               <p>{formatStayRange(booking.checkInDate, booking.checkOutDate)}</p>
               <p>{booking.nights} {booking.nights === 1 ? 'night' : 'nights'} · {booking.adults} adults · {booking.children} children</p>
+              {canCheckOut ? (
+                <p className="text-xs text-ink-600">Scheduled check-out: {formatDisplayDate(booking.checkOutDate)} at {appConfig.checkOutTime}</p>
+              ) : null}
               <p className="pt-2 text-2xl font-semibold text-forest-700">{formatMoney(booking.totalAmount)}</p>
             </CardContent>
           </Card>
@@ -186,12 +280,37 @@ export function BookingDetail({ backHref }: { backHref: string }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => pendingAction && runAction(pendingAction)} disabled={action.checkIn.isPending || action.checkOut.isPending}>Confirm</AlertDialogAction>
+            <AlertDialogAction onClick={() => (pendingAction === 'checkIn' ? runCheckIn() : runCheckOut())} disabled={action.checkIn.isPending || action.checkOut.isPending}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={unassignTarget !== null} onOpenChange={(o) => { if (!o) setUnassignTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unassign room {unassignTarget?.roomNumber}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This releases the room from the booking. Every room must be assigned again before check-in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep assigned</AlertDialogCancel>
+            <AlertDialogAction onClick={doUnassign} disabled={action.unassignRoom.isPending}>Unassign</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <RecordPaymentDialog open={payOpen} onOpenChange={setPayOpen} preselectedBookingId={booking.id} />
+      <CancelBookingDialog booking={booking} open={cancelOpen} onOpenChange={setCancelOpen} />
+      <EarlyCheckOutDialog booking={booking} open={earlyOpen} onOpenChange={setEarlyOpen} />
+      <ChangeRoomTypeDialog booking={booking} line={roomTypeTarget} open={roomTypeTarget !== null} onOpenChange={(o) => { if (!o) setRoomTypeTarget(null); }} />
+      <ReassignRoomDialog
+        booking={booking}
+        line={reassignTarget?.line ?? null}
+        assignment={reassignTarget?.assignment ?? null}
+        open={reassignTarget !== null}
+        onOpenChange={(o) => { if (!o) setReassignTarget(null); }}
+      />
     </div>
   );
 }

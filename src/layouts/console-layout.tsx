@@ -50,6 +50,7 @@ interface ConsoleLayoutProps {
   /** Optional per-page search handler for the top bar. */
   onSearch?: (value: string) => void;
   searchPlaceholder?: string;
+  profilePath?: string;
   children?: React.ReactNode;
 }
 
@@ -109,7 +110,7 @@ function SidebarHeader({ sectionLabel }: { sectionLabel: string }) {
   );
 }
 
-export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholder = 'Search...', children }: ConsoleLayoutProps) {
+export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholder = 'Search...', profilePath, children }: ConsoleLayoutProps) {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
@@ -132,7 +133,7 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
+            <SheetContent side="left" className="flex w-72 flex-col p-0">
               <SheetHeader className="sr-only">
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
@@ -176,6 +177,14 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
                   {user?.email ?? 'Not signed in'}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {profilePath ? (
+                  <DropdownMenuItem asChild>
+                    <Link to={profilePath}>
+                      <UserRound className="mr-2 h-4 w-4" />
+                      My profile
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem onSelect={() => logout()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
@@ -263,6 +272,7 @@ const adminGroups: ConsoleNavGroup[] = [
   {
     label: 'Administration',
     items: [
+      { to: '/admin/users', label: 'Users', icon: UserRound },
       { to: '/admin/staff', label: 'Staff', icon: ShieldCheck },
       { to: '/admin/activity', label: 'Activity log', icon: Activity },
       { to: '/admin/notifications', label: 'Notifications', icon: Bell },
@@ -276,9 +286,9 @@ export function CustomerLayout() {
 }
 
 export function ReceptionLayout() {
-  return <ConsoleLayout sectionLabel="Front desk" groups={receptionGroups} searchPlaceholder="Search bookings, guests, rooms..." />;
+  return <ConsoleLayout sectionLabel="Front desk" groups={receptionGroups} searchPlaceholder="Search bookings, guests, rooms..." profilePath="/reception/profile" />;
 }
 
 export function AdminLayout() {
-  return <ConsoleLayout sectionLabel="Administration" groups={adminGroups} searchPlaceholder="Search rooms, bookings, staff..." />;
+  return <ConsoleLayout sectionLabel="Administration" groups={adminGroups} searchPlaceholder="Search rooms, bookings, staff..." profilePath="/admin/profile" />;
 }

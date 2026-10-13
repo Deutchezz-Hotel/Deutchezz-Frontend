@@ -1,17 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useReceptionBookings, useReceptionBooking, useRecordPayment } from '@/hooks/queries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { FormDialog, FormDialogBody, FormDialogContent, FormDialogFooter, FormDialogHeader, FormDialogTitle } from '@/components/ui/form-dialog';
 import { formatMoney, paymentMethodLabel } from '@/lib/format';
 import { formatStayRange } from '@/lib/dates';
 import { toast } from 'sonner';
-import { Search } from 'lucide-react';
-import type { PaymentMethod } from '@/types';
+import { ChevronsUpDown } from 'lucide-react';
+import type { BookingListItem, PaymentMethod } from '@/types';
 
 const METHODS: PaymentMethod[] = ['Cash', 'POS', 'BankTransfer'];
+const FORM_ID = 'record-payment-form';
 
 interface Props {
   open: boolean;
@@ -23,34 +26,41 @@ interface Props {
 const emptyErrors = { booking: '', amount: '', reference: '' };
 
 export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }: Props) {
-  const bookingsQuery = useReceptionBookings({ pageSize: 200 });
+  const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Only bookings that still owe money (7l) — the backend rejects paying a settled booking.
+  const bookingsQuery = useReceptionBookings({
+    pageSize: 50,
+    hasBalanceDue: true,
+    ...(debouncedQuery ? { search: debouncedQuery } : {}),
+  });
   const record = useRecordPayment();
 
-  const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<BookingListItem | null>(null);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('Cash');
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState(emptyErrors);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const referenceRef = useRef<HTMLInputElement>(null);
 
   const detailQuery = useReceptionBooking(selectedId ?? undefined);
   const detail = detailQuery.data;
-  const bookings = useMemo(() => bookingsQuery.data?.items ?? [], [bookingsQuery.data]);
-  const selected = selectedId ? bookings.find((b) => b.id === selectedId) ?? null : null;
+  const options = bookingsQuery.data?.items ?? [];
 
-  const totalAmount = detail?.totalAmount ?? selected?.totalAmount ?? 0;
+  const totalAmount = detail?.totalAmount ?? selectedItem?.totalAmount ?? 0;
   const paid = detail?.payments?.totalPaid ?? 0;
-  const balance = detail?.payments?.balance ?? Math.max(0, totalAmount - paid);
-  const guestName = detail ? `${detail.guest.firstName} ${detail.guest.lastName}`.trim() : selected?.guestName ?? '';
+  const balance = detail?.payments?.balance ?? selectedItem?.balanceDue ?? Math.max(0, totalAmount - paid);
+  const guestName = detail ? `${detail.guest.firstName} ${detail.guest.lastName}`.trim() : selectedItem?.guestName ?? '';
 
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return bookings;
-    return bookings.filter(
-      (b) => b.guestName.toLowerCase().includes(q) || b.bookingReference.toLowerCase().includes(q),
-    );
-  }, [bookings, query]);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
   useEffect(() => {
     if (open && preselectedBookingId) setSelectedId(preselectedBookingId);
@@ -68,9 +78,18 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail]);
 
+  const pick = (booking: BookingListItem) => {
+    setSelectedId(booking.id);
+    setSelectedItem(booking);
+    setPickerOpen(false);
+  };
+
   const reset = () => {
     setQuery('');
+    setDebouncedQuery('');
+    setPickerOpen(false);
     setSelectedId(null);
+    setSelectedItem(null);
     setAmount('');
     setMethod('Cash');
     setReference('');
@@ -83,19 +102,24 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
     if (!selectedId) {
       next.booking = 'Choose a booking';
       setErrors(next);
+      setPickerOpen(true);
       return;
     }
     const amt = Number(amount);
+    const amountValid = !(!amt || Number.isNaN(amt) || amt <= 0 || amt > balance);
     if (!amt || Number.isNaN(amt) || amt <= 0) {
       next.amount = 'Enter an amount greater than 0';
-    } else if (detail && balance <= 0) {
+    } else if (balance <= 0) {
       next.amount = 'This booking is already fully paid';
-    } else if (detail && amt > balance) {
+    } else if (amt > balance) {
       next.amount = `Amount can't exceed the balance due (${formatMoney(balance)})`;
     }
+    const referenceValid = method === 'Cash' || reference.trim().length > 0;
     if (method !== 'Cash' && !reference.trim()) next.reference = 'Transaction reference is required';
     if (Object.values(next).some(Boolean)) {
       setErrors(next);
+      if (amountValid === false) amountRef.current?.focus();
+      else if (!referenceValid) referenceRef.current?.focus();
       return;
     }
     record.mutate(
@@ -118,47 +142,67 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Record a payment</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
+    <FormDialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
+      <FormDialogContent className="sm:max-w-lg">
+        <FormDialogHeader>
+          <FormDialogTitle>Record a payment</FormDialogTitle>
+        </FormDialogHeader>
+        <FormDialogBody>
+          <form id={FORM_ID} className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit(); }}>
           {!selectedId ? (
             <div className="space-y-2">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search guest name or booking reference..."
-                  autoFocus
-                />
-              </div>
-              {matches.length === 0 ? (
-                <p className="py-4 text-center text-sm text-ink-600">No bookings match your search.</p>
-              ) : (
-                <ul className="max-h-52 space-y-2 overflow-y-auto pr-1">
-                  {matches.slice(0, 6).map((b) => (
-                    <li key={b.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(b.id)}
-                        className="w-full rounded-lg border border-border bg-white p-3 text-left transition-colors hover:border-forest-300 hover:bg-milk focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="font-medium text-ink-900">{b.guestName}</span>
-                          <span className="text-sm font-medium text-forest-700">{formatMoney(b.totalAmount)}</span>
-                        </div>
-                        <p className="mt-0.5 text-xs text-ink-600">
-                          {b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}
-                        </p>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={pickerOpen}
+                    aria-label="Select a booking with an outstanding balance"
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className="text-muted-foreground">Select a booking with a balance…</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Search guest name or reference…"
+                      value={query}
+                      onValueChange={setQuery}
+                    />
+                    <CommandList>
+                      {bookingsQuery.isLoading ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">Loading…</div>
+                      ) : bookingsQuery.isError ? (
+                        <div className="py-6 text-center text-sm text-destructive">Couldn&apos;t load bookings</div>
+                      ) : options.length === 0 ? (
+                        <CommandEmpty>No bookings with an outstanding balance.</CommandEmpty>
+                      ) : (
+                        <CommandGroup>
+                          {options.map((b) => (
+                            <CommandItem
+                              key={b.id}
+                              value={b.id}
+                              onSelect={() => pick(b)}
+                              className="flex-col items-start gap-1"
+                            >
+                              <div className="flex w-full items-center justify-between gap-3">
+                                <span className="font-medium text-ink-900">{b.guestName}</span>
+                                <span className="text-sm font-medium text-forest-700">{formatMoney(b.balanceDue)} due</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <p className="text-xs text-destructive">{errors.booking}</p>
             </div>
           ) : (
@@ -167,16 +211,16 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
                 <div>
                   <p className="font-medium text-ink-900">{guestName}</p>
                   <p className="text-xs text-ink-600">
-                    {detail?.bookingReference ?? selected?.bookingReference}
-                    {detail ? ` · ${formatStayRange(detail.checkInDate, detail.checkOutDate)}` : ''}
+                    {detail?.bookingReference ?? selectedItem?.bookingReference}
+                    {detail ? ` · ${formatStayRange(detail.checkInDate, detail.checkOutDate)}` : selectedItem ? ` · ${formatStayRange(selectedItem.checkInDate, selectedItem.checkOutDate)}` : ''}
                   </p>
                 </div>
-                <Button type="button" size="sm" variant="outline" onClick={() => setSelectedId(null)}>Change</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => { setSelectedId(null); setSelectedItem(null); }}>Change</Button>
               </div>
               <div className="grid gap-1 pt-1 sm:grid-cols-3">
                 <div className="flex justify-between sm:flex-col"><span className="text-ink-600">Total</span><span className="font-medium text-ink-900">{formatMoney(totalAmount)}</span></div>
                 <div className="flex justify-between sm:flex-col"><span className="text-ink-600">Paid so far</span><span className="font-medium text-ink-900">{detail ? formatMoney(paid) : '—'}</span></div>
-                <div className="flex justify-between sm:flex-col"><span className="text-ink-600">Balance due</span><span className="font-medium text-forest-700">{detail ? formatMoney(balance) : '—'}</span></div>
+                <div className="flex justify-between sm:flex-col"><span className="text-ink-600">Balance due</span><span className="font-medium text-forest-700">{formatMoney(balance)}</span></div>
               </div>
             </div>
           )}
@@ -184,7 +228,7 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pay-amount">Amount (₦)</Label>
-              <Input id="pay-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <Input ref={amountRef} id="pay-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
               <p className="text-xs text-destructive">{errors.amount}</p>
             </div>
             <div className="space-y-2">
@@ -200,7 +244,7 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
 
           <div className="space-y-2">
             <Label htmlFor="pay-reference">Transaction reference {method === 'Cash' ? '(optional)' : ''}</Label>
-            <Input id="pay-reference" value={reference} onChange={(e) => setReference(e.target.value)} placeholder={method === 'Cash' ? 'Optional' : 'e.g. POS slip or transfer reference'} />
+            <Input ref={referenceRef} id="pay-reference" value={reference} onChange={(e) => setReference(e.target.value)} placeholder={method === 'Cash' ? 'Optional' : 'e.g. POS slip or transfer reference'} />
             <p className="text-xs text-destructive">{errors.reference}</p>
           </div>
 
@@ -208,12 +252,13 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
             <Label htmlFor="pay-notes">Notes (optional)</Label>
             <Input id="pay-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
-        </div>
-        <DialogFooter>
+          </form>
+        </FormDialogBody>
+        <FormDialogFooter>
           <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>Cancel</Button>
-          <Button onClick={submit} disabled={record.isPending}>{record.isPending ? 'Saving…' : 'Record payment'}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button type="submit" form={FORM_ID} disabled={record.isPending}>{record.isPending ? 'Saving…' : 'Record payment'}</Button>
+        </FormDialogFooter>
+      </FormDialogContent>
+    </FormDialog>
   );
 }

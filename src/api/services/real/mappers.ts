@@ -11,9 +11,11 @@ import type {
   AdminReports,
   ActivityLog,
   AppNotification,
+  AssignedRoom,
   AvailabilityResponse,
   BookingListItem,
   BookingResponse,
+  BookingSource,
   GuestListItem,
   HotelSettings,
   MeProfile,
@@ -26,6 +28,7 @@ import type {
   RoomTypeResponse,
   Staff,
   User,
+  UserListItem,
   UserRole,
 } from '@/types';
 import { appConfig } from '@/config/appConfig';
@@ -150,11 +153,17 @@ export function toAvailability(
 
 export function toBooking(d: c.BookingDetailResponse): BookingResponse {
   const { firstName, lastName } = splitName(d.guestFullName);
-  const liveRooms = d.assignments.filter((a) => a.releasedAt == null).map((a) => a.roomNumber);
-  let cursor = 0;
+  // Group live assignments by their room-type line so each line carries its own
+  // rooms (and each room's assignment id) instead of relying on positional order.
+  const liveByLine = new Map<string, AssignedRoom[]>();
+  for (const a of d.assignments) {
+    if (a.releasedAt != null) continue;
+    const list = liveByLine.get(a.bookingRoomTypeId) ?? [];
+    list.push({ id: a.id, roomId: a.roomId, roomNumber: a.roomNumber });
+    liveByLine.set(a.bookingRoomTypeId, list);
+  }
   const rooms = d.lines.map((line) => {
-    const assignedRoomNumbers = liveRooms.slice(cursor, cursor + line.quantity);
-    cursor += line.quantity;
+    const assignedRooms = liveByLine.get(line.id) ?? [];
     return {
       bookingRoomTypeId: line.id,
       roomTypeId: line.roomTypeId,
@@ -163,7 +172,8 @@ export function toBooking(d: c.BookingDetailResponse): BookingResponse {
       ratePerNight: line.ratePerNight,
       numberOfNights: line.numberOfNights,
       subtotal: line.subtotal,
-      assignedRoomNumbers,
+      assignedRooms,
+      assignedRoomNumbers: assignedRooms.map((a) => a.roomNumber),
     };
   });
   return {
@@ -176,12 +186,14 @@ export function toBooking(d: c.BookingDetailResponse): BookingResponse {
     nights: d.nights,
     adults: d.adults,
     children: d.children,
-    guest: { firstName, lastName, email: d.guestEmail, phoneNumber: '' },
+    guest: { firstName, lastName, email: d.guestEmail, phoneNumber: d.guestPhoneNumber ?? '' },
     rooms,
     specialRequests: d.specialRequests,
     totalAmount: d.totalAmount,
     createdAt: d.createdAt,
     updatedAt: d.createdAt,
+    source: d.source as BookingSource,
+    createdByName: d.createdByName,
     payments: d.payments,
   };
 }
@@ -196,10 +208,14 @@ export function toBookingListItem(item: c.BookingListItemResponse): BookingListI
     checkOutDate: item.checkOutDate,
     nights: nightsBetween(item.checkInDate, item.checkOutDate),
     guestName: item.guestFullName,
-    guestEmail: '',
+    guestEmail: item.guestEmail,
+    guestPhoneNumber: item.guestPhoneNumber ?? '',
     roomsCount: 0,
     roomsSummary: '',
     totalAmount: item.totalAmount,
+    balanceDue: item.balanceDue,
+    source: item.source as BookingSource,
+    createdByName: item.createdByName,
     createdAt: item.checkInDate,
     updatedAt: item.checkOutDate,
   };
@@ -260,8 +276,26 @@ export function toStaff(s: c.StaffResponse): Staff {
   };
 }
 
-/* -------------------------------- payments ------------------------------- */
+/* -------------------------------- users ---------------------------------- */
 
+export function toUserListItem(u: c.UserListItemResponse): UserListItem {
+  return {
+    id: u.id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    email: u.email,
+    phoneNumber: u.phoneNumber ?? undefined,
+    role: u.role as UserRole,
+    isActive: u.isActive,
+    emailConfirmed: u.emailConfirmed,
+    createdAt: u.createdAt,
+    lastLoginAt: u.lastLoginAt,
+    bookingsCount: u.bookingsCount,
+    initials: initialsOf(u.firstName, u.lastName),
+  };
+}
+
+/* -------------------------------- payments ------------------------------- */
 export function toPaymentListItem(p: c.PaymentListItemResponse): PaymentListItem {
   return {
     id: p.id,
@@ -381,6 +415,7 @@ export function toSettings(s: c.AdminSettingsResponse): HotelSettings {
     cancellationWindowHours: s.cancellationWindowHours,
     requireFullPaymentAtCheckIn: s.requireFullPaymentAtCheckIn,
     requirePaymentBeforeCheckOut: s.requirePaymentBeforeCheckOut,
+    earlyCheckOutRequiresAdmin: s.earlyCheckOutRequiresAdmin,
   };
 }
 
@@ -393,5 +428,6 @@ export function toSettingsPatch(request: Partial<HotelSettings>): c.UpdateAdminS
   if (request.cancellationWindowHours !== undefined) patch.cancellationWindowHours = request.cancellationWindowHours;
   if (request.requireFullPaymentAtCheckIn !== undefined) patch.requireFullPaymentAtCheckIn = request.requireFullPaymentAtCheckIn;
   if (request.requirePaymentBeforeCheckOut !== undefined) patch.requirePaymentBeforeCheckOut = request.requirePaymentBeforeCheckOut;
+  if (request.earlyCheckOutRequiresAdmin !== undefined) patch.earlyCheckOutRequiresAdmin = request.earlyCheckOutRequiresAdmin;
   return patch;
 }

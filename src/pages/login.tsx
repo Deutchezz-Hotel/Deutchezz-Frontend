@@ -5,7 +5,6 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/app/auth';
 import { useEffect } from 'react';
-import { DevQuickLogin } from '@/components/dev-quick-login';
 import type { BookingFlowState } from '@/features/booking/types';
 
 export default function LoginPage() {
@@ -47,14 +46,14 @@ export default function LoginPage() {
             }
           />
           <p className="text-center text-sm text-ink-600">
+            <Link to="/forgot-password" className="text-forest-700 hover:underline">Forgot your password?</Link>
+          </p>
+          <p className="text-center text-sm text-ink-600">
             No account yet? <Link to="/register" className="text-forest-700 hover:underline">Create one</Link>
           </p>
         </CardContent>
       </Card>
       </Reveal>
-      <div className="mt-8">
-        <DevQuickLogin />
-      </div>
     </div>
   );
 }

@@ -1,12 +1,16 @@
 import { authStorage, services } from '@/api';
-import type { BookingFilterParams, PaginationParams, RoomListParams } from '@/api';
+import type { BookingFilterParams, PaginationParams, RoomListParams, UserListParams } from '@/api';
 import type {
   AnonymousCancelBookingRequest,
   AvailabilitySearchRequest,
   BookingLookupRequest,
   CreateBookingRequest,
+  ForgotPasswordRequest,
   LoginRequest,
   RegisterRequest,
+  ResendCodeRequest,
+  ResetPasswordRequest,
+  VerifyEmailRequest,
   SaveProfileRequest,
   SaveRoomRequest,
   SaveRoomTypeRequest,
@@ -16,6 +20,13 @@ import type {
   RecordPaymentRequest,
   AssignRoomsRequest,
   CancelBookingRequest,
+  ChangeRoomTypeRequest,
+  CheckOutRequest,
+  ReassignRoomRequest,
+  ReceptionCancelBookingRequest,
+  ReceptionCreateBookingRequest,
+  UnassignRoomRequest,
+  UserRole,
 } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -35,6 +46,7 @@ export const keys = {
   adminRoomTypes: (params: PaginationParams) => ['admin', 'room-types', params] as const,
   adminBookings: (params: BookingFilterParams) => ['admin', 'bookings', params] as const,
   adminGuests: (params: PaginationParams) => ['admin', 'guests', params] as const,
+  adminUsers: (params: UserListParams) => ['admin', 'users', params] as const,
   adminStaff: (params: PaginationParams) => ['admin', 'staff', params] as const,
   adminPayments: (params: PaginationParams) => ['admin', 'payments', params] as const,
   adminReports: ['admin', 'reports'] as const,
@@ -61,9 +73,9 @@ export function useAvailability(query: AvailabilitySearchRequest, enabled = true
   return useQuery({ queryKey: keys.availability(query), queryFn: () => services.availability.search(query), enabled });
 }
 
-export function useCreateBooking(idempotencyKey: string | null) {
+export function useCreateBooking() {
   return useMutation({
-    mutationFn: ({ request }: { request: CreateBookingRequest }) => {
+    mutationFn: ({ request, idempotencyKey }: { request: CreateBookingRequest; idempotencyKey: string }) => {
       if (!idempotencyKey) throw new Error('idempotencyKey missing');
       return services.bookings.create(request, idempotencyKey);
     },
@@ -97,14 +109,38 @@ export function useLogin() {
   });
 }
 
+/**
+ * Starts account creation. No session is issued here — the backend replies 202
+ * with a neutral body and emails a 6-digit code; call `useVerifyEmail` next.
+ * Tokens are set by `services.auth.verifyEmail` once the code is confirmed.
+ */
 export function useRegister() {
+  return useMutation({ mutationFn: (request: RegisterRequest) => services.auth.register(request) });
+}
+
+/** Confirms the emailed code and signs the customer in (sets tokens). */
+export function useVerifyEmail() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: (request: RegisterRequest) => services.auth.register(request),
-    onSuccess: (data) => {
-      authStorage.setAccessToken(data.accessToken);
-      authStorage.setRefreshToken(data.refreshToken);
-    },
+    mutationFn: (request: VerifyEmailRequest) => services.auth.verifyEmail(request),
+    // Seed the AuthProvider's `me` cache so guards see the new session immediately
+    // (otherwise the post-verify redirect would bounce back to /login).
+    onSuccess: (data) => qc.setQueryData(['auth', 'me'], data.user),
   });
+}
+
+/** Re-sends the verification code; rate-limited server-side. */
+export function useResendCode() {
+  return useMutation({ mutationFn: (request: ResendCodeRequest) => services.auth.resendCode(request) });
+}
+
+/** Sends a password-reset code; always resolves with a neutral body. */
+export function useForgotPassword() {
+  return useMutation({ mutationFn: (request: ForgotPasswordRequest) => services.auth.forgotPassword(request) });
+}
+
+export function useResetPassword() {
+  return useMutation({ mutationFn: (request: ResetPasswordRequest) => services.auth.resetPassword(request) });
 }
 
 /* ------------------------------ Customer --------------------------------- */
@@ -150,7 +186,7 @@ export function useReceptionBooking(id: string | undefined) {
 export function useReceptionCreateBooking(idempotencyKey: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (request: CreateBookingRequest) => services.reception.createBooking(request, idempotencyKey ?? ''),
+    mutationFn: (request: ReceptionCreateBookingRequest) => services.reception.createBooking(request, idempotencyKey ?? ''),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['reception'] });
       qc.invalidateQueries({ queryKey: ['admin'] });
@@ -169,19 +205,35 @@ export function useReceptionAction() {
       mutationFn: ({ id, request }: { id: string; request: AssignRoomsRequest }) => services.reception.assignRooms(id, request),
       onSuccess: invalidate,
     }),
+    cancelBooking: useMutation({
+      mutationFn: ({ id, request }: { id: string; request: ReceptionCancelBookingRequest }) => services.reception.cancelBooking(id, request),
+      onSuccess: invalidate,
+    }),
     checkIn: useMutation({
       mutationFn: (id: string) => services.reception.checkIn(id),
       onSuccess: invalidate,
     }),
     checkOut: useMutation({
-      mutationFn: (id: string) => services.reception.checkOut(id),
+      mutationFn: ({ id, request }: { id: string; request?: CheckOutRequest }) => services.reception.checkOut(id, request),
+      onSuccess: invalidate,
+    }),
+    changeRoomType: useMutation({
+      mutationFn: ({ id, request }: { id: string; request: ChangeRoomTypeRequest }) => services.reception.changeRoomType(id, request),
+      onSuccess: invalidate,
+    }),
+    reassignRoom: useMutation({
+      mutationFn: ({ id, request }: { id: string; request: ReassignRoomRequest }) => services.reception.reassignRoom(id, request),
+      onSuccess: invalidate,
+    }),
+    unassignRoom: useMutation({
+      mutationFn: ({ id, request }: { id: string; request: UnassignRoomRequest }) => services.reception.unassignRoom(id, request),
       onSuccess: invalidate,
     }),
   };
 }
 
-export function useReceptionRooms(params: RoomListParams) {
-  return useQuery({ queryKey: keys.receptionRooms(params), queryFn: () => services.reception.listRooms(params) });
+export function useReceptionRooms(params: RoomListParams, enabled = true) {
+  return useQuery({ queryKey: keys.receptionRooms(params), queryFn: () => services.reception.listRooms(params), enabled });
 }
 
 export function useReceptionGuests(params: PaginationParams) {
@@ -251,6 +303,25 @@ export function useAdminGuests(params: PaginationParams) {
   return useQuery({ queryKey: keys.adminGuests(params), queryFn: () => services.admin.listGuests(params) });
 }
 
+export function useAdminUsers(params: UserListParams) {
+  return useQuery({ queryKey: keys.adminUsers(params), queryFn: () => services.admin.listUsers(params) });
+}
+
+/**
+ * Changes a user's single role. A role change moves the person between the user
+ * (customer) directory and the staff list, so both caches are invalidated.
+ */
+export function useChangeUserRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, role }: { id: string; role: UserRole }) => services.admin.changeUserRole(id, { role }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'users'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'staff'] });
+    },
+  });
+}
+
 export function useAdminStaff(params: PaginationParams) {
   return useQuery({ queryKey: keys.adminStaff(params), queryFn: () => services.admin.listStaff(params) });
 }
@@ -260,7 +331,6 @@ export function useAdminStaffMutations() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ['admin', 'staff'] });
   return {
     createStaff: useMutation({ mutationFn: (request: SaveStaffRequest) => services.admin.createStaff(request), onSuccess: invalidate }),
-    updateStaff: useMutation({ mutationFn: ({ id, request }: { id: string; request: SaveStaffRequest }) => services.admin.updateStaff(id, request), onSuccess: invalidate }),
     updateStaffStatus: useMutation({ mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => services.admin.updateStaffStatus(id, isActive), onSuccess: invalidate }),
   };
 }

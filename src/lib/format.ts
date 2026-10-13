@@ -1,10 +1,13 @@
 import { appConfig } from '@/config/appConfig';
 import type {
+  BookingSource,
   BookingStatus,
+  EarlyCheckOutReason,
   NotificationType,
   PaymentMethod,
   PaymentStatus,
   RoomStatus,
+  StaffCancellationReason,
   StaffRole,
   UserRole,
 } from '@/types';
@@ -82,6 +85,25 @@ const staffRoleLabels: Record<StaffRole, string> = {
   Administrator: 'Administrator',
 };
 
+const bookingSourceLabels: Record<BookingSource, string> = {
+  Online: 'Online',
+  WalkIn: 'Walk-in',
+};
+
+const staffCancellationReasonLabels: Record<StaffCancellationReason, string> = {
+  GuestRequest: 'Guest changed their mind',
+  NoShow: 'No-show',
+  BookedInError: 'Booked in error',
+  Other: 'Other',
+};
+
+const earlyCheckOutReasonLabels: Record<EarlyCheckOutReason, string> = {
+  GuestRequest: 'Guest requested early check-out',
+  Emergency: 'Emergency',
+  RoomIssue: 'Room issue',
+  Other: 'Other',
+};
+
 const activityTypeLabels: Record<string, string> = {
   BookingCreated: 'Booking created',
   BookedRoomsAssigned: 'Rooms assigned',
@@ -126,4 +148,13 @@ export function staffRoleLabel(role: StaffRole): string {
 }
 export function activityTypeLabel(type: string): string {
   return activityTypeLabels[type] ?? humanizeActivity(type);
+}
+export function bookingSourceLabel(source: BookingSource): string {
+  return bookingSourceLabels[source];
+}
+export function staffCancellationReasonLabel(reason: StaffCancellationReason): string {
+  return staffCancellationReasonLabels[reason];
+}
+export function earlyCheckOutReasonLabel(reason: EarlyCheckOutReason): string {
+  return earlyCheckOutReasonLabels[reason];
 }

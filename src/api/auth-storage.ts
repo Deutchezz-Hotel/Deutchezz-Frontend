@@ -9,7 +9,6 @@
  * single place to change when that lands.
  */
 
-const ACCESS_KEY = 'deutchezz.access';
 const REFRESH_KEY = 'deutchezz.refresh';
 
 let accessToken: string | null = null;
@@ -35,23 +34,9 @@ export const authStorage = {
       /* storage unavailable — session simply won't survive reloads */
     }
   },
-  /** Legacy/mock session marker key; present when a mock session is active. */
-  setSession(userId: string): void {
-    try {
-      localStorage.setItem(ACCESS_KEY, `mock.${userId}`);
-    } catch {
-      /* noop */
-    }
-  },
-  getSessionUserId(): string | null {
-    const raw = accessToken ?? localStorage.getItem(ACCESS_KEY);
-    if (!raw) return null;
-    return raw.startsWith('mock.') ? raw.slice(5) : null;
-  },
   clear(): void {
     accessToken = null;
     try {
-      localStorage.removeItem(ACCESS_KEY);
       localStorage.removeItem(REFRESH_KEY);
     } catch {
       /* noop */

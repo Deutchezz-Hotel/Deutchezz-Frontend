@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAdminRoomTypes, useAdminRoomTypeMutations } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,20 +7,26 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FormDialog, FormDialogBody, FormDialogContent, FormDialogFooter, FormDialogHeader, FormDialogTitle } from '@/components/ui/form-dialog';
+import { ImageUpload } from '@/components/image-upload';
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { formatMoney } from '@/lib/format';
+import { focusFirstInvalid } from '@/lib/focus';
 import { toast } from 'sonner';
 import { toApiError } from '@/api/problem';
 import { Building2, Pencil, Plus } from 'lucide-react';
 import type { RoomTypeResponse, SaveRoomTypeRequest } from '@/types';
 
 const emptyForm: SaveRoomTypeRequest = { name: '', description: '', basePrice: 0, maximumOccupancy: 2, bedType: '', imageUrls: [], features: [] };
+const FORM_ID = 'room-type-form';
 
 export default function AdminRoomTypesPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RoomTypeResponse | null>(null);
   const [form, setForm] = useState<SaveRoomTypeRequest>(emptyForm);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const bedTypeRef = useRef<HTMLInputElement>(null);
+  const priceRef = useRef<HTMLInputElement>(null);
   const query = useAdminRoomTypes({ pageSize: 200 });
   const mutations = useAdminRoomTypeMutations();
 
@@ -33,7 +39,15 @@ export default function AdminRoomTypesPage() {
     setOpen(true);
   };
   const save = () => {
-    if (!form.name.trim() || !form.bedType.trim() || form.basePrice <= 0) {
+    const nameValid = form.name.trim().length > 0;
+    const bedTypeValid = form.bedType.trim().length > 0;
+    const priceValid = form.basePrice > 0;
+    if (!nameValid || !bedTypeValid || !priceValid) {
+      focusFirstInvalid([
+        { valid: nameValid, el: nameRef.current },
+        { valid: bedTypeValid, el: bedTypeRef.current },
+        { valid: priceValid, el: priceRef.current },
+      ]);
       toast.error('Check the name, bed type and nightly rate');
       return;
     }
@@ -99,49 +113,51 @@ export default function AdminRoomTypesPage() {
         )
       ) : null}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editing ? `Edit ${editing.name}` : 'Add a room type'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Deluxe King" />
+      <FormDialog open={open} onOpenChange={setOpen}>
+        <FormDialogContent className="sm:max-w-lg">
+          <FormDialogHeader>
+            <FormDialogTitle>{editing ? `Edit ${editing.name}` : 'Add a room type'}</FormDialogTitle>
+          </FormDialogHeader>
+          <FormDialogBody>
+            <form id={FORM_ID} className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input ref={nameRef} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Deluxe King" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Bed type</Label>
+                  <Input ref={bedTypeRef} value={form.bedType} onChange={(e) => setForm({ ...form, bedType: e.target.value })} placeholder="e.g. King" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nightly rate (₦)</Label>
+                  <Input ref={priceRef} type="number" min={0} value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Maximum occupancy</Label>
+                  <Input type="number" min={1} value={form.maximumOccupancy} onChange={(e) => setForm({ ...form, maximumOccupancy: Number(e.target.value) })} />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>Bed type</Label>
-                <Input value={form.bedType} onChange={(e) => setForm({ ...form, bedType: e.target.value })} placeholder="e.g. King" />
+                <Label>Description</Label>
+                <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="A short description of the room." />
               </div>
               <div className="space-y-2">
-                <Label>Nightly rate (₦)</Label>
-                <Input type="number" min={0} value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: Number(e.target.value) })} />
+                <Label>Features (comma separated)</Label>
+                <Input value={form.features.join(', ')} onChange={(e) => setForm({ ...form, features: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} placeholder="AC, En-suite, Balcony" />
               </div>
               <div className="space-y-2">
-                <Label>Maximum occupancy</Label>
-                <Input type="number" min={1} value={form.maximumOccupancy} onChange={(e) => setForm({ ...form, maximumOccupancy: Number(e.target.value) })} />
+                <Label>Images</Label>
+                <ImageUpload value={form.imageUrls} onChange={(imageUrls) => setForm({ ...form, imageUrls })} />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="A short description of the room." />
-            </div>
-            <div className="space-y-2">
-              <Label>Features (comma separated)</Label>
-              <Input value={form.features.join(', ')} onChange={(e) => setForm({ ...form, features: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} placeholder="AC, En-suite, Balcony" />
-            </div>
-            <div className="space-y-2">
-              <Label>Image URLs (comma separated)</Label>
-              <Input value={form.imageUrls.join(', ')} onChange={(e) => setForm({ ...form, imageUrls: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} placeholder="https://…" />
-            </div>
-          </div>
-          <DialogFooter>
+            </form>
+          </FormDialogBody>
+          <FormDialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save} disabled={mutations.createRoomType.isPending || mutations.updateRoomType.isPending}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button type="submit" form={FORM_ID} disabled={mutations.createRoomType.isPending || mutations.updateRoomType.isPending}>Save</Button>
+          </FormDialogFooter>
+        </FormDialogContent>
+      </FormDialog>
     </div>
   );
 }

@@ -21,16 +21,28 @@ import type {
   BookingLookupRequest,
   BookingResponse,
   CancelBookingRequest,
+  ChangeRoomTypeRequest,
+  ChangeRoomTypeResult,
+  ChangeUserRoleRequest,
+  CheckOutRequest,
   CreateBookingRequest,
+  ForgotPasswordRequest,
   GuestListItem,
   HotelSettings,
   LoginRequest,
   MeProfile,
+  MessageResponse,
   Paginated,
   Payment,
   PaymentListItem,
+  ReassignRoomRequest,
+  ReceptionCancelBookingRequest,
+  ReceptionCreateBookingRequest,
   RecordPaymentRequest,
+  RegisterPendingResponse,
   RegisterRequest,
+  ResendCodeRequest,
+  ResetPasswordRequest,
   Room,
   RoomTypeResponse,
   SaveProfileRequest,
@@ -39,13 +51,17 @@ import type {
   SaveSettingsRequest,
   SaveStaffRequest,
   Staff,
+  UnassignRoomRequest,
+  UploadedImage,
   User,
+  UserListItem,
+  VerifyEmailRequest,
 } from '@/types';
-import type { BookingFilterParams, PaginationParams, RoomListParams } from '../interfaces';
+import type { BookingFilterParams, PaginationParams, RoomListParams, UserListParams } from '../interfaces';
 import * as c from './contracts';
 import * as m from './mappers';
 
-type PathOptions = { path: string; method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; skipAuth?: boolean; idempotencyKey?: string };
+type PathOptions = { path: string; method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; formData?: FormData; skipAuth?: boolean; idempotencyKey?: string };
 
 function call<T>(options: PathOptions): Promise<T> {
   return http<T>(options);
@@ -69,15 +85,30 @@ function pagedQuery(params?: PaginationParams & { sort?: string; direction?: str
   };
 }
 
-function bookingQuery(params: BookingFilterParams): Record<string, string | number | undefined> {
+function roomQuery(params: RoomListParams): Record<string, string | number | undefined> {
+  return {
+    ...pagedQuery(params),
+    status: params.status,
+    date: params.date,
+    roomTypeId: params.roomTypeId,
+    availableFrom: params.availableFrom,
+    availableTo: params.availableTo,
+    search: params.search,
+  };
+}
+
+function bookingQuery(params: BookingFilterParams): Record<string, string | number | boolean | undefined> {
   return {
     page: params.page,
     pageSize: params.pageSize,
     status: params.status,
+    source: params.source,
+    overdueArrivals: params.overdueArrivals ? 'true' : undefined,
+    hasBalanceDue: params.hasBalanceDue ? 'true' : undefined,
     sort: params.sort,
     direction: params.direction,
-    // The backend filters bookings by reference, not free-text search.
-    reference: params.search,
+    // Free-text over guest full name or booking reference (SoT v1.10, 7l).
+    search: params.search,
     from: params.dateFrom,
     to: params.dateTo,
   };
@@ -93,8 +124,15 @@ async function finishAuth(tokens: c.LoginResponse): Promise<AuthResponse> {
 }
 
 export const realAuthApi = {
-  register(request: RegisterRequest): Promise<AuthResponse> {
-    return call<c.LoginResponse>({ path: '/auth/register', method: 'POST', body: request, skipAuth: true }).then(finishAuth);
+  register(request: RegisterRequest): Promise<RegisterPendingResponse> {
+    return call<c.RegisterPendingResponse>({ path: '/auth/register', method: 'POST', body: request, skipAuth: true });
+  },
+  async verifyEmail(request: VerifyEmailRequest): Promise<AuthResponse> {
+    const tokens = await call<c.LoginResponse>({ path: '/auth/verify-email', method: 'POST', body: request, skipAuth: true });
+    return finishAuth(tokens);
+  },
+  resendCode(request: ResendCodeRequest): Promise<RegisterPendingResponse> {
+    return call<c.RegisterPendingResponse>({ path: '/auth/resend-code', method: 'POST', body: request, skipAuth: true });
   },
   async login(request: LoginRequest): Promise<AuthResponse> {
     const tokens = await call<c.LoginResponse>({ path: '/auth/login', method: 'POST', body: request, skipAuth: true });
@@ -111,6 +149,12 @@ export const realAuthApi = {
     const me = await call<c.CurrentUserResponse>({ path: '/auth/me' });
     return m.toUser(me);
   },
+  async forgotPassword(request: ForgotPasswordRequest): Promise<RegisterPendingResponse> {
+    return call<c.RegisterPendingResponse>({ path: '/auth/forgot-password', method: 'POST', body: request, skipAuth: true });
+  },
+  async resetPassword(request: ResetPasswordRequest): Promise<MessageResponse> {
+    return call<c.MessageResponse>({ path: '/auth/reset-password', method: 'POST', body: request, skipAuth: true });
+  },
 };
 
 /* ----------------------------- room types -------------------------------- */
@@ -126,12 +170,12 @@ async function loadRoomTypes(base: string, skipAuth: boolean, includeInactive: b
     path: `${base}${buildQuery({ pageSize: 100, includeInactive: includeInactive ? 'true' : undefined })}`,
     skipAuth,
   });
-  // GET /room-types/{id} only returns active types, so fetching the detail of an
-  // inactive type 404s. Skip those (fall back to the list DTO) and tolerate any
-  // other detail failure so one bad row can't break the whole list.
+  // Fetch the detail of each type for its description/images/features. Public reads only
+  // ever contain active types; the admin detail endpoint (used when skipAuth is false)
+  // returns inactive ones too. Tolerate any detail failure so one bad row can't break
+  // the whole list.
   const list = await Promise.all(
     page.items.map(async (item): Promise<RoomTypeResponse> => {
-      if (!item.isActive) return m.toRoomTypeFromList(item);
       try {
         const detail = await call<c.RoomTypeResponse>({ path: `${base}/${encodeURIComponent(item.id)}`, skipAuth });
         return m.toRoomType(detail);
@@ -149,6 +193,17 @@ export const realRoomTypesApi = {
   },
   get(id: string): Promise<RoomTypeResponse> {
     return call<c.RoomTypeResponse>({ path: `/room-types/${encodeURIComponent(id)}`, skipAuth: true }).then(m.toRoomType);
+  },
+};
+
+/* -------------------------------- uploads --------------------------------- */
+
+export const realUploadsApi = {
+  uploadImage(file: File): Promise<UploadedImage> {
+    const formData = new FormData();
+    formData.append('file', file);
+    // The browser sets the multipart boundary; do not set Content-Type manually.
+    return call<c.UploadedImage>({ path: '/uploads/images', method: 'POST', formData });
   },
 };
 
@@ -173,7 +228,9 @@ async function fetchReceptionBooking(id: string): Promise<BookingResponse> {
 
 export const realBookingsApi = {
   create(request: CreateBookingRequest, idempotencyKey: string): Promise<BookingResponse> {
-    return call<c.CreateBookingResponse>({ path: '/bookings', method: 'POST', body: request, skipAuth: true, idempotencyKey }).then((r) => m.toBooking(r.booking));
+    // No skipAuth: when a customer is signed in the Bearer token links the booking to their
+    // account (CreatedByUserId). Anonymous visitors simply have no token to send.
+    return call<c.CreateBookingResponse>({ path: '/bookings', method: 'POST', body: request, idempotencyKey }).then((r) => m.toBooking(r.booking));
   },
   lookup(request: BookingLookupRequest): Promise<BookingResponse> {
     return call<c.BookingDetailResponse>({ path: '/bookings/lookup', method: 'POST', body: request, skipAuth: true }).then(m.toBooking);
@@ -217,8 +274,28 @@ export const realReceptionApi = {
   getBooking(id: string): Promise<BookingResponse> {
     return fetchReceptionBooking(id);
   },
-  createBooking(request: CreateBookingRequest, idempotencyKey: string): Promise<BookingResponse> {
-    return call<c.CreateBookingResponse>({ path: '/reception/bookings', method: 'POST', body: request, idempotencyKey }).then((r) => m.toBooking(r.booking));
+  createBooking(request: ReceptionCreateBookingRequest, idempotencyKey: string): Promise<BookingResponse> {
+    const body: c.ReceptionCreateBookingRequest = {
+      checkInDate: request.checkInDate,
+      checkOutDate: request.checkOutDate,
+      adults: request.adults,
+      children: request.children,
+      guest: {
+        firstName: request.guest.firstName,
+        lastName: request.guest.lastName,
+        phoneNumber: request.guest.phoneNumber,
+      },
+      rooms: request.rooms.map((r) => ({ roomTypeId: r.roomTypeId, quantity: r.quantity })),
+    };
+    return call<c.CreateBookingResponse>({ path: '/reception/bookings', method: 'POST', body, idempotencyKey }).then((r) => m.toBooking(r.booking));
+  },
+  cancelBooking(id: string, request: ReceptionCancelBookingRequest): Promise<BookingResponse> {
+    const body: c.ReceptionCancelBookingRequest = {
+      reason: request.reason,
+      notes: request.notes ?? null,
+      refundPaidAmounts: request.refundPaidAmounts,
+    };
+    return call<c.BookingDetailResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/cancel`, method: 'POST', body }).then(m.toBooking);
   },
   assignRooms(id: string, request: AssignRoomsRequest): Promise<BookingResponse> {
     return call<c.BookingDetailResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/assign-rooms`, method: 'POST', body: request }).then(m.toBooking);
@@ -227,12 +304,30 @@ export const realReceptionApi = {
     await call<c.CheckInResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/check-in`, method: 'POST' });
     return fetchReceptionBooking(id);
   },
-  async checkOut(id: string): Promise<BookingResponse> {
-    await call<c.CheckOutResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/check-out`, method: 'POST' });
+  async checkOut(id: string, request?: CheckOutRequest): Promise<BookingResponse> {
+    const body: c.CheckOutRequest | undefined = request ? { earlyCheckOut: request.earlyCheckOut ?? null } : undefined;
+    await call<c.CheckOutResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/check-out`, method: 'POST', body });
     return fetchReceptionBooking(id);
   },
+  async changeRoomType(id: string, request: ChangeRoomTypeRequest): Promise<ChangeRoomTypeResult> {
+    const body: c.ChangeRoomTypeRequest = {
+      bookingRoomTypeId: request.bookingRoomTypeId,
+      newRoomTypeId: request.newRoomTypeId,
+      quantity: request.quantity,
+    };
+    const resp = await call<c.ChangeRoomTypeResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/change-room-type`, method: 'POST', body });
+    return { booking: m.toBooking(resp.booking), assignmentsCleared: resp.assignmentsCleared };
+  },
+  reassignRoom(id: string, request: ReassignRoomRequest): Promise<BookingResponse> {
+    const body: c.ReassignRoomRequest = { roomAssignmentId: request.roomAssignmentId, newRoomId: request.newRoomId, reason: request.reason ?? null };
+    return call<c.BookingDetailResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/reassign-room`, method: 'POST', body }).then(m.toBooking);
+  },
+  unassignRoom(id: string, request: UnassignRoomRequest): Promise<BookingResponse> {
+    const body: c.UnassignRoomRequest = { roomAssignmentId: request.roomAssignmentId };
+    return call<c.BookingDetailResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/unassign-room`, method: 'POST', body }).then(m.toBooking);
+  },
   listRooms(params: RoomListParams): Promise<Paginated<Room>> {
-    return call<c.Paged<c.RoomListItemResponse>>({ path: `/reception/rooms${buildQuery({ ...pagedQuery(params), status: params.status, date: params.date, search: params.search })}` }).then(
+    return call<c.Paged<c.RoomListItemResponse>>({ path: `/reception/rooms${buildQuery(roomQuery(params))}` }).then(
       (p) => m.mapPage(p, m.toRoom),
     );
   },
@@ -270,7 +365,7 @@ export const realAdminApi = {
   },
   listRooms(params: RoomListParams): Promise<Paginated<Room>> {
     return call<c.Paged<c.RoomListItemResponse>>({
-      path: `/admin/rooms${buildQuery({ ...pagedQuery(params), status: params.status, date: params.date, search: params.search })}`,
+      path: `/admin/rooms${buildQuery(roomQuery(params))}`,
     }).then((p) => m.mapPage(p, m.toRoom));
   },
   createRoom(request: SaveRoomRequest): Promise<Room> {
@@ -304,18 +399,18 @@ export const realAdminApi = {
     return call<c.RoomTypeResponse>({ path: `/admin/room-types/${encodeURIComponent(id)}` }).then(m.toRoomType);
   },
   updateRoomType(id: string, request: SaveRoomTypeRequest): Promise<RoomTypeResponse> {
-    // Inactive room types have no detail endpoint, so their description/images/
-    // features load empty. Only send optional fields when set, otherwise the
-    // backend (which applies non-null fields) would wipe the stored values.
+    // Send every field the form owns, including empty image/feature arrays, so that
+    // removing the last image (or feature) actually clears it server-side. The admin
+    // detail endpoint now returns inactive types, so nothing is blanked accidentally.
     const body: c.SaveRoomTypeRequest = {
       name: request.name,
+      description: request.description,
       basePrice: request.basePrice,
       maximumOccupancy: request.maximumOccupancy,
+      bedType: request.bedType,
+      imageUrls: request.imageUrls,
+      features: request.features,
     };
-    if (request.bedType?.trim()) body.bedType = request.bedType;
-    if (request.description?.trim()) body.description = request.description;
-    if (request.imageUrls?.length) body.imageUrls = request.imageUrls;
-    if (request.features?.length) body.features = request.features;
     return call<c.RoomTypeResponse>({ path: `/admin/room-types/${encodeURIComponent(id)}`, method: 'PUT', body }).then(m.toRoomType);
   },
   updateRoomTypeStatus(id: string, isActive: boolean): Promise<RoomTypeResponse> {
@@ -330,6 +425,15 @@ export const realAdminApi = {
     return call<c.Paged<c.GuestResponse>>({
       path: `/admin/guests${buildQuery({ ...pagedQuery(params), search: params.search, from: undefined, to: undefined })}`,
     }).then((p) => m.mapPage(p, m.toGuest));
+  },
+  listUsers(params: UserListParams): Promise<Paginated<UserListItem>> {
+    return call<c.Paged<c.UserListItemResponse>>({
+      path: `/admin/users${buildQuery({ ...pagedQuery(params), search: params.search, role: params.role })}`,
+    }).then((p) => m.mapPage(p, m.toUserListItem));
+  },
+  changeUserRole(id: string, request: ChangeUserRoleRequest): Promise<UserListItem> {
+    const body: c.ChangeUserRoleRequest = { role: request.role };
+    return call<c.UserListItemResponse>({ path: `/admin/users/${encodeURIComponent(id)}/role`, method: 'PATCH', body }).then(m.toUserListItem);
   },
   listStaff(params: PaginationParams & { isActive?: boolean; role?: string }): Promise<Paginated<Staff>> {
     return call<c.Paged<c.StaffResponse>>({
@@ -346,13 +450,6 @@ export const realAdminApi = {
       phoneNumber: request.phoneNumber,
     };
     return call<c.StaffResponse>({ path: '/admin/staff', method: 'POST', body }).then(m.toStaff);
-  },
-  getStaff(id: string): Promise<Staff> {
-    return call<c.StaffResponse>({ path: `/admin/staff/${encodeURIComponent(id)}` }).then(m.toStaff);
-  },
-  updateStaff(id: string, request: SaveStaffRequest): Promise<Staff> {
-    const body: c.UpdateStaffRequest = { firstName: request.firstName, lastName: request.lastName, phoneNumber: request.phoneNumber, role: request.role };
-    return call<c.StaffResponse>({ path: `/admin/staff/${encodeURIComponent(id)}`, method: 'PUT', body }).then(m.toStaff);
   },
   updateStaffStatus(id: string, isActive: boolean): Promise<Staff> {
     return call<c.StaffResponse>({ path: `/admin/staff/${encodeURIComponent(id)}/status`, method: 'PATCH', body: { isActive } }).then(m.toStaff);
@@ -387,6 +484,7 @@ export const realServices = {
   auth: realAuthApi,
   roomTypes: realRoomTypesApi,
   availability: realAvailabilityApi,
+  uploads: realUploadsApi,
   bookings: realBookingsApi,
   me: realMeApi,
   reception: realReceptionApi,

@@ -11,11 +11,14 @@
  *  - Money is a decimal number in NGN (no taxes or fees exist yet).
  */
 import type {
+  BookingSource,
   BookingStatus,
+  EarlyCheckOutReason,
   NotificationType,
   PaymentMethod,
   PaymentStatus,
   RoomStatus,
+  StaffCancellationReason,
   StaffRole,
   UserRole,
 } from './enums';
@@ -62,6 +65,46 @@ export interface AuthResponse {
 
 export interface RefreshRequest {
   refreshToken: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
+export interface VerifyEmailRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResendCodeRequest {
+  email: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
+/**
+ * Neutral acknowledgment for register/resend/forgot. The backend never reveals
+ * whether an email/phone already exists, so these always succeed (202).
+ */
+export interface RegisterPendingResponse {
+  message: string;
+  /** Seconds before another code may be requested for this email. */
+  resendAvailableInSeconds: number;
+}
+
+/* -------------------------------- Uploads -------------------------------- */
+
+export interface UploadedImage {
+  url: string;
+  publicId: string;
 }
 
 /* -------------------------------- Room types ----------------------------- */
@@ -126,7 +169,8 @@ export interface AvailabilityResponse {
 export interface BookingGuest {
   firstName: string;
   lastName: string;
-  email: string;
+  /** Null for walk-in guests recorded at the front desk without an email. */
+  email: string | null;
   phoneNumber: string;
 }
 
@@ -143,6 +187,48 @@ export interface CreateBookingRequest {
   guest: BookingGuest;
   rooms: BookingRoomRequest[];
   specialRequests?: string | null;
+  /**
+   * Set to true to proceed past the "possible duplicate booking" guard. Only
+   * sent after the guest has reviewed the warning and chosen to continue.
+   */
+  acknowledgeDuplicate?: boolean;
+}
+
+/**
+ * Front-desk guest details. Walk-ins have no email and no special requests —
+ * the booking summary is emailed to the staff member who created it.
+ */
+export interface ReceptionGuestRequest {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+}
+
+/** Front-desk (walk-in) booking creation. No email, no special requests. */
+export interface ReceptionCreateBookingRequest {
+  checkInDate: string;
+  checkOutDate: string;
+  adults: number;
+  children: number;
+  guest: ReceptionGuestRequest;
+  rooms: BookingRoomRequest[];
+}
+
+/** Staff cancellation with an explicit reason and refund choice. */
+export interface ReceptionCancelBookingRequest {
+  reason: StaffCancellationReason;
+  /** Required when reason is 'Other'. */
+  notes?: string | null;
+  /** True refunds any Paid amounts; false keeps them and records the choice. */
+  refundPaidAmounts: boolean;
+}
+
+/** A live room assignment belonging to a booking line. */
+export interface AssignedRoom {
+  /** `RoomAssignment` id — used to reassign or unassign this specific room. */
+  id: string;
+  roomId: string;
+  roomNumber: string;
 }
 
 export interface BookingRoomLine {
@@ -153,7 +239,10 @@ export interface BookingRoomLine {
   ratePerNight: number;
   numberOfNights: number;
   subtotal: number;
+  /** Room numbers of the live assignments, in assignment order. */
   assignedRoomNumbers?: string[];
+  /** Rich live assignments for this line (v1.9); enables per-room actions. */
+  assignedRooms?: AssignedRoom[];
 }
 
 export interface BookingResponse {
@@ -171,6 +260,10 @@ export interface BookingResponse {
   specialRequests: string | null;
   totalAmount: number;
   createdAt: string;
+  /** How the booking was created. */
+  source: BookingSource;
+  /** Staff member who created the booking at the desk; null for online bookings. */
+  createdByName: string | null;
   /** "yyyy-MM-dd" — bumped on any lifecycle change (rooms assigned, checked in, payment recorded, cancelled). */
   updatedAt: string;
   /**
@@ -195,10 +288,16 @@ export interface BookingListItem {
   checkOutDate: string;
   nights: number;
   guestName: string;
-  guestEmail: string;
+  guestEmail: string | null;
+  guestPhoneNumber: string;
   roomsCount: number;
   roomsSummary: string;
   totalAmount: number;
+  /** Outstanding balance (total minus paid payments). Zero once fully paid. */
+  balanceDue: number;
+  source: BookingSource;
+  /** Staff member who created the booking at the desk; null for online bookings. */
+  createdByName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -216,6 +315,49 @@ export interface AnonymousCancelBookingRequest {
 
 export interface AssignRoomsRequest {
   assignments: { bookingRoomTypeId: string; roomId: string }[];
+}
+
+/* ------------------------- Stay changes (v1.9) --------------------------- */
+
+/**
+ * Required only when checking out before the scheduled check-out moment.
+ * `guestConsented` is an attested flag recorded for audit; `notes` is required
+ * when the reason is 'Other'.
+ */
+export interface EarlyCheckOutInfo {
+  reason: EarlyCheckOutReason;
+  notes?: string | null;
+  guestConsented: boolean;
+}
+
+/** Optional body for check-out; send `earlyCheckOut` for an early check-out. */
+export interface CheckOutRequest {
+  earlyCheckOut?: EarlyCheckOutInfo | null;
+}
+
+/** Moves part of a room line to a different room type before arrival. */
+export interface ChangeRoomTypeRequest {
+  bookingRoomTypeId: string;
+  newRoomTypeId: string;
+  quantity: number;
+}
+
+/** Result of a room-type change: the updated booking and any released room numbers. */
+export interface ChangeRoomTypeResult {
+  booking: BookingResponse;
+  assignmentsCleared: string[];
+}
+
+/** Swaps one live room assignment for another room of the same type. */
+export interface ReassignRoomRequest {
+  roomAssignmentId: string;
+  newRoomId: string;
+  reason?: string | null;
+}
+
+/** Releases a live room assignment before check-in. */
+export interface UnassignRoomRequest {
+  roomAssignmentId: string;
 }
 
 /* --------------------------------- Rooms --------------------------------- */
@@ -274,8 +416,35 @@ export interface SaveStaffRequest {
   email: string;
   phoneNumber?: string;
   role: StaffRole;
-  /** Required when creating a staff member; ignored on update. */
+  /** Required when creating a staff member. */
   password?: string;
+}
+
+/* --------------------------- Users (directory) --------------------------- */
+
+/**
+ * A customer account as shown in the admin user directory. Staff are managed
+ * through the staff section instead; this is where customer accounts live and
+ * where an administrator can promote one to a staff role.
+ */
+export interface UserListItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  role: UserRole;
+  isActive: boolean;
+  emailConfirmed: boolean;
+  createdAt: string;
+  lastLoginAt?: string | null;
+  bookingsCount: number;
+  initials: string;
+}
+
+/** Exactly one role per account; sending this replaces the current role. */
+export interface ChangeUserRoleRequest {
+  role: UserRole;
 }
 
 /* -------------------------------- Payments ------------------------------- */
@@ -324,7 +493,8 @@ export interface MeProfile {
 export interface SaveProfileRequest {
   firstName: string;
   lastName: string;
-  email: string;
+  /** Ignored by the API: email changes aren't supported yet. */
+  email?: string;
   phoneNumber?: string;
 }
 
@@ -392,6 +562,8 @@ export interface HotelSettings {
   requireFullPaymentAtCheckIn?: boolean;
   /** Check-outs are refused while an amount is outstanding (backend-managed, default off). */
   requirePaymentBeforeCheckOut?: boolean;
+  /** Early check-outs require an administrator, not just a receptionist (default off). */
+  earlyCheckOutRequiresAdmin?: boolean;
 }
 
 export type SaveSettingsRequest = Partial<HotelSettings>;

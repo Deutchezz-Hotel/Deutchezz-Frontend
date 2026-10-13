@@ -103,6 +103,19 @@ export default function AdminSettingsPage() {
               </div>
             </div>
           </div>
+          <div className="border-t pt-4">
+            <h3 className="mb-3 text-sm font-semibold text-ink-900">Check-out rules</h3>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <Label>Early check-out requires an administrator</Label>
+                <p className="text-xs text-ink-600">A receptionist cannot check a guest out before the scheduled check-out time; an administrator can.</p>
+              </div>
+              <Switch
+                checked={form.earlyCheckOutRequiresAdmin ?? false}
+                onCheckedChange={(checked) => setForm({ ...form, earlyCheckOutRequiresAdmin: checked })}
+              />
+            </div>
+          </div>
           <Button onClick={save} disabled={update.isPending}>{update.isPending ? 'Saving…' : 'Save settings'}</Button>
         </CardContent>
       </Card>

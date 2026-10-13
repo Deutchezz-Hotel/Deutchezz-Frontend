@@ -25,9 +25,7 @@ const schema = z.object({
   children: z.string(),
   firstName: z.string().min(2, 'Enter the guest first name'),
   lastName: z.string().min(2, 'Enter the guest last name'),
-  email: z.string().email('Enter a valid email'),
   phoneNumber: z.string().min(8, 'Enter a valid phone number'),
-  specialRequests: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -50,9 +48,7 @@ export default function ReceptionCreateBookingPage() {
       children: '0',
       firstName: '',
       lastName: '',
-      email: '',
       phoneNumber: '',
-      specialRequests: '',
     },
   });
   const values = form.watch();
@@ -104,9 +100,8 @@ export default function ReceptionCreateBookingPage() {
         checkOutDate: v.checkOutDate,
         adults: Number(v.adults),
         children: Number(v.children),
-        guest: { firstName: v.firstName.trim(), lastName: v.lastName.trim(), email: v.email.trim(), phoneNumber: v.phoneNumber.trim() },
+        guest: { firstName: v.firstName.trim(), lastName: v.lastName.trim(), phoneNumber: v.phoneNumber.trim() },
         rooms: selectedLines.map((l) => ({ roomTypeId: l.roomTypeId, quantity: l.quantity })),
-        specialRequests: v.specialRequests?.trim().length ? v.specialRequests.trim() : null,
       },
       {
         onSuccess: (booking) => {
@@ -188,7 +183,10 @@ export default function ReceptionCreateBookingPage() {
 
           <Card>
             <CardContent className="space-y-5 p-8">
-              <h3 className="heading-3">Guest</h3>
+              <div className="space-y-1">
+                <h3 className="heading-3">Guest</h3>
+                <p className="text-sm text-ink-600">Walk-in guests don&apos;t receive emails. The booking summary will be sent to your email.</p>
+              </div>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>First name</Label>
@@ -200,20 +198,11 @@ export default function ReceptionCreateBookingPage() {
                   <Input {...form.register('lastName')} />
                   {form.formState.errors.lastName ? <p className="text-xs text-destructive">{form.formState.errors.lastName.message}</p> : null}
                 </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" {...form.register('email')} />
-                  {form.formState.errors.email ? <p className="text-xs text-destructive">{form.formState.errors.email.message}</p> : null}
-                </div>
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <Label>Phone number</Label>
                   <Input {...form.register('phoneNumber')} />
                   {form.formState.errors.phoneNumber ? <p className="text-xs text-destructive">{form.formState.errors.phoneNumber.message}</p> : null}
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Special requests (optional)</Label>
-                <textarea rows={3} className="w-full rounded-md border p-3 text-sm" {...form.register('specialRequests')} />
               </div>
             </CardContent>
           </Card>

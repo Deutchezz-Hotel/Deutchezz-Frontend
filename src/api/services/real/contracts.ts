@@ -34,6 +34,16 @@ export interface CurrentUserResponse {
   role: string;
 }
 
+export interface MessageResponse {
+  message: string;
+}
+
+/** 202 body for register/resend/forgot (no account enumeration). */
+export interface RegisterPendingResponse {
+  message: string;
+  resendAvailableInSeconds: number;
+}
+
 export interface RegisterRequest {
   firstName: string;
   lastName: string;
@@ -45,6 +55,13 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+/* -------------------------------- Uploads -------------------------------- */
+
+export interface UploadedImage {
+  url: string;
+  publicId: string;
 }
 
 /* ------------------------------ Room types ------------------------------- */
@@ -128,6 +145,29 @@ export interface CreateBookingRequest {
   guest: GuestInfoRequest;
   rooms: BookingRoomRequest[];
   specialRequests?: string | null;
+  /** Proceed past the possible-duplicate warning (SoT v1.10, 7m). */
+  acknowledgeDuplicate?: boolean;
+}
+
+export interface ReceptionGuestRequest {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+}
+
+export interface ReceptionCreateBookingRequest {
+  checkInDate: string;
+  checkOutDate: string;
+  adults: number;
+  children: number;
+  guest: ReceptionGuestRequest;
+  rooms: BookingRoomRequest[];
+}
+
+export interface ReceptionCancelBookingRequest {
+  reason: string;
+  notes?: string | null;
+  refundPaidAmounts: boolean;
 }
 
 export interface BookingLookupRequest {
@@ -150,8 +190,11 @@ export interface BookingRoomTypeLineResponse {
 }
 
 export interface RoomAssignmentResponse {
+  id: string;
   roomId: string;
   roomNumber: string;
+  bookingRoomTypeId: string;
+  roomTypeId: string;
   assignedAt: string;
   releasedAt: string | null;
 }
@@ -165,7 +208,8 @@ export interface BookingDetailResponse {
   id: string;
   bookingReference: string;
   guestFullName: string;
-  guestEmail: string;
+  guestEmail: string | null;
+  guestPhoneNumber: string | null;
   checkInDate: string;
   checkOutDate: string;
   nights: number;
@@ -174,6 +218,8 @@ export interface BookingDetailResponse {
   specialRequests: string | null;
   status: string;
   paymentStatus: string;
+  source: string;
+  createdByName: string | null;
   totalAmount: number;
   lines: BookingRoomTypeLineResponse[];
   assignments: RoomAssignmentResponse[];
@@ -185,11 +231,17 @@ export interface BookingListItemResponse {
   id: string;
   bookingReference: string;
   guestFullName: string;
+  guestEmail: string | null;
+  guestPhoneNumber: string | null;
   checkInDate: string;
   checkOutDate: string;
   status: string;
   paymentStatus: string;
+  source: string;
+  createdByName: string | null;
   totalAmount: number;
+  /** Outstanding balance (total minus paid payments); 0 once fully paid. */
+  balanceDue: number;
 }
 
 export interface CreateBookingResponse {
@@ -212,6 +264,40 @@ export interface CheckOutResponse {
   status: string;
   checkedOutAt: string;
   releasedRoomNumbers: string[];
+  isEarly: boolean;
+  scheduledCheckOutAt: string;
+  actualCheckOutAt: string;
+}
+
+export interface EarlyCheckOutInfo {
+  reason: string;
+  notes?: string | null;
+  guestConsented: boolean;
+}
+
+export interface CheckOutRequest {
+  earlyCheckOut?: EarlyCheckOutInfo | null;
+}
+
+export interface ChangeRoomTypeRequest {
+  bookingRoomTypeId: string;
+  newRoomTypeId: string;
+  quantity: number;
+}
+
+export interface ChangeRoomTypeResponse {
+  booking: BookingDetailResponse;
+  assignmentsCleared: string[];
+}
+
+export interface ReassignRoomRequest {
+  roomAssignmentId: string;
+  newRoomId: string;
+  reason?: string | null;
+}
+
+export interface UnassignRoomRequest {
+  roomAssignmentId: string;
 }
 
 export interface RoomAssignmentLineRequest {
@@ -285,13 +371,6 @@ export interface CreateStaffRequest {
   phoneNumber?: string | null;
 }
 
-export interface UpdateStaffRequest {
-  firstName?: string | null;
-  lastName?: string | null;
-  phoneNumber?: string | null;
-  role?: string | null;
-}
-
 export interface SetStaffStatusRequest {
   isActive: boolean;
 }
@@ -305,6 +384,26 @@ export interface StaffResponse {
   role: string;
   isActive: boolean;
   createdAt: string;
+}
+
+/* --------------------------------- Users --------------------------------- */
+
+export interface UserListItemResponse {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string | null;
+  role: string;
+  isActive: boolean;
+  emailConfirmed: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+  bookingsCount: number;
+}
+
+export interface ChangeUserRoleRequest {
+  role: string;
 }
 
 /* -------------------------------- Payments ------------------------------- */
@@ -427,6 +526,7 @@ export interface AdminSettingsResponse {
   cancellationWindowHours: number;
   requireFullPaymentAtCheckIn: boolean;
   requirePaymentBeforeCheckOut: boolean;
+  earlyCheckOutRequiresAdmin: boolean;
 }
 
 export interface UpdateAdminSettingsRequest {
@@ -436,6 +536,7 @@ export interface UpdateAdminSettingsRequest {
   cancellationWindowHours?: number | null;
   requireFullPaymentAtCheckIn?: boolean | null;
   requirePaymentBeforeCheckOut?: boolean | null;
+  earlyCheckOutRequiresAdmin?: boolean | null;
 }
 
 /* ---------------------------- Problem details ---------------------------- */
@@ -448,4 +549,7 @@ export interface ProblemDetails {
   instance?: string;
   code?: string;
   errors?: Record<string, string[]>;
+  minutesAgo?: number;
+  reference?: string;
+  bookingId?: string;
 }

@@ -15,10 +15,12 @@ export default function ReceptionDashboardPage() {
   const { user } = useAuth();
   const roomsQuery = useReceptionRooms({ pageSize: 200 });
   const bookingsQuery = useReceptionBookings({ pageSize: 100 });
+  const overdueQuery = useReceptionBookings({ pageSize: 100, overdueArrivals: true });
   const today = todayISO();
 
   const rooms = roomsQuery.data?.items ?? [];
   const bookings = bookingsQuery.data?.items ?? [];
+  const overdueArrivals = overdueQuery.data?.items ?? [];
 
   const totalRooms = rooms.length;
   const availableRooms = rooms.filter((r) => r.status === 'Available').length;
@@ -56,6 +58,38 @@ export default function ReceptionDashboardPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
+            {overdueArrivals.length > 0 ? (
+              <Card className="border-amber-200 bg-amber-50/60 lg:col-span-2">
+                <CardHeader className="flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-amber-900">Overdue arrivals ({overdueArrivals.length})</CardTitle>
+                  <Link to="/reception/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-amber-800">
+                    All bookings <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  <p className="pb-2 text-sm text-amber-800">Confirmed guests whose check-in date has passed. Follow up or cancel.</p>
+                  <ul className="divide-y divide-amber-100">
+                    {overdueArrivals.map((b) => (
+                      <li key={b.id} className="relative flex items-center justify-between gap-3 py-3 hover:bg-amber-50">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-ink-900">{b.guestName}</p>
+                          <p className="truncate text-xs text-ink-600">
+                            {b.bookingReference} · was due {formatStayRange(b.checkInDate, b.checkOutDate)}
+                            {b.guestPhoneNumber ? ` · ${b.guestPhoneNumber}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge variant="warning">{bookingStatusLabel(b.status)}</Badge>
+                          <ArrowUpRight className="h-4 w-4 text-ink-400" />
+                        </div>
+                        <RowLink to={`/reception/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} />
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ) : null}
+
             <Card>
               <CardHeader className="flex-row items-center justify-between space-y-0">
                 <CardTitle>Arrivals today</CardTitle>

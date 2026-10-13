@@ -16,6 +16,9 @@ const About = withSuspense(lazy(() => import('@/pages/about')));
 const Contact = withSuspense(lazy(() => import('@/pages/contact')));
 const Login = withSuspense(lazy(() => import('@/pages/login')));
 const Register = withSuspense(lazy(() => import('@/pages/register')));
+const ForgotPassword = withSuspense(lazy(() => import('@/pages/forgot-password')));
+const ResetPassword = withSuspense(lazy(() => import('@/pages/reset-password')));
+const VerifyEmail = withSuspense(lazy(() => import('@/pages/verify-email')));
 const Forbidden = withSuspense(lazy(() => import('@/pages/forbidden')));
 const NotFound = withSuspense(lazy(() => import('@/pages/not-found')));
 
@@ -38,12 +41,14 @@ const AdminRoomTypes = withSuspense(lazy(() => import('@/pages/admin/room-types'
 const AdminBookings = withSuspense(lazy(() => import('@/pages/admin/bookings')));
 const AdminBookingDetail = withSuspense(lazy(() => import('@/pages/admin/booking-detail')));
 const AdminGuests = withSuspense(lazy(() => import('@/pages/admin/guests')));
+const AdminUsers = withSuspense(lazy(() => import('@/pages/admin/users')));
 const AdminStaff = withSuspense(lazy(() => import('@/pages/admin/staff')));
 const AdminPayments = withSuspense(lazy(() => import('@/pages/admin/payments')));
 const AdminReports = withSuspense(lazy(() => import('@/pages/admin/reports')));
 const AdminActivity = withSuspense(lazy(() => import('@/pages/admin/activity')));
 const AdminNotifications = withSuspense(lazy(() => import('@/pages/admin/notifications')));
 const AdminSettings = withSuspense(lazy(() => import('@/pages/admin/settings')));
+const MyProfile = withSuspense(lazy(() => import('@/pages/shared/my-profile')));
 
 export const appRoutes: RouteObject[] = [
   {
@@ -61,6 +66,9 @@ export const appRoutes: RouteObject[] = [
       { path: '/contact', element: <Contact /> },
       { path: '/login', element: <Login /> },
       { path: '/register', element: <Register /> },
+      { path: '/forgot-password', element: <ForgotPassword /> },
+      { path: '/reset-password', element: <ResetPassword /> },
+      { path: '/verify-email', element: <VerifyEmail /> },
       { path: '/forbidden', element: <Forbidden /> },
       { path: '*', element: <NotFound /> },
     ],
@@ -92,6 +100,7 @@ export const appRoutes: RouteObject[] = [
           { path: '/reception/rooms', element: <ReceptionRooms /> },
           { path: '/reception/guests', element: <ReceptionGuests /> },
           { path: '/reception/payments', element: <ReceptionPayments /> },
+          { path: '/reception/profile', element: <MyProfile /> },
         ],
       },
     ],
@@ -109,12 +118,14 @@ export const appRoutes: RouteObject[] = [
           { path: '/admin/bookings/new', element: <ReceptionCreateBooking /> },
           { path: '/admin/bookings/:id', element: <AdminBookingDetail /> },
           { path: '/admin/guests', element: <AdminGuests /> },
+          { path: '/admin/users', element: <AdminUsers /> },
           { path: '/admin/staff', element: <AdminStaff /> },
           { path: '/admin/payments', element: <AdminPayments /> },
           { path: '/admin/reports', element: <AdminReports /> },
           { path: '/admin/activity', element: <AdminActivity /> },
           { path: '/admin/notifications', element: <AdminNotifications /> },
           { path: '/admin/settings', element: <AdminSettings /> },
+          { path: '/admin/profile', element: <MyProfile /> },
         ],
       },
     ],

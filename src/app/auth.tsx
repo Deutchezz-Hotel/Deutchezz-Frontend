@@ -24,8 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // automatically on the 401 and retries, restoring the session.
       const hasSession =
         !!authStorage.getAccessToken() ||
-        !!authStorage.getRefreshToken() ||
-        !!authStorage.getSessionUserId();
+        !!authStorage.getRefreshToken();
       if (!hasSession) return null;
       return services.auth.me();
     },
