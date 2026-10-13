@@ -136,7 +136,11 @@ export interface SaveRoomTypeRequest {
 
 export interface AvailabilitySearchRequest {
   checkInDate: string;
+  /** "HH:mm" Lagos-local check-in time; omitted means the stay policy default. */
+  checkInTime?: string | null;
   checkOutDate: string;
+  /** "HH:mm" Lagos-local check-out time; omitted means the policy default. */
+  checkOutTime?: string | null;
   adults: number;
   children: number;
   rooms: number;
@@ -158,10 +162,52 @@ export interface AvailableRoomTypeResponse {
 
 export interface AvailabilityResponse {
   checkInDate: string;
+  /** "HH:mm" Lagos-local check-in time echoed by the backend. */
+  checkInTime: string;
   checkOutDate: string;
+  /** "HH:mm" Lagos-local check-out time echoed by the backend. */
+  checkOutTime: string;
+  /** ISO-8601 instant with the Lagos offset (e.g. 2026-10-13T14:00:00+01:00). */
+  checkInAt: string;
+  /** ISO-8601 instant with the Lagos offset. */
+  checkOutAt: string;
   nights: number;
   totalAvailableRooms: number;
   roomTypes: AvailableRoomTypeResponse[];
+}
+
+/* ------------------------------ Stay policy ------------------------------ */
+
+/**
+ * Public, cacheable stay policy (SoT v1.12). Tells the booking forms which
+ * check-in/check-out times are accepted and how long a stay may be stretched.
+ * Times are "HH:mm" in Africa/Lagos.
+ */
+export interface StayPolicy {
+  defaultCheckInTime: string;
+  defaultCheckOutTime: string;
+  /** Times must align to this many minutes. */
+  timeSlotMinutes: number;
+  earliestCheckInTime: string;
+  latestCheckInTime: string;
+  earliestCheckOutTime: string;
+  latestCheckOutTime: string;
+  /** A stay may run up to nights*24 + this many hours. */
+  maxExtraHoursPerStay: number;
+  /** Minutes a room must rest between stays. */
+  turnaroundMinutes: number;
+}
+
+/** One conflicted room in a 409 `room.occupied_until` response (v1.12). */
+export interface RoomConflict {
+  roomId: string;
+  roomNumber: string;
+  /** ISO-8601 instant the occupant vacates (with the Lagos offset). */
+  occupiedUntil: string;
+  occupantGuestName: string | null;
+  occupantBookingReference: string | null;
+  /** ISO-8601 instant the requested stay would start. */
+  requestedCheckInAt: string;
 }
 
 /* -------------------------------- Bookings ------------------------------- */
@@ -181,7 +227,11 @@ export interface BookingRoomRequest {
 
 export interface CreateBookingRequest {
   checkInDate: string;
+  /** "HH:mm" Lagos-local check-in time; omitted means the policy default. */
+  checkInTime?: string | null;
   checkOutDate: string;
+  /** "HH:mm" Lagos-local check-out time; omitted means the policy default. */
+  checkOutTime?: string | null;
   adults: number;
   children: number;
   guest: BookingGuest;
@@ -207,7 +257,11 @@ export interface ReceptionGuestRequest {
 /** Front-desk (walk-in) booking creation. No email, no special requests. */
 export interface ReceptionCreateBookingRequest {
   checkInDate: string;
+  /** "HH:mm" Lagos-local check-in time; omitted means the policy default. */
+  checkInTime?: string | null;
   checkOutDate: string;
+  /** "HH:mm" Lagos-local check-out time; omitted means the policy default. */
+  checkOutTime?: string | null;
   adults: number;
   children: number;
   guest: ReceptionGuestRequest;
@@ -251,7 +305,21 @@ export interface BookingResponse {
   status: BookingStatus;
   paymentStatus: PaymentStatus;
   checkInDate: string;
+  /** "HH:mm" Lagos-local scheduled check-in time. */
+  checkInTime: string;
   checkOutDate: string;
+  /** "HH:mm" Lagos-local scheduled check-out time. */
+  checkOutTime: string;
+  /** ISO-8601 instant with the Lagos offset (scheduled check-in). */
+  checkInAt: string;
+  /** ISO-8601 instant with the Lagos offset (scheduled check-out). */
+  checkOutAt: string;
+  /** ISO-8601 instant the guest actually checked in, or null. */
+  actualCheckInAt: string | null;
+  /** ISO-8601 instant the guest actually checked out, or null. */
+  actualCheckOutAt: string | null;
+  /** True when checked in but the scheduled check-out has passed. */
+  isOverdueCheckOut: boolean;
   nights: number;
   adults: number;
   children: number;
@@ -266,11 +334,46 @@ export interface BookingResponse {
   createdByName: string | null;
   /** "yyyy-MM-dd" — bumped on any lifecycle change (rooms assigned, checked in, payment recorded, cancelled). */
   updatedAt: string;
-  /**
-   * Live payment summary from the backend booking detail. Optional because the
-   * mock adapter and list endpoints don't populate it.
-   */
+  /** Live payment summary from the backend booking detail. */
   payments?: { totalPaid: number; balance: number };
+}
+
+/** Row shape used by booking tables across the portals. */
+export interface BookingListItem {
+  id: string;
+  bookingReference: string;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
+  checkInDate: string;
+  /** "HH:mm" Lagos-local scheduled check-in time. */
+  checkInTime: string;
+  checkOutDate: string;
+  /** "HH:mm" Lagos-local scheduled check-out time. */
+  checkOutTime: string;
+  /** ISO-8601 instant with the Lagos offset (scheduled check-in). */
+  checkInAt: string;
+  /** ISO-8601 instant with the Lagos offset (scheduled check-out). */
+  checkOutAt: string;
+  /** ISO-8601 instant the guest actually checked in, or null. */
+  actualCheckInAt: string | null;
+  /** ISO-8601 instant the guest actually checked out, or null. */
+  actualCheckOutAt: string | null;
+  /** True when checked in but the scheduled check-out has passed. */
+  isOverdueCheckOut: boolean;
+  nights: number;
+  guestName: string;
+  guestEmail: string | null;
+  guestPhoneNumber: string;
+  roomsCount: number;
+  roomsSummary: string;
+  totalAmount: number;
+  /** Outstanding balance (total minus paid payments). Zero once fully paid. */
+  balanceDue: number;
+  source: BookingSource;
+  /** Staff member who created the booking at the desk; null for online bookings. */
+  createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BookingLookupRequest {
@@ -315,6 +418,8 @@ export interface AnonymousCancelBookingRequest {
 
 export interface AssignRoomsRequest {
   assignments: { bookingRoomTypeId: string; roomId: string }[];
+  /** Retry flag: proceed when a room is not free right now but frees before the stay. */
+  acknowledgeLateAvailability?: boolean;
 }
 
 /* ------------------------- Stay changes (v1.9) --------------------------- */
@@ -353,6 +458,8 @@ export interface ReassignRoomRequest {
   roomAssignmentId: string;
   newRoomId: string;
   reason?: string | null;
+  /** Retry flag: proceed when a room is not free right now but frees before the stay. */
+  acknowledgeLateAvailability?: boolean;
 }
 
 /** Releases a live room assignment before check-in. */
@@ -370,8 +477,21 @@ export interface Room {
   roomTypeName: string;
   /** Persisted physical state (editable by admins). */
   status: RoomStatus;
-  /** Occupancy for the requested board date; falls back to `status` when absent. */
+  /** Occupancy for the requested board moment; falls back to `status` when absent. */
   effectiveStatus?: RoomStatus;
+  /** ISO-8601 Lagos instant the current occupant's stay ends (board only; null when free). */
+  occupiedUntil?: string | null;
+  /** ISO-8601 Lagos instant the room frees up (occupied until + turnaround). */
+  availableAgainAt?: string | null;
+  /** In-house guest occupying the room right now (board only). */
+  currentGuestName?: string | null;
+  currentBookingId?: string | null;
+  currentBookingReference?: string | null;
+  /** Checked in but past the scheduled check-out. */
+  isOverdueCheckOut?: boolean;
+  /** ISO-8601 Lagos instant of the next confirmed arrival for this room. */
+  nextArrivalAt?: string | null;
+  nextArrivalGuestName?: string | null;
 }
 
 export interface SaveRoomRequest {
@@ -508,6 +628,11 @@ export interface AdminDashboard {
   activeBookings: number;
   monthlyRevenue: number;
   totalRevenue: number;
+  /** Operational counts (SoT v1.12). */
+  availableNow: number;
+  inHouse: number;
+  overdueCheckOuts: number;
+  roomsFreeingToday: number;
   revenueTrend: { date: string; revenue: number }[];
   bookingsByStatus: { status: BookingStatus; count: number }[];
   roomTypePerformance: {
@@ -564,6 +689,17 @@ export interface HotelSettings {
   requirePaymentBeforeCheckOut?: boolean;
   /** Early check-outs require an administrator, not just a receptionist (default off). */
   earlyCheckOutRequiresAdmin?: boolean;
+  /* ---- Stay policy (SoT v1.12) ---- */
+  /** Times must align to this many minutes. */
+  timeSlotMinutes?: number;
+  earliestCheckInTime?: string;
+  latestCheckInTime?: string;
+  earliestCheckOutTime?: string;
+  latestCheckOutTime?: string;
+  /** A stay may run up to nights*24 + this many hours. */
+  maxExtraHoursPerStay?: number;
+  /** Minutes a room must rest between stays. */
+  turnaroundMinutes?: number;
 }
 
 export type SaveSettingsRequest = Partial<HotelSettings>;

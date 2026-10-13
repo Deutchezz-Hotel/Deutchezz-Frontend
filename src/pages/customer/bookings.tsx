@@ -8,7 +8,7 @@ import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { RowLink } from '@/components/shared';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
 import { bookingStatusTone } from '@/lib/status';
-import { formatStayRange } from '@/lib/dates';
+import { formatStayRange, formatTime12h } from '@/lib/dates';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, CalendarCheck } from 'lucide-react';
 import type { BookingStatus } from '@/types';
@@ -77,10 +77,15 @@ export default function CustomerBookingsPage() {
                       <TableCell className="font-medium text-foreground">{b.bookingReference}</TableCell>
                       <TableCell>
                         <p>{formatStayRange(b.checkInDate, b.checkOutDate)}</p>
-                        <p className="text-xs text-muted-foreground">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
+                        <p className="text-xs text-muted-foreground">{b.nights} {b.nights === 1 ? 'night' : 'nights'}{b.checkInTime ? ` · ${formatTime12h(b.checkInTime)}–${formatTime12h(b.checkOutTime)}` : ''}</p>
                       </TableCell>
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
-                      <TableCell>{statusBadge(b.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {statusBadge(b.status)}
+                          {b.isOverdueCheckOut ? <Badge variant="destructive">Overdue</Badge> : null}
+                        </div>
+                      </TableCell>
                       <TableCell>{paymentStatusLabel(b.paymentStatus)}</TableCell>
                       <TableCell className="text-muted-foreground"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/dashboard/bookings/${b.id}`} label={`Open booking ${b.bookingReference}`} /></TableCell>
                     </TableRow>

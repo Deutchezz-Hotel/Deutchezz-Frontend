@@ -51,6 +51,7 @@ import type {
   SaveSettingsRequest,
   SaveStaffRequest,
   Staff,
+  StayPolicy,
   UnassignRoomRequest,
   UploadedImage,
   User,
@@ -90,9 +91,12 @@ function roomQuery(params: RoomListParams): Record<string, string | number | und
     ...pagedQuery(params),
     status: params.status,
     date: params.date,
+    at: params.at,
     roomTypeId: params.roomTypeId,
     availableFrom: params.availableFrom,
     availableTo: params.availableTo,
+    freeFrom: params.freeFrom,
+    freeTo: params.freeTo,
     search: params.search,
   };
 }
@@ -104,6 +108,7 @@ function bookingQuery(params: BookingFilterParams): Record<string, string | numb
     status: params.status,
     source: params.source,
     overdueArrivals: params.overdueArrivals ? 'true' : undefined,
+    overdueCheckOuts: params.overdueCheckOuts ? 'true' : undefined,
     hasBalanceDue: params.hasBalanceDue ? 'true' : undefined,
     sort: params.sort,
     direction: params.direction,
@@ -219,6 +224,14 @@ export const realAvailabilityApi = {
   },
 };
 
+/* ------------------------------ stay policy ------------------------------ */
+
+export const realStayApi = {
+  getPolicy(): Promise<StayPolicy> {
+    return call<c.StayPolicyResponse>({ path: '/stay-policy', skipAuth: true }).then(m.toStayPolicy);
+  },
+};
+
 /* ------------------------------- bookings -------------------------------- */
 
 async function fetchReceptionBooking(id: string): Promise<BookingResponse> {
@@ -277,7 +290,9 @@ export const realReceptionApi = {
   createBooking(request: ReceptionCreateBookingRequest, idempotencyKey: string): Promise<BookingResponse> {
     const body: c.ReceptionCreateBookingRequest = {
       checkInDate: request.checkInDate,
+      checkInTime: request.checkInTime ?? null,
       checkOutDate: request.checkOutDate,
+      checkOutTime: request.checkOutTime ?? null,
       adults: request.adults,
       children: request.children,
       guest: {
@@ -319,7 +334,12 @@ export const realReceptionApi = {
     return { booking: m.toBooking(resp.booking), assignmentsCleared: resp.assignmentsCleared };
   },
   reassignRoom(id: string, request: ReassignRoomRequest): Promise<BookingResponse> {
-    const body: c.ReassignRoomRequest = { roomAssignmentId: request.roomAssignmentId, newRoomId: request.newRoomId, reason: request.reason ?? null };
+    const body: c.ReassignRoomRequest = {
+      roomAssignmentId: request.roomAssignmentId,
+      newRoomId: request.newRoomId,
+      reason: request.reason ?? null,
+      acknowledgeLateAvailability: request.acknowledgeLateAvailability ?? false,
+    };
     return call<c.BookingDetailResponse>({ path: `/reception/bookings/${encodeURIComponent(id)}/reassign-room`, method: 'POST', body }).then(m.toBooking);
   },
   unassignRoom(id: string, request: UnassignRoomRequest): Promise<BookingResponse> {
@@ -484,6 +504,7 @@ export const realServices = {
   auth: realAuthApi,
   roomTypes: realRoomTypesApi,
   availability: realAvailabilityApi,
+  stay: realStayApi,
   uploads: realUploadsApi,
   bookings: realBookingsApi,
   me: realMeApi,

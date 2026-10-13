@@ -6,6 +6,8 @@
  * map onto react-hook-form fields.
  */
 
+import type { RoomConflict } from '@/types';
+
 export interface ProblemDetails {
   type?: string;
   title?: string;
@@ -14,7 +16,11 @@ export interface ProblemDetails {
   instance?: string;
   /** Machine-readable error code from the backend (ProblemDetails extension). */
   code?: string;
-  errors?: Record<string, string[]>;
+  /**
+   * Field validation errors (field -> messages). For a `room.occupied_until`
+   * conflict the backend instead puts an array of conflicted rooms here.
+   */
+  errors?: Record<string, string[]> | RoomConflict[];
   /* --- Extra extension fields (e.g. the duplicate-booking warning, 7m) --- */
   /** Whole minutes since the likely-duplicate booking was created. */
   minutesAgo?: number;
@@ -22,6 +28,11 @@ export interface ProblemDetails {
   reference?: string;
   /** Id of the likely duplicate; only sent to authenticated callers. */
   bookingId?: string;
+  /* --- Late-availability conflict (room.available_later, v1.12) --- */
+  roomId?: string;
+  roomNumber?: string;
+  /** ISO-8601 Lagos instant the room frees up. */
+  availableFrom?: string;
 }
 
 export class ApiError extends Error {
@@ -39,7 +50,19 @@ export class ApiError extends Error {
 
   /** Validation errors keyed by field name (for react-hook-form setError). */
   get fieldErrors(): Record<string, string[]> {
-    return this.problem.errors ?? {};
+    const e = this.problem.errors;
+    return e && !Array.isArray(e) ? e : {};
+  }
+
+  /** Conflicted rooms from a 409 `room.occupied_until` response (v1.12). */
+  get roomConflicts(): RoomConflict[] {
+    const e = this.problem.errors;
+    return Array.isArray(e) ? e : [];
+  }
+
+  /** True when the backend asks whether to assign a room that frees later. */
+  get isLateAvailability(): boolean {
+    return this.problem.code === 'room.available_later';
   }
 
   /** A friendly, single sentence shown in toasts/banners. */

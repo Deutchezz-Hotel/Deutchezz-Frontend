@@ -12,6 +12,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import type { BookingFlowState } from '@/features/booking/types';
 import { useEffect } from 'react';
 import { useAuth } from '@/app/auth';
+import { formatStayRange, formatTime12h } from '@/lib/dates';
 
 const schema = z.object({
   firstName: z.string().min(2, 'Enter your first name'),
@@ -56,6 +57,10 @@ export default function GuestDetailsPage() {
         <Reveal>
           <Card className="mx-auto max-w-2xl">
           <CardContent className="space-y-6 p-10">
+            <div className="space-y-1 rounded-xl border border-border bg-accent/50 p-4 text-sm">
+              <p className="font-medium text-foreground">{formatStayRange(flow.draft.request.checkInDate, flow.draft.request.checkOutDate)}</p>
+              <p className="text-muted-foreground">{`Check-in ${formatTime12h(flow.draft.request.checkInTime)} · check-out ${formatTime12h(flow.draft.request.checkOutTime)}`}</p>
+            </div>
             <Form {...form}>
               <form
                 className="space-y-5"

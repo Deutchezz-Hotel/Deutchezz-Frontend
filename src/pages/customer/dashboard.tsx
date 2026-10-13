@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { RowLink } from '@/components/shared';
 import { formatMoney, bookingStatusLabel, paymentStatusLabel } from '@/lib/format';
 import { bookingStatusTone } from '@/lib/status';
-import { formatStayRange } from '@/lib/dates';
+import { formatStayRange, formatTime12h } from '@/lib/dates';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, CalendarDays, CalendarPlus, Search, Sparkles } from 'lucide-react';
@@ -52,8 +52,12 @@ export default function CustomerDashboardPage() {
                   <div className="space-y-1">
                     <p className="text-xl font-semibold text-foreground">{upcoming.bookingReference}</p>
                     <p className="text-sm text-muted-foreground">{formatStayRange(upcoming.checkInDate, upcoming.checkOutDate)}</p>
+                    <p className="text-sm text-muted-foreground">{`Check-in ${formatTime12h(upcoming.checkInTime)} · check-out ${formatTime12h(upcoming.checkOutTime)}`}</p>
                     <p className="text-sm text-muted-foreground">{upcomingNights} {upcomingNights === 1 ? 'night' : 'nights'} · {formatMoney(upcoming.totalAmount)}</p>
-                    <Badge variant={bookingStatusTone(upcoming.status)} className="mt-2">{bookingStatusLabel(upcoming.status)}</Badge>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Badge variant={bookingStatusTone(upcoming.status)}>{bookingStatusLabel(upcoming.status)}</Badge>
+                      {upcoming.isOverdueCheckOut ? <Badge variant="destructive">Overdue check-out</Badge> : null}
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -140,7 +144,7 @@ export default function CustomerDashboardPage() {
                     <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent">
                       <div className="min-w-0">
                         <p className="truncate font-medium text-foreground">{b.bookingReference}</p>
-                        <p className="truncate text-xs text-muted-foreground">{formatStayRange(b.checkInDate, b.checkOutDate)} · {formatMoney(b.totalAmount)}</p>
+                        <p className="truncate text-xs text-muted-foreground">{formatStayRange(b.checkInDate, b.checkOutDate)}{b.checkInTime ? ` · ${formatTime12h(b.checkInTime)}` : ''} · {formatMoney(b.totalAmount)}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>

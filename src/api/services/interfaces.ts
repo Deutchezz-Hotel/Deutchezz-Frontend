@@ -50,6 +50,7 @@ import type {
   SaveStaffRequest,
   SaveSettingsRequest,
   Staff,
+  StayPolicy,
   UnassignRoomRequest,
   UploadedImage,
   User,
@@ -64,11 +65,12 @@ export interface PaginationParams {
   search?: string;
 }
 
-/** Room board list: filter by date-aware status, free-text and page. */
 export interface RoomListParams extends PaginationParams {
   status?: string;
   /** "yyyy-MM-dd" occupancy date; defaults to today on the backend. */
   date?: string;
+  /** Lagos-local board moment "yyyy-MM-ddTHH:mm"; defaults to now on the backend. */
+  at?: string;
   /** Restrict to a single room type. */
   roomTypeId?: string;
   /**
@@ -78,6 +80,9 @@ export interface RoomListParams extends PaginationParams {
    */
   availableFrom?: string;
   availableTo?: string;
+  /** v1.12: Lagos-local "yyyy-MM-ddTHH:mm" bounds of the half-open free stay. */
+  freeFrom?: string;
+  freeTo?: string;
 }
 
 export interface BookingFilterParams extends PaginationParams {
@@ -88,6 +93,8 @@ export interface BookingFilterParams extends PaginationParams {
   source?: BookingSource;
   /** Reception only: confirmed bookings whose check-in date has already passed. */
   overdueArrivals?: boolean;
+  /** Reception only: checked-in bookings past their scheduled check-out (v1.12). */
+  overdueCheckOuts?: boolean;
   /** Only bookings that still owe money (excludes cancelled and fully paid). */
   hasBalanceDue?: boolean;
   /** Column to order the filtered results by. */
@@ -124,6 +131,11 @@ export interface RoomTypesApi {
 
 export interface AvailabilityApi {
   search(request: AvailabilitySearchRequest): Promise<AvailabilityResponse>;
+}
+
+/** Public, cacheable stay policy (accepted times, slot grid, turnaround). */
+export interface StayPolicyApi {
+  getPolicy(): Promise<StayPolicy>;
 }
 
 export interface UploadsApi {
@@ -199,6 +211,7 @@ export interface ServiceCollection {
   auth: AuthApi;
   roomTypes: RoomTypesApi;
   availability: AvailabilityApi;
+  stay: StayPolicyApi;
   uploads: UploadsApi;
   bookings: BookingsApi;
   me: MeApi;

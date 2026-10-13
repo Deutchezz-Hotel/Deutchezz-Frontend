@@ -5,9 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useLocation, useParams, Link, useNavigate } from 'react-router-dom';
-import { formatStayRange } from '@/lib/dates';
+import { formatStayRange, formatTime12h } from '@/lib/dates';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
-import { appConfig } from '@/config/appConfig';
 import { toApiError } from '@/api/problem';
 import { useAnonymousCancelBooking } from '@/hooks/queries';
 import { useAuth } from '@/app/auth';
@@ -83,6 +82,7 @@ export default function ConfirmationPage() {
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Stay</p>
                     <p className="font-medium">{formatStayRange(data.checkInDate, data.checkOutDate)} · {data.nights} {data.nights === 1 ? 'night' : 'nights'}</p>
+                    <p className="text-sm text-muted-foreground">{`Check-in ${formatTime12h(data.checkInTime)} · check-out ${formatTime12h(data.checkOutTime)}`}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Status</p>
@@ -114,8 +114,8 @@ export default function ConfirmationPage() {
                 </div>
 
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>Check-in: {data.checkInDate} from {appConfig.checkInTime}</p>
-                  <p>Check-out: {data.checkOutDate} until {appConfig.checkOutTime}</p>
+                  <p>Check-in: {data.checkInDate} at {formatTime12h(data.checkInTime)}</p>
+                  <p>Check-out: {data.checkOutDate} by {formatTime12h(data.checkOutTime)}</p>
                   <p className="text-muted-foreground">
                     Keep this reference safe. If you booked as a guest without an account, this confirmation is your only record of the booking.
                   </p>

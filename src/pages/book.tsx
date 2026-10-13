@@ -1,27 +1,29 @@
 import { PageHero } from '@/components/branding';
 import { Reveal } from '@/components/reveal';
 import { ErrorBanner } from '@/components/feedback';
-import { useAvailability, usePublicRoomTypes } from '@/hooks/queries';
+import { useAvailability, usePublicRoomTypes, useStayPolicy } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DateRangePicker } from '@/components/date-picker';
+import { StayDatePicker } from '@/components/stay-date-picker';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { formatMoney } from '@/lib/format';
-import { addDaysISO, formatStayRange, nightsBetween, todayISO } from '@/lib/dates';
+import { addDaysISO, formatStayRange, formatTime12h, nightsBetween, todayISO, validateStayWindow } from '@/lib/dates';
+import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import { newIdempotencyKey } from '@/lib/id';
 import { appConfig } from '@/config/appConfig';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { DateRange } from 'react-day-picker';
 import type { BookingDraft, BookingFlowState } from '@/features/booking/types';
 import { toast } from 'sonner';
 
 const schema = z.object({
   checkInDate: z.string().min(10, 'Select a check-in date'),
+  checkInTime: z.string().min(4, 'Select a check-in time'),
   checkOutDate: z.string().min(10, 'Select a check-out date'),
+  checkOutTime: z.string().min(4, 'Select a check-out time'),
   adults: z.string(),
   children: z.string(),
   rooms: z.string(),
@@ -31,6 +33,8 @@ type FormValues = z.infer<typeof schema>;
 export default function BookPage() {
   const nav = useNavigate();
   const { isLoading: typesLoading, error: typesError, refetch } = usePublicRoomTypes();
+  const { data: policyData } = useStayPolicy();
+  const policy = policyData ?? DEFAULT_STAY_POLICY;
   const [qty, setQty] = useState<Record<string, number>>({});
   const [idempotencyKey] = useState(() => newIdempotencyKey());
 
@@ -38,7 +42,9 @@ export default function BookPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       checkInDate: todayISO(),
+      checkInTime: DEFAULT_STAY_POLICY.defaultCheckInTime,
       checkOutDate: addDaysISO(todayISO(), 1),
+      checkOutTime: DEFAULT_STAY_POLICY.defaultCheckOutTime,
       adults: '2',
       children: '0',
       rooms: '1',
@@ -46,15 +52,16 @@ export default function BookPage() {
   });
   const values = form.watch();
 
-  const range: DateRange | undefined = useMemo(
-    () => (values.checkInDate ? { from: new Date(values.checkInDate), to: values.checkOutDate ? new Date(values.checkOutDate) : undefined } : undefined),
-    [values.checkInDate, values.checkOutDate],
-  );
+  const stayWindow = {
+    checkInDate: values.checkInDate,
+    checkInTime: values.checkInTime,
+    checkOutDate: values.checkOutDate,
+    checkOutTime: values.checkOutTime,
+  };
 
   const availabilityQuery = useAvailability(
     {
-      checkInDate: values.checkInDate,
-      checkOutDate: values.checkOutDate,
+      ...stayWindow,
       adults: Number(values.adults),
       children: Number(values.children),
       rooms: Number(values.rooms),
@@ -101,15 +108,24 @@ export default function BookPage() {
 
   const estimatedTotal = selectedLines.reduce((sum, l) => sum + l.pricePerNight * l.quantity * nights, 0);
 
+  const stayError = values.checkInDate && values.checkOutDate ? validateStayWindow(stayWindow, policy) : null;
+
   const handleContinue = form.handleSubmit((v) => {
     if (selectedLines.length === 0) {
       toast.error('Select at least one room to continue');
       return;
     }
+    const error = validateStayWindow(v, policy);
+    if (stayError ?? error) {
+      toast.error((stayError ?? error)!.message);
+      return;
+    }
     const draft: BookingDraft = {
       request: {
         checkInDate: v.checkInDate,
+        checkInTime: v.checkInTime,
         checkOutDate: v.checkOutDate,
+        checkOutTime: v.checkOutTime,
         adults: Number(v.adults),
         children: Number(v.children),
         guest: { firstName: '', lastName: '', email: '', phoneNumber: '' },
@@ -135,18 +151,17 @@ export default function BookPage() {
           <Card>
             <CardContent className="space-y-6 p-8">
               <h3 className="heading-3">Stay details</h3>
-              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2 lg:col-span-1">
-                  <label className="text-sm font-medium text-foreground">Dates</label>
-                  <DateRangePicker
-                    value={range}
-                    min={new Date(todayISO())}
-                    onChange={(r) => {
-                      form.setValue('checkInDate', r?.from ? todayISOFromDate(r.from) : '', { shouldValidate: true });
-                      form.setValue('checkOutDate', r?.to ? todayISOFromDate(r.to) : '', { shouldValidate: true });
-                    }}
-                  />
-                </div>
+              <StayDatePicker
+                value={stayWindow}
+                onChange={(next) => {
+                  form.setValue('checkInDate', next.checkInDate, { shouldValidate: true });
+                  form.setValue('checkInTime', next.checkInTime, { shouldValidate: true });
+                  form.setValue('checkOutDate', next.checkOutDate, { shouldValidate: true });
+                  form.setValue('checkOutTime', next.checkOutTime, { shouldValidate: true });
+                }}
+              />
+              {stayError ? <ErrorBanner message={stayError.message} /> : null}
+              <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Adults</label>
                   <Select value={values.adults} onValueChange={(v) => form.setValue('adults', v)}>
@@ -229,6 +244,7 @@ export default function BookPage() {
               <h3 className="heading-3">Reservation summary</h3>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>{values.checkInDate && values.checkOutDate ? formatStayRange(values.checkInDate, values.checkOutDate) : 'Select your dates'}</p>
+                <p>{`Check-in ${formatTime12h(values.checkInTime)} · check-out ${formatTime12h(values.checkOutTime)}`}</p>
                 <p>{nights} {nights === 1 ? 'night' : 'nights'} · {values.adults} adults · {values.children} children</p>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -257,12 +273,4 @@ export default function BookPage() {
       </section>
     </>
   );
-}
-
-/** Convert a Date to a local "yyyy-MM-dd" string (no UTC shift). */
-function todayISOFromDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }

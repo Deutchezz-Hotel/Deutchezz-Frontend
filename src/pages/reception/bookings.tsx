@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useReceptionBookings } from '@/hooks/queries';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,17 +11,38 @@ import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { RowLink } from '@/components/shared';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
 import { bookingStatusTone } from '@/lib/status';
-import { formatStayRange } from '@/lib/dates';
+import { formatStayRange, formatTime12h } from '@/lib/dates';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, CalendarDays, Plus } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, CalendarDays, Plus } from 'lucide-react';
 
-const FILTERS = ['All', 'Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled'] as const;
+const FILTERS = ['All', 'Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled', 'OverdueCheckOuts'] as const;
+const FILTER_LABELS: Record<(typeof FILTERS)[number], string> = {
+  All: 'All',
+  Pending: 'Pending',
+  Confirmed: 'Confirmed',
+  CheckedIn: 'Checked in',
+  CheckedOut: 'Checked out',
+  Cancelled: 'Cancelled',
+  OverdueCheckOuts: 'Overdue check-outs',
+};
 
 export default function ReceptionBookingsPage() {
-  const [status, setStatus] = useState<string>('All');
+  const [params, setParams] = useSearchParams();
+  const [status, setStatus] = useState<string>(params.get('filter') === 'overdueCheckOuts' ? 'OverdueCheckOuts' : 'All');
   const [search, setSearch] = useState('');
-  const query = useReceptionBookings({ pageSize: 100, search: search || undefined, ...(status === 'All' ? {} : { status }) });
+  const query = useReceptionBookings({
+    pageSize: 100,
+    search: search || undefined,
+    ...(status === 'All' || status === 'OverdueCheckOuts' ? {} : { status }),
+    ...(status === 'OverdueCheckOuts' ? { overdueCheckOuts: true } : {}),
+  });
   const bookings = query.data?.items ?? [];
+
+  const changeFilter = (next: string) => {
+    setStatus(next);
+    if (next === 'OverdueCheckOuts') setParams({ filter: 'overdueCheckOuts' }, { replace: true });
+    else if (params.get('filter')) setParams({}, { replace: true });
+  };
 
   return (
     <div className="space-y-6">
@@ -35,10 +57,13 @@ export default function ReceptionBookingsPage() {
         </div>
       </div>
 
-      <Tabs value={status} onValueChange={setStatus}>
+      <Tabs value={status} onValueChange={changeFilter}>
         <TabsList className="w-full flex-wrap md:w-auto">
           {FILTERS.map((s) => (
-            <TabsTrigger key={s} value={s}>{s}</TabsTrigger>
+            <TabsTrigger key={s} value={s}>
+              {s === 'OverdueCheckOuts' ? <AlertTriangle className="mr-1.5 h-3.5 w-3.5" /> : null}
+              {FILTER_LABELS[s]}
+            </TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
@@ -78,10 +103,15 @@ export default function ReceptionBookingsPage() {
                       <TableCell className="text-muted-foreground">{b.bookingReference}</TableCell>
                       <TableCell>
                         <p>{formatStayRange(b.checkInDate, b.checkOutDate)}</p>
-                        <p className="text-xs text-muted-foreground">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
+                        <p className="text-xs text-muted-foreground">{b.nights} {b.nights === 1 ? 'night' : 'nights'}{b.checkInTime ? ` · ${formatTime12h(b.checkInTime)}–${formatTime12h(b.checkOutTime)}` : ''}</p>
                       </TableCell>
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
-                      <TableCell><Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>
+                          {b.isOverdueCheckOut ? <Badge variant="destructive">Overdue</Badge> : null}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{paymentStatusLabel(b.paymentStatus)}</TableCell>
                       <TableCell className="text-muted-foreground"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/reception/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
                     </TableRow>

@@ -6,7 +6,7 @@ import { PageSkeleton, ErrorBanner, LoadingSkeleton } from '@/components/feedbac
 import { RowLink } from '@/components/shared';
 import { formatMoney, formatCompactMoney, bookingStatusLabel } from '@/lib/format';
 import { bookingStatusTone } from '@/lib/status';
-import { formatStayRange } from '@/lib/dates';
+import { formatStayRange, formatTime12h } from '@/lib/dates';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
@@ -37,6 +37,13 @@ export default function AdminDashboardPage() {
         <StatCard label="Occupancy" value={`${data.occupancyRate}%`} hint="of rooms currently occupied" />
         <StatCard label="Active bookings" value={String(data.activeBookings)} hint="pending, confirmed & in-house" />
         <StatCard label="Revenue today" value={formatMoney(data.monthlyRevenue)} hint="payments recorded today" />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Available now" value={String(data.availableNow)} hint={`${data.inHouse} in house`} />
+        <StatCard label="Overdue check-outs" value={String(data.overdueCheckOuts)} hint="Checked in past check-out time" />
+        <StatCard label="Rooms freeing today" value={String(data.roomsFreeingToday)} hint="Available again before midnight" />
+        <StatCard label="Room types" value={String(data.roomTypePerformance.length)} hint="With recorded performance" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -173,7 +180,10 @@ export default function AdminDashboardPage() {
                     <TableRow key={b.id} className="relative hover:bg-accent">
                       <TableCell className="font-medium text-foreground">{b.bookingReference}</TableCell>
                       <TableCell>{b.guestName}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatStayRange(b.checkInDate, b.checkOutDate)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatStayRange(b.checkInDate, b.checkOutDate)}
+                        {b.checkInTime ? <span className="block text-xs">{formatTime12h(b.checkInTime)}–{formatTime12h(b.checkOutTime)}</span> : null}
+                      </TableCell>
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
                       <TableCell><Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge></TableCell>
                       <TableCell className="w-9 text-muted-foreground"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/admin/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
@@ -207,7 +217,7 @@ export default function AdminDashboardPage() {
                   <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent">
                     <div className="min-w-0">
                       <p className="truncate font-medium text-foreground">{b.guestName}</p>
-                      <p className="truncate text-xs text-muted-foreground">{b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}</p>
+                      <p className="truncate text-xs text-muted-foreground">{b.bookingReference} · {formatStayRange(b.checkInDate, b.checkOutDate)}{b.checkInTime ? ` · ${formatTime12h(b.checkInTime)}` : ''}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>

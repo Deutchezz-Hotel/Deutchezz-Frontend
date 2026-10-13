@@ -101,7 +101,9 @@ export interface SaveRoomTypeRequest {
 
 export interface AvailabilitySearchRequest {
   checkInDate: string;
+  checkInTime?: string | null;
   checkOutDate: string;
+  checkOutTime?: string | null;
   adults: number;
   children: number;
   rooms: number;
@@ -119,8 +121,38 @@ export interface AvailableRoomTypeResponse {
 
 export interface AvailabilityResponse {
   checkInDate: string;
+  checkInTime: string;
   checkOutDate: string;
+  checkOutTime: string;
+  /** ISO-8601 with the Lagos offset. */
+  checkInAt: string;
+  /** ISO-8601 with the Lagos offset. */
+  checkOutAt: string;
   roomTypes: AvailableRoomTypeResponse[];
+}
+
+/* ------------------------------ Stay policy ------------------------------ */
+
+export interface StayPolicyResponse {
+  defaultCheckInTime: string;
+  defaultCheckOutTime: string;
+  timeSlotMinutes: number;
+  earliestCheckInTime: string;
+  latestCheckInTime: string;
+  earliestCheckOutTime: string;
+  latestCheckOutTime: string;
+  maxExtraHoursPerStay: number;
+  turnaroundMinutes: number;
+}
+
+/** One conflicted room inside a 409 `room.occupied_until` `errors` array. */
+export interface RoomConflictWire {
+  roomId: string;
+  roomNumber: string;
+  occupiedUntil: string;
+  occupantGuestName: string | null;
+  occupantBookingReference: string | null;
+  requestedCheckInAt: string;
 }
 
 /* ------------------------------- Bookings -------------------------------- */
@@ -139,7 +171,9 @@ export interface BookingRoomRequest {
 
 export interface CreateBookingRequest {
   checkInDate: string;
+  checkInTime?: string | null;
   checkOutDate: string;
+  checkOutTime?: string | null;
   adults: number;
   children: number;
   guest: GuestInfoRequest;
@@ -157,7 +191,9 @@ export interface ReceptionGuestRequest {
 
 export interface ReceptionCreateBookingRequest {
   checkInDate: string;
+  checkInTime?: string | null;
   checkOutDate: string;
+  checkOutTime?: string | null;
   adults: number;
   children: number;
   guest: ReceptionGuestRequest;
@@ -211,7 +247,13 @@ export interface BookingDetailResponse {
   guestEmail: string | null;
   guestPhoneNumber: string | null;
   checkInDate: string;
+  checkInTime: string;
   checkOutDate: string;
+  checkOutTime: string;
+  checkInAt: string;
+  checkOutAt: string;
+  actualCheckInAt: string | null;
+  actualCheckOutAt: string | null;
   nights: number;
   adults: number;
   children: number;
@@ -234,7 +276,13 @@ export interface BookingListItemResponse {
   guestEmail: string | null;
   guestPhoneNumber: string | null;
   checkInDate: string;
+  checkInTime: string;
   checkOutDate: string;
+  checkOutTime: string;
+  checkInAt: string;
+  checkOutAt: string;
+  actualCheckInAt: string | null;
+  actualCheckOutAt: string | null;
   status: string;
   paymentStatus: string;
   source: string;
@@ -294,6 +342,8 @@ export interface ReassignRoomRequest {
   roomAssignmentId: string;
   newRoomId: string;
   reason?: string | null;
+  /** Proceed when the room frees before the stay (SoT v1.12). */
+  acknowledgeLateAvailability?: boolean;
 }
 
 export interface UnassignRoomRequest {
@@ -307,6 +357,8 @@ export interface RoomAssignmentLineRequest {
 
 export interface RoomAssignmentRequest {
   assignments: RoomAssignmentLineRequest[];
+  /** Proceed when a room frees before the stay (SoT v1.12). */
+  acknowledgeLateAvailability?: boolean;
 }
 
 /* --------------------------------- Rooms --------------------------------- */
@@ -319,6 +371,15 @@ export interface RoomListItemResponse {
   status: string;
   floor: string | null;
   effectiveStatus: string;
+  /** ISO-8601 Lagos instants; null/absent when the room is free. */
+  occupiedUntil?: string | null;
+  availableAgainAt?: string | null;
+  currentGuestName?: string | null;
+  currentBookingId?: string | null;
+  currentBookingReference?: string | null;
+  isOverdueCheckOut?: boolean;
+  nextArrivalAt?: string | null;
+  nextArrivalGuestName?: string | null;
 }
 
 export interface RoomResponse {
@@ -469,6 +530,16 @@ export interface NotificationResponse {
 
 /* -------------------------------- Reports -------------------------------- */
 
+export interface BookingStatusCountResponse {
+  status: string;
+  count: number;
+}
+
+export interface DailyRevenueResponse {
+  date: string;
+  revenue: number;
+}
+
 export interface DashboardResponse {
   totalRooms: number;
   availableRooms: number;
@@ -481,6 +552,13 @@ export interface DashboardResponse {
   activeBookings: number;
   revenueToday: number;
   occupancyPercentage: number;
+  /** Operational counts (SoT v1.12). */
+  availableNow: number;
+  inHouse: number;
+  overdueCheckOuts: number;
+  roomsFreeingToday: number;
+  bookingsByStatus: BookingStatusCountResponse[];
+  revenueTrend: DailyRevenueResponse[];
 }
 
 export interface DailyMetric {
@@ -527,6 +605,13 @@ export interface AdminSettingsResponse {
   requireFullPaymentAtCheckIn: boolean;
   requirePaymentBeforeCheckOut: boolean;
   earlyCheckOutRequiresAdmin: boolean;
+  timeSlotMinutes: number;
+  earliestCheckInTime: string;
+  latestCheckInTime: string;
+  earliestCheckOutTime: string;
+  latestCheckOutTime: string;
+  maxExtraHoursPerStay: number;
+  turnaroundMinutes: number;
 }
 
 export interface UpdateAdminSettingsRequest {
@@ -537,6 +622,13 @@ export interface UpdateAdminSettingsRequest {
   requireFullPaymentAtCheckIn?: boolean | null;
   requirePaymentBeforeCheckOut?: boolean | null;
   earlyCheckOutRequiresAdmin?: boolean | null;
+  timeSlotMinutes?: number | null;
+  earliestCheckInTime?: string | null;
+  latestCheckInTime?: string | null;
+  earliestCheckOutTime?: string | null;
+  latestCheckOutTime?: string | null;
+  maxExtraHoursPerStay?: number | null;
+  turnaroundMinutes?: number | null;
 }
 
 /* ---------------------------- Problem details ---------------------------- */
@@ -548,8 +640,14 @@ export interface ProblemDetails {
   detail?: string;
   instance?: string;
   code?: string;
-  errors?: Record<string, string[]>;
+  /** Field validation errors, or (for `room.occupied_until`) an array of RoomConflictWire. */
+  errors?: Record<string, string[]> | RoomConflictWire[];
   minutesAgo?: number;
   reference?: string;
   bookingId?: string;
+  /* --- Late-availability conflict (room.available_later, v1.12) --- */
+  roomId?: string;
+  roomNumber?: string;
+  /** ISO-8601 Lagos instant the room frees up. */
+  availableFrom?: string;
 }

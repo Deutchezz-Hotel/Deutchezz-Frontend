@@ -1,26 +1,28 @@
 import { ErrorBanner } from '@/components/feedback';
-import { useAvailability, useReceptionCreateBooking } from '@/hooks/queries';
+import { useAvailability, useReceptionCreateBooking, useStayPolicy } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DateRangePicker } from '@/components/date-picker';
+import { StayDatePicker } from '@/components/stay-date-picker';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { formatMoney } from '@/lib/format';
-import { addDaysISO, formatStayRange, nightsBetween, todayISO } from '@/lib/dates';
+import { addDaysISO, floorToSlot, formatStayRange, formatTime12h, lagosNow, nightsBetween, validateStayWindow } from '@/lib/dates';
+import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import { newIdempotencyKey } from '@/lib/id';
 import { appConfig } from '@/config/appConfig';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
 
 const schema = z.object({
   checkInDate: z.string().min(10, 'Select a check-in date'),
+  checkInTime: z.string().min(4, 'Select a check-in time'),
   checkOutDate: z.string().min(10, 'Select a check-out date'),
+  checkOutTime: z.string().min(4, 'Select a check-out time'),
   adults: z.string(),
   children: z.string(),
   firstName: z.string().min(2, 'Enter the guest first name'),
@@ -35,6 +37,8 @@ export default function ReceptionCreateBookingPage() {
   // Rendered under both the reception and admin consoles; return to the one we
   // were launched from.
   const bookingsBase = pathname.startsWith('/admin') ? '/admin/bookings' : '/reception/bookings';
+  const { data: policyData } = useStayPolicy();
+  const policy = policyData ?? DEFAULT_STAY_POLICY;
   const [idempotencyKey] = useState(() => newIdempotencyKey());
   const [qty, setQty] = useState<Record<string, number>>({});
   const createBooking = useReceptionCreateBooking(idempotencyKey);
@@ -42,8 +46,10 @@ export default function ReceptionCreateBookingPage() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      checkInDate: todayISO(),
-      checkOutDate: addDaysISO(todayISO(), 1),
+      checkInDate: lagosNow().date,
+      checkInTime: floorToSlot(lagosNow().time, policy.timeSlotMinutes),
+      checkOutDate: addDaysISO(lagosNow().date, 1),
+      checkOutTime: policy.defaultCheckOutTime,
       adults: '2',
       children: '0',
       firstName: '',
@@ -53,15 +59,16 @@ export default function ReceptionCreateBookingPage() {
   });
   const values = form.watch();
 
-  const range: DateRange | undefined = useMemo(
-    () => (values.checkInDate ? { from: new Date(values.checkInDate), to: values.checkOutDate ? new Date(values.checkOutDate) : undefined } : undefined),
-    [values.checkInDate, values.checkOutDate],
-  );
+  const stayWindow = {
+    checkInDate: values.checkInDate,
+    checkInTime: values.checkInTime,
+    checkOutDate: values.checkOutDate,
+    checkOutTime: values.checkOutTime,
+  };
 
   const availabilityQuery = useAvailability(
     {
-      checkInDate: values.checkInDate,
-      checkOutDate: values.checkOutDate,
+      ...stayWindow,
       adults: Number(values.adults),
       children: Number(values.children),
       rooms: 1,
@@ -94,10 +101,17 @@ export default function ReceptionCreateBookingPage() {
       toast.error('Select at least one room');
       return;
     }
+    const stayError = validateStayWindow(v, policy, { isStaffWalkIn: true });
+    if (stayError) {
+      toast.error(stayError.message);
+      return;
+    }
     createBooking.mutate(
       {
         checkInDate: v.checkInDate,
+        checkInTime: v.checkInTime,
         checkOutDate: v.checkOutDate,
+        checkOutTime: v.checkOutTime,
         adults: Number(v.adults),
         children: Number(v.children),
         guest: { firstName: v.firstName.trim(), lastName: v.lastName.trim(), phoneNumber: v.phoneNumber.trim() },
@@ -124,18 +138,17 @@ export default function ReceptionCreateBookingPage() {
           <Card>
             <CardContent className="space-y-6 p-8">
               <h3 className="heading-3">Stay</h3>
-              <div className="grid gap-5 md:grid-cols-3">
-                <div className="space-y-2 md:col-span-1">
-                  <Label>Dates</Label>
-                  <DateRangePicker
-                    value={range}
-                    min={new Date(todayISO())}
-                    onChange={(r) => {
-                      form.setValue('checkInDate', todayISOFromDate(r?.from));
-                      form.setValue('checkOutDate', todayISOFromDate(r?.to));
-                    }}
-                  />
-                </div>
+              <StayDatePicker
+                isStaffWalkIn
+                value={stayWindow}
+                onChange={(next) => {
+                  form.setValue('checkInDate', next.checkInDate);
+                  form.setValue('checkInTime', next.checkInTime);
+                  form.setValue('checkOutDate', next.checkOutDate);
+                  form.setValue('checkOutTime', next.checkOutTime);
+                }}
+              />
+              <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Adults</Label>
                   <Select value={values.adults} onValueChange={(v) => form.setValue('adults', v)}>
@@ -214,6 +227,7 @@ export default function ReceptionCreateBookingPage() {
               <h3 className="heading-3">Summary</h3>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>{values.checkInDate && values.checkOutDate ? formatStayRange(values.checkInDate, values.checkOutDate) : 'Select your dates'}</p>
+                <p>{`Check-in ${formatTime12h(values.checkInTime)} · check-out ${formatTime12h(values.checkOutTime)}`}</p>
                 <p>{nights} {nights === 1 ? 'night' : 'nights'} · {values.adults} adults · {values.children} children</p>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -241,12 +255,4 @@ export default function ReceptionCreateBookingPage() {
       </div>
     </div>
   );
-}
-
-function todayISOFromDate(date?: Date): string {
-  if (!date) return '';
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
