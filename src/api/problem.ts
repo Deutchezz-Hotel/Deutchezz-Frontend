@@ -68,6 +68,10 @@ export class ApiError extends Error {
   /** A friendly, single sentence shown in toasts/banners. */
   get userMessage(): string {
     const s = this.status;
+    // status 0 means the request never reached the API (offline, DNS, CORS, aborted).
+    if (s === 0) {
+      return "We couldn't reach the server. Check your connection and try again.";
+    }
     if (s === 409) {
       return this.problem.detail ?? 'These rooms are no longer available for your dates';
     }

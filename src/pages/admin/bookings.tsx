@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { useAdminBookings } from '@/hooks/queries';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useAdminBookings, useReceptionAction } from '@/hooks/queries';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { toApiError } from '@/api/problem';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,16 +14,48 @@ import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { RowLink } from '@/components/shared';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
 import { bookingStatusTone } from '@/lib/status';
-import { formatStayRange } from '@/lib/dates';
-import { Link } from 'react-router-dom';
-import { ArrowUpRight, CalendarDays, Plus } from 'lucide-react';
+import { formatStayRange, isEarlyCheckOut } from '@/lib/dates';
+import { ArrowUpRight, CalendarDays, LogOut, Plus, X } from 'lucide-react';
+import type { BookingListItem } from '@/types';
 
 const FILTERS = ['All', 'Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled'] as const;
 
 export default function AdminBookingsPage() {
   const [status, setStatus] = useState<string>('All');
   const [search, setSearch] = useState('');
-  const bookingsQuery = useAdminBookings({ pageSize: 100, search: search || undefined, ...(status === 'All' ? {} : { status }) });
+  const [params, setParams] = useSearchParams();
+  const [checkOutTarget, setCheckOutTarget] = useState<BookingListItem | null>(null);
+  const nav = useNavigate();
+  const action = useReceptionAction();
+
+  // Dashboard cards drill down here with a quick filter in the URL (SoT v1.12).
+  const activeOnly = params.get('activeOnly') === 'true';
+  const overdueCheckOuts = params.get('overdueCheckOuts') === 'true';
+  const checkOutToday = params.get('checkOutToday') === 'true';
+  const drilldown = overdueCheckOuts
+    ? 'Overdue check-outs'
+    : activeOnly
+      ? 'Active bookings'
+      : checkOutToday
+        ? 'Rooms freeing today'
+        : null;
+
+  const clearDrilldown = () => {
+    const next = new URLSearchParams(params);
+    next.delete('activeOnly');
+    next.delete('overdueCheckOuts');
+    next.delete('checkOutToday');
+    setParams(next, { replace: true });
+  };
+
+  const bookingsQuery = useAdminBookings({
+    pageSize: 100,
+    search: search || undefined,
+    ...(status === 'All' ? {} : { status }),
+    ...(activeOnly ? { activeOnly: true } : {}),
+    ...(overdueCheckOuts ? { overdueCheckOuts: true } : {}),
+    ...(checkOutToday ? { checkOutToday: true } : {}),
+  });
   const bookings = bookingsQuery.data?.items ?? [];
 
   return (
@@ -47,6 +83,22 @@ export default function AdminBookingsPage() {
           ))}
         </TabsList>
       </Tabs>
+
+      {drilldown ? (
+        <div className="flex items-center gap-2">
+          <Badge variant="warning" className="gap-1.5 pl-2.5">
+            {drilldown}
+            <button
+              type="button"
+              onClick={clearDrilldown}
+              aria-label="Clear filter"
+              className="rounded-full p-0.5 hover:bg-warning-soft/60"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        </div>
+      ) : null}
 
       {bookingsQuery.isLoading ? <PageSkeleton rows={6} /> : null}
       {bookingsQuery.isError ? <ErrorBanner message="We couldn't load bookings" retry={() => bookingsQuery.refetch()} /> : null}
@@ -83,7 +135,22 @@ export default function AdminBookingsPage() {
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
                       <TableCell><Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge></TableCell>
                       <TableCell className="text-muted-foreground">{paymentStatusLabel(b.paymentStatus)}</TableCell>
-                      <TableCell className="text-muted-foreground"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/admin/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {b.status === 'CheckedIn' ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mr-1"
+                            disabled={action.checkOut.isPending}
+                            onClick={() => (isEarlyCheckOut(b.checkOutDate, b.checkOutTime) ? nav(`/admin/bookings/${b.id}`) : setCheckOutTarget(b))}
+                            title={isEarlyCheckOut(b.checkOutDate, b.checkOutTime) ? 'Early check-out — open the booking' : undefined}
+                          >
+                            <LogOut className="mr-1 h-3.5 w-3.5" /> Check out
+                          </Button>
+                        ) : null}
+                        <ArrowUpRight className="inline h-4 w-4 align-middle" />
+                        <RowLink to={`/admin/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -92,6 +159,35 @@ export default function AdminBookingsPage() {
           </Card>
         )
       ) : null}
+
+      <AlertDialog open={checkOutTarget !== null} onOpenChange={(o) => { if (!o) setCheckOutTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Check out {checkOutTarget?.bookingReference}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirm the guest has left. Their rooms will return to Available.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={action.checkOut.isPending}
+              onClick={() => {
+                if (!checkOutTarget) return;
+                action.checkOut.mutate(
+                  { id: checkOutTarget.id },
+                  {
+                    onSuccess: () => { toast.success('Checked out'); setCheckOutTarget(null); },
+                    onError: (error) => { toast.error(toApiError(error).userMessage); setCheckOutTarget(null); },
+                  },
+                );
+              }}
+            >
+              Check out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

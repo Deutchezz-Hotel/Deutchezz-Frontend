@@ -16,6 +16,7 @@ import { ChangeRoleDialog, type ChangeRoleTarget } from '@/components/change-rol
 import { staffRoleLabel } from '@/lib/format';
 import { focusFirstInvalid } from '@/lib/focus';
 import { toast } from 'sonner';
+import { toApiError } from '@/api/problem';
 import { Plus, ShieldCheck, UserCog } from 'lucide-react';
 import type { SaveStaffRequest, StaffRole } from '@/types';
 
@@ -127,7 +128,10 @@ export default function AdminStaffPage() {
                             disabled={s.id === user?.id}
                             onCheckedChange={(checked) => mutations.updateStaffStatus.mutate(
                               { id: s.id, isActive: checked },
-                              { onError: () => toast.error('Could not change the status') },
+                              {
+                                onSuccess: () => toast.success(checked ? `${s.firstName} activated` : `${s.firstName} deactivated`),
+                                onError: (error) => toast.error(toApiError(error).userMessage),
+                              },
                             )}
                             aria-label={`${s.isActive ? 'Deactivate' : 'Activate'} ${s.firstName}${s.id === user?.id ? ' (you)' : ''}`}
                           />

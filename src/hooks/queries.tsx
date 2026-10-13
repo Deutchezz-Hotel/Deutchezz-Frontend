@@ -314,6 +314,20 @@ export function useAdminBookings(params: BookingFilterParams) {
   return useQuery({ queryKey: keys.adminBookings(params), queryFn: () => services.admin.listBookings(params) });
 }
 
+export function useAdminBookingActions() {
+  const qc = useQueryClient();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['admin'] });
+    qc.invalidateQueries({ queryKey: ['reception'] });
+  };
+  return {
+    restoreBooking: useMutation({
+      mutationFn: (id: string) => services.admin.restoreBooking(id),
+      onSuccess: invalidate,
+    }),
+  };
+}
+
 export function useAdminGuests(params: PaginationParams) {
   return useQuery({ queryKey: keys.adminGuests(params), queryFn: () => services.admin.listGuests(params) });
 }

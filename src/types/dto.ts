@@ -336,6 +336,12 @@ export interface BookingResponse {
   updatedAt: string;
   /** Live payment summary from the backend booking detail. */
   payments?: { totalPaid: number; balance: number };
+  /** ISO-8601 instant the booking was cancelled, or null. */
+  cancelledAt?: string | null;
+  /** When a cancelled, unpaid booking will be permanently purged, or null. */
+  purgeScheduledAt?: string | null;
+  /** True when at least one payment exists (a cancelled booking is held for refund review). */
+  hasPayments?: boolean;
 }
 
 /** Row shape used by booking tables across the portals. */

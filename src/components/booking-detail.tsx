@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useReceptionBooking, useReceptionAction, useReceptionRooms } from '@/hooks/queries';
+import { useReceptionBooking, useReceptionAction, useReceptionRooms, useAdminBookingActions } from '@/hooks/queries';
+import { useAuth } from '@/app/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import { bookingStatusTone, paymentStatusTone } from '@/lib/status';
 import { formatDisplayDate, formatInstant, formatStayRange, formatTime12h, isEarlyCheckOut } from '@/lib/dates';
 import { toApiError, type ApiError } from '@/api';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowLeft, KeyRound, LogIn, LogOut, ReceiptText, RefreshCw, Shuffle, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, KeyRound, LogIn, LogOut, ReceiptText, RefreshCw, RotateCcw, Shuffle, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import type { AssignedRoom, BookingRoomLine } from '@/types';
 
@@ -24,7 +25,9 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const { data: booking, isLoading, isError, refetch } = useReceptionBooking(id);
+  const { user } = useAuth();
   const action = useReceptionAction();
+  const adminActions = useAdminBookingActions();
   const boardAt = booking?.checkInTime ? `${booking.checkInDate}T${booking.checkInTime}` : undefined;
   const availableRoomsQuery = useReceptionRooms({ pageSize: 200, at: boardAt });
   const [pendingAction, setPendingAction] = useState<'checkIn' | 'checkOut' | null>(null);
@@ -53,6 +56,15 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const canReassign = booking.status === 'Confirmed' || booking.status === 'CheckedIn';
   const canUnassign = booking.status === 'Pending' || booking.status === 'Confirmed';
   const checkOutIsEarly = isEarlyCheckOut(booking.checkOutDate, booking.checkOutTime);
+  const isCancelled = booking.status === 'Cancelled';
+  const isAdmin = user?.role === 'Administrator';
+
+  const runRestore = () => {
+    adminActions.restoreBooking.mutate(booking.id, {
+      onSuccess: () => toast.success('Booking restored'),
+      onError: (error) => toast.error(toApiError(error).userMessage),
+    });
+  };
 
   const runCheckIn = () => {
     action.checkIn.mutate(booking.id, {
@@ -153,8 +165,34 @@ export function BookingDetail({ backHref }: { backHref: string }) {
               <XCircle className="mr-2 h-4 w-4" /> Cancel booking
             </Button>
           ) : null}
+          {isCancelled && isAdmin ? (
+            <Button size="sm" variant="outline" disabled={adminActions.restoreBooking.isPending} onClick={runRestore}>
+              <RotateCcw className="mr-2 h-4 w-4" /> Restore booking
+            </Button>
+          ) : null}
         </div>
       </div>
+
+      {isCancelled ? (
+        <Card className="border-destructive/40">
+          <CardContent className="flex items-start gap-3 p-4 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">
+                This booking was cancelled
+                {booking.cancelledAt ? ` on ${formatInstant(booking.cancelledAt, { time: false })}` : ''}.
+              </p>
+              <p className="text-muted-foreground">
+                {booking.hasPayments
+                  ? 'It holds recorded payments, so it is kept for refund review and will not be removed automatically.'
+                  : booking.purgeScheduledAt
+                    ? `It will be permanently removed on ${formatInstant(booking.purgeScheduledAt, { time: false })}.`
+                    : 'It can no longer be changed.'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -274,7 +312,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
                   <p><span className="text-muted-foreground">Paid {formatMoney(paidTotal)}</span> · <span className="text-muted-foreground">Balance</span> {formatMoney(balance)}</p>
                   <Badge variant={paymentStatusTone(booking.paymentStatus)} className="mt-1">{paymentStatusLabel(booking.paymentStatus)}</Badge>
                 </div>
-                <Button size="sm" onClick={() => setPayOpen(true)} disabled={balance <= 0}>
+                <Button size="sm" onClick={() => setPayOpen(true)} disabled={balance <= 0 || isCancelled}>
                   <ReceiptText className="mr-2 h-4 w-4" /> Record payment
                 </Button>
               </div>

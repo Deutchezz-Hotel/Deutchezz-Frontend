@@ -101,7 +101,10 @@ export default function AdminRoomTypesPage() {
                       checked={rt.isActive}
                       onCheckedChange={(checked) => mutations.updateRoomTypeStatus.mutate(
                         { id: rt.id, isActive: checked },
-                        { onError: (error) => toast.error(toApiError(error).userMessage) },
+                        {
+                          onSuccess: () => toast.success(checked ? `${rt.name} activated` : `${rt.name} deactivated`),
+                          onError: (error) => toast.error(toApiError(error).userMessage),
+                        },
                       )}
                       aria-label={`${rt.isActive ? 'Deactivate' : 'Activate'} ${rt.name}`}
                     />
