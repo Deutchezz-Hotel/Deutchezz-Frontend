@@ -45,7 +45,7 @@ export default function AdminSettingsPage() {
             Hotel name, address and contact details are configured in the app shell. Only the
             fields below are stored by the API.
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Hotel name</Label>
               <Input value={form.hotelName} disabled />
@@ -55,7 +55,7 @@ export default function AdminSettingsPage() {
               <Input value={form.currency} disabled />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Check-in time</Label>
               <Input value={form.checkInTime} onChange={(e) => setForm({ ...form, checkInTime: e.target.value })} placeholder="14:00" />

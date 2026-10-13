@@ -162,7 +162,7 @@ export default function AdminStaffPage() {
           </FormDialogHeader>
           <FormDialogBody>
             <form id={FORM_ID} className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="staff-first-name">First name</Label>
                   <Input id="staff-first-name" ref={firstNameRef} value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />

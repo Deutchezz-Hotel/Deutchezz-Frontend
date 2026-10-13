@@ -151,7 +151,7 @@ export function ImageUpload({ value, onChange, max = DEFAULT_MAX }: ImageUploadP
       />
 
       {value.length > 0 ? (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {value.map((url, index) => (
             <div
               key={`${url}-${index}`}

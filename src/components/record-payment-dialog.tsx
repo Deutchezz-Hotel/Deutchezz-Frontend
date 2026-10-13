@@ -225,7 +225,7 @@ export function RecordPaymentDialog({ open, onOpenChange, preselectedBookingId }
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="pay-amount">Amount (₦)</Label>
               <Input ref={amountRef} id="pay-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />

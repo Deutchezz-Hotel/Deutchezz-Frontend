@@ -188,7 +188,7 @@ export default function AdminRoomsPage() {
           </FormDialogHeader>
           <FormDialogBody>
             <form id={FORM_ID} className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Room number</Label>
                   <Input ref={roomNumberRef} value={form.roomNumber} onChange={(e) => setForm({ ...form, roomNumber: e.target.value })} placeholder="e.g. 101" />
