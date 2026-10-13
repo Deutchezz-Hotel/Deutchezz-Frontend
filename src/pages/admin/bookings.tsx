@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { RowLink } from '@/components/shared';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
+import { bookingStatusTone } from '@/lib/status';
 import { formatStayRange } from '@/lib/dates';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, CalendarDays, Plus } from 'lucide-react';
@@ -26,7 +27,7 @@ export default function AdminBookingsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Bookings</h1>
-          <p className="text-sm text-ink-600">Every reservation, across the hotel.</p>
+          <p className="text-sm text-muted-foreground">Every reservation, across the hotel.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Input
@@ -70,19 +71,19 @@ export default function AdminBookingsPage() {
                 </TableHeader>
                 <TableBody>
                   {bookings.map((b) => (
-                    <TableRow key={b.id} className="relative hover:bg-milk">
-                      <TableCell className="font-medium text-ink-900">{b.bookingReference}</TableCell>
+                    <TableRow key={b.id} className="relative hover:bg-accent">
+                      <TableCell className="font-medium text-foreground">{b.bookingReference}</TableCell>
                       <TableCell>
                         <p>{b.guestName}</p>
                       </TableCell>
                       <TableCell>
                         <p>{formatStayRange(b.checkInDate, b.checkOutDate)}</p>
-                        <p className="text-xs text-ink-600">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
+                        <p className="text-xs text-muted-foreground">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
                       </TableCell>
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
-                      <TableCell><Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge></TableCell>
-                      <TableCell className="text-ink-700">{paymentStatusLabel(b.paymentStatus)}</TableCell>
-                      <TableCell className="text-ink-400"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/admin/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
+                      <TableCell><Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge></TableCell>
+                      <TableCell className="text-muted-foreground">{paymentStatusLabel(b.paymentStatus)}</TableCell>
+                      <TableCell className="text-muted-foreground"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/admin/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

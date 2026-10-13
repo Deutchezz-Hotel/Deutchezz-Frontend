@@ -17,7 +17,7 @@ export default function ReceptionPaymentsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Payments</h1>
-          <p className="text-sm text-ink-600">Money received at the front desk.</p>
+          <p className="text-sm text-muted-foreground">Money received at the front desk.</p>
         </div>
         <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" /> Record payment</Button>
       </div>

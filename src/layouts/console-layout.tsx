@@ -71,7 +71,7 @@ function SidebarNav({ groups, onNavigate }: { groups: ConsoleNavGroup[]; onNavig
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                    isActive ? 'bg-primary text-primary-foreground' : 'text-ink-700 hover:bg-milk hover:text-ink-900',
+                    isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                   )
                 }
               >
@@ -103,7 +103,7 @@ function SidebarHeader({ sectionLabel }: { sectionLabel: string }) {
     <div className="flex items-center gap-3 border-b px-5 py-4">
       <SidebarLogo />
       <div className="leading-tight">
-        <p className="text-sm font-semibold tracking-wide text-ink-900">Deutchezz</p>
+        <p className="text-sm font-semibold tracking-wide text-foreground">Deutchezz</p>
         <p className="text-xs text-muted-foreground">{sectionLabel}</p>
       </div>
     </div>
@@ -117,15 +117,15 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
   const isDashboard = pathname === '/admin' || pathname === '/reception' || pathname === '/dashboard';
 
   return (
-    <div className="flex min-h-screen bg-canvas font-sans">
+    <div className="flex min-h-screen bg-background font-sans">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border/50 bg-white md:flex xl:w-64">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border/50 bg-card md:flex xl:w-64">
         <SidebarHeader sectionLabel={sectionLabel} />
         <SidebarNav groups={groups} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/50 bg-white px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/50 bg-card px-4 sm:px-6">
           {/* Mobile menu */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -153,7 +153,7 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
 
           <div className="ml-auto flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
-            <Button asChild variant="ghost" size="sm" className="hidden text-ink-600 sm:inline-flex">
+            <Button asChild variant="ghost" size="sm" className="hidden text-muted-foreground sm:inline-flex">
               <Link to="/">View site</Link>
             </Button>
             <DropdownMenu>
@@ -165,7 +165,7 @@ export function ConsoleLayout({ sectionLabel, groups, onSearch, searchPlaceholde
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden text-left leading-tight sm:block">
-                    <span className="block text-sm font-medium text-ink-900">
+                    <span className="block text-sm font-medium text-foreground">
                       {user ? `${user.firstName} ${user.lastName}` : 'Guest'}
                     </span>
                     <span className="block text-xs text-muted-foreground">{user ? roleLabel(user.role) : ''}</span>

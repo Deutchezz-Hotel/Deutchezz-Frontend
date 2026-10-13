@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { RowLink } from '@/components/shared';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
+import { bookingStatusTone } from '@/lib/status';
 import { formatStayRange } from '@/lib/dates';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, CalendarCheck } from 'lucide-react';
@@ -26,24 +27,18 @@ export default function CustomerBookingsPage() {
   const bookingsQuery = useMeBookings({ pageSize: 100, ...(filter === 'All' ? {} : { status: filter }) });
 
   const bookings = bookingsQuery.data?.items ?? [];
-  const statusBadge = (status: BookingStatus) => {
-    const tone =
-      status === 'Cancelled' ? 'destructive'
-      : status === 'CheckedIn' ? 'success'
-      : status === 'Confirmed' ? 'default'
-      : status === 'CheckedOut' ? 'secondary'
-      : 'warning';
-    return <Badge variant={tone}>{bookingStatusLabel(status)}</Badge>;
-  };
+  const statusBadge = (status: BookingStatus) => (
+    <Badge variant={bookingStatusTone(status)}>{bookingStatusLabel(status)}</Badge>
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">My bookings</h1>
-          <p className="text-sm text-ink-600">All the reservations on your account.</p>
+          <p className="text-sm text-muted-foreground">All the reservations on your account.</p>
         </div>
-        <Link to="/book" className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">
+        <Link to="/book" className="inline-flex items-center gap-1 text-sm font-medium text-primary">
           Book a room <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
@@ -78,16 +73,16 @@ export default function CustomerBookingsPage() {
                 </TableHeader>
                 <TableBody>
                   {bookings.map((b) => (
-                    <TableRow key={b.id} className="relative hover:bg-milk">
-                      <TableCell className="font-medium text-ink-900">{b.bookingReference}</TableCell>
+                    <TableRow key={b.id} className="relative hover:bg-accent">
+                      <TableCell className="font-medium text-foreground">{b.bookingReference}</TableCell>
                       <TableCell>
                         <p>{formatStayRange(b.checkInDate, b.checkOutDate)}</p>
-                        <p className="text-xs text-ink-600">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
+                        <p className="text-xs text-muted-foreground">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
                       </TableCell>
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
                       <TableCell>{statusBadge(b.status)}</TableCell>
                       <TableCell>{paymentStatusLabel(b.paymentStatus)}</TableCell>
-                      <TableCell className="text-ink-400"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/dashboard/bookings/${b.id}`} label={`Open booking ${b.bookingReference}`} /></TableCell>
+                      <TableCell className="text-muted-foreground"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/dashboard/bookings/${b.id}`} label={`Open booking ${b.bookingReference}`} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

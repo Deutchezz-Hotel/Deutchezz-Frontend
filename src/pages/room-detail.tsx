@@ -24,7 +24,7 @@ export default function RoomDetailPage() {
         {error ? <ErrorBanner message="Unable to load room details" retry={refetch} /> : null}
         {type ? (
           <Reveal delay={80} className="grid gap-10 lg:grid-cols-2">
-            <div className="aspect-[4/3] overflow-hidden rounded-xl bg-ink-100">
+            <div className="aspect-[4/3] overflow-hidden rounded-xl bg-muted">
               {type.imageUrls[0] ? (
                 <img src={type.imageUrls[0]} alt={type.name} className="h-full w-full object-cover" />
               ) : null}
@@ -33,7 +33,7 @@ export default function RoomDetailPage() {
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <h2 className="heading-2">{type.name}</h2>
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-ink-600">
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                     <span className="inline-flex items-center gap-2">
                       <BedDouble className="h-4 w-4" />
                       {type.bedType}
@@ -44,13 +44,13 @@ export default function RoomDetailPage() {
                     </span>
                   </div>
                 </div>
-                <p className="text-xl font-semibold text-forest-700">{formatMoney(type.basePrice)} / night</p>
+                <p className="text-xl font-semibold text-primary">{formatMoney(type.basePrice)} / night</p>
               </div>
-              <p className="max-w-2xl text-ink-700">{type.description}</p>
+              <p className="max-w-2xl text-muted-foreground">{type.description}</p>
               {type.features.length > 0 ? (
                 <div className="space-y-3">
-                  <p className="font-semibold text-ink-900">Included</p>
-                  <ul className="grid gap-2 text-sm text-ink-700 sm:grid-cols-2">
+                  <p className="font-semibold text-foreground">Included</p>
+                  <ul className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                     {type.features.map((f) => (
                       <li key={f} className="inline-flex items-center gap-2">
                         <span className="h-1.5 w-1.5 rounded-full bg-forest-600" />

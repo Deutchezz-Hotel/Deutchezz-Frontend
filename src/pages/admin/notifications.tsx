@@ -14,7 +14,7 @@ export default function AdminNotificationsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="heading-2">Notifications</h1>
-        <p className="text-sm text-ink-600">Things that happened recently, like check-ins and payments.</p>
+        <p className="text-sm text-muted-foreground">Things that happened recently, like check-ins and payments.</p>
       </div>
 
       {query.isLoading ? <PageSkeleton rows={5} /> : null}
@@ -30,8 +30,8 @@ export default function AdminNotificationsPage() {
                 {items.map((n) => (
                   <li key={n.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0 space-y-0.5">
-                      <p className="truncate text-sm font-medium text-ink-900">{n.message}</p>
-                      <p className="text-xs text-ink-600">{formatDisplayDate(n.createdAt)}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{n.message}</p>
+                      <p className="text-xs text-muted-foreground">{formatDisplayDate(n.createdAt)}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {!n.isRead ? <span className="h-2 w-2 rounded-full bg-forest-600" aria-label="Unread" /> : null}

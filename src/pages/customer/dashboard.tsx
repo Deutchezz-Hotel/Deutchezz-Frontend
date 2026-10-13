@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RowLink } from '@/components/shared';
 import { formatMoney, bookingStatusLabel, paymentStatusLabel } from '@/lib/format';
+import { bookingStatusTone } from '@/lib/status';
 import { formatStayRange } from '@/lib/dates';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
 import { Link } from 'react-router-dom';
@@ -29,11 +30,11 @@ export default function CustomerDashboardPage() {
   return (
     <div className="space-y-8">
       <div className="rounded-2xl bg-primary p-8 text-primary-foreground">
-        <p className="text-sm opacity-80">Welcome back</p>
+        <p className="text-sm text-primary-foreground/80">Welcome back</p>
         <h1 className="mt-1 text-2xl font-semibold">
           {user ? `${user.firstName} ${user.lastName}` : 'Guest'}
         </h1>
-        <p className="mt-1 text-sm opacity-80">A little rest goes a long way.</p>
+        <p className="mt-1 text-sm text-primary-foreground/80">A little rest goes a long way.</p>
       </div>
 
       {bookingsQuery.isLoading ? <PageSkeleton rows={4} /> : null}
@@ -44,19 +45,19 @@ export default function CustomerDashboardPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-ink-600">Next stay</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Next stay</CardTitle>
               </CardHeader>
               <CardContent>
                 {upcoming ? (
                   <div className="space-y-1">
-                    <p className="text-xl font-semibold text-ink-900">{upcoming.bookingReference}</p>
-                    <p className="text-sm text-ink-600">{formatStayRange(upcoming.checkInDate, upcoming.checkOutDate)}</p>
-                    <p className="text-sm text-ink-600">{upcomingNights} {upcomingNights === 1 ? 'night' : 'nights'} · {formatMoney(upcoming.totalAmount)}</p>
-                    <Badge variant="secondary" className="mt-2">{bookingStatusLabel(upcoming.status)}</Badge>
+                    <p className="text-xl font-semibold text-foreground">{upcoming.bookingReference}</p>
+                    <p className="text-sm text-muted-foreground">{formatStayRange(upcoming.checkInDate, upcoming.checkOutDate)}</p>
+                    <p className="text-sm text-muted-foreground">{upcomingNights} {upcomingNights === 1 ? 'night' : 'nights'} · {formatMoney(upcoming.totalAmount)}</p>
+                    <Badge variant={bookingStatusTone(upcoming.status)} className="mt-2">{bookingStatusLabel(upcoming.status)}</Badge>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-sm text-ink-600">No upcoming stays.</p>
+                    <p className="text-sm text-muted-foreground">No upcoming stays.</p>
                     <Button asChild size="sm"><Link to="/book">Plan a stay</Link></Button>
                   </div>
                 )}
@@ -65,59 +66,59 @@ export default function CustomerDashboardPage() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-ink-600">Total stays</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total stays</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xl font-semibold text-ink-900">{totalStays}</p>
-                <p className="text-sm text-ink-600">{bookings.length} bookings on file</p>
+                <p className="text-xl font-semibold text-foreground">{totalStays}</p>
+                <p className="text-sm text-muted-foreground">{bookings.length} bookings on file</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-ink-600">Payment on your next stay</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Payment on your next stay</CardTitle>
               </CardHeader>
               <CardContent>
                 {upcoming ? (
                   <div className="space-y-1">
-                    <p className="text-xl font-semibold text-ink-900">{paymentStatusLabel(upcoming.paymentStatus)}</p>
-                    <p className="text-sm text-ink-600">Pay at the hotel on arrival</p>
+                    <p className="text-xl font-semibold text-foreground">{paymentStatusLabel(upcoming.paymentStatus)}</p>
+                    <p className="text-sm text-muted-foreground">Pay at the hotel on arrival</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-ink-600">No bookings to show.</p>
+                  <p className="text-sm text-muted-foreground">No bookings to show.</p>
                 )}
               </CardContent>
             </Card>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="bg-milk">
+            <Card className="bg-accent">
               <CardContent className="flex items-center gap-4 p-6">
-                <CalendarPlus className="h-8 w-8 text-forest-700" />
+                <CalendarPlus className="h-8 w-8 text-primary" />
                 <div className="space-y-1">
-                  <p className="font-medium text-ink-900">Book a room</p>
-                  <p className="text-sm text-ink-600">Check availability and reserve</p>
-                  <Link to="/book" className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">Start now <ArrowRight className="h-3.5 w-3.5" /></Link>
+                  <p className="font-medium text-foreground">Book a room</p>
+                  <p className="text-sm text-muted-foreground">Check availability and reserve</p>
+                  <Link to="/book" className="inline-flex items-center gap-1 text-sm font-medium text-primary">Start now <ArrowRight className="h-3.5 w-3.5" /></Link>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-milk">
+            <Card className="bg-accent">
               <CardContent className="flex items-center gap-4 p-6">
-                <Search className="h-8 w-8 text-forest-700" />
+                <Search className="h-8 w-8 text-primary" />
                 <div className="space-y-1">
-                  <p className="font-medium text-ink-900">Find a booking</p>
-                  <p className="text-sm text-ink-600">Look up a reservation by reference</p>
-                  <Link to="/my-booking" className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">Search <ArrowRight className="h-3.5 w-3.5" /></Link>
+                  <p className="font-medium text-foreground">Find a booking</p>
+                  <p className="text-sm text-muted-foreground">Look up a reservation by reference</p>
+                  <Link to="/my-booking" className="inline-flex items-center gap-1 text-sm font-medium text-primary">Search <ArrowRight className="h-3.5 w-3.5" /></Link>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-milk">
+            <Card className="bg-accent">
               <CardContent className="flex items-center gap-4 p-6">
-                <CalendarDays className="h-8 w-8 text-forest-700" />
+                <CalendarDays className="h-8 w-8 text-primary" />
                 <div className="space-y-1">
-                  <p className="font-medium text-ink-900">My bookings</p>
-                  <p className="text-sm text-ink-600">See all of your reservations</p>
-                  <Link to="/dashboard/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">View all <ArrowRight className="h-3.5 w-3.5" /></Link>
+                  <p className="font-medium text-foreground">My bookings</p>
+                  <p className="text-sm text-muted-foreground">See all of your reservations</p>
+                  <Link to="/dashboard/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-primary">View all <ArrowRight className="h-3.5 w-3.5" /></Link>
                 </div>
               </CardContent>
             </Card>
@@ -126,24 +127,24 @@ export default function CustomerDashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle>Recent bookings</CardTitle>
-              <Link to="/dashboard/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-forest-700">
+              <Link to="/dashboard/bookings" className="inline-flex items-center gap-1 text-sm font-medium text-primary">
                 View all <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </CardHeader>
             <CardContent className="p-0">
               {bookings.length === 0 ? (
-                <p className="px-4 py-8 text-center text-sm text-ink-600">No bookings yet — your reservations will appear here.</p>
+                <p className="px-4 py-8 text-center text-sm text-muted-foreground">No bookings yet — your reservations will appear here.</p>
               ) : (
                 <ul className="divide-y">
                   {bookings.slice(0, 5).map((b) => (
-                    <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-milk">
+                    <li key={b.id} className="relative flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent">
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-ink-900">{b.bookingReference}</p>
-                        <p className="truncate text-xs text-ink-600">{formatStayRange(b.checkInDate, b.checkOutDate)} · {formatMoney(b.totalAmount)}</p>
+                        <p className="truncate font-medium text-foreground">{b.bookingReference}</p>
+                        <p className="truncate text-xs text-muted-foreground">{formatStayRange(b.checkInDate, b.checkOutDate)} · {formatMoney(b.totalAmount)}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        <Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge>
-                        <ArrowUpRight className="h-4 w-4 text-ink-400" />
+                        <Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>
+                        <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <RowLink to={`/dashboard/bookings/${b.id}`} label={`Open booking ${b.bookingReference}`} />
                     </li>
@@ -153,8 +154,8 @@ export default function CustomerDashboardPage() {
             </CardContent>
           </Card>
 
-          <div className="flex items-start gap-3 rounded-lg border border-dashed p-4 text-sm text-ink-600">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-forest-600" />
+          <div className="flex items-start gap-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <p>To change or cancel an existing booking, contact the hotel — changes aren&apos;t yet available online.</p>
           </div>
         </>

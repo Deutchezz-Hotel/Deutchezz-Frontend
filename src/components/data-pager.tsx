@@ -33,7 +33,7 @@ export function DataPager({
             />
           </PaginationItem>
           <PaginationItem>
-            <span className="px-3 text-sm text-ink-600">
+            <span className="px-3 text-sm text-muted-foreground">
               Page {page} of {totalPages}
             </span>
           </PaginationItem>

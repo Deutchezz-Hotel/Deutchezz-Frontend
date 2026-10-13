@@ -115,7 +115,7 @@ export function EarlyCheckOutDialog({ booking, open, onOpenChange }: Props) {
 
             <div className="space-y-2">
               <Label htmlFor="early-notes">
-                Notes {reason === 'Other' ? <span className="text-destructive">*</span> : '(optional)'}
+                Notes {reason === 'Other' ? <span className="text-destructive-text">*</span> : '(optional)'}
               </Label>
               <Textarea
                 id="early-notes"
@@ -124,7 +124,7 @@ export function EarlyCheckOutDialog({ booking, open, onOpenChange }: Props) {
                 rows={3}
                 placeholder={reason === 'Other' ? 'Describe why the guest is checking out early' : 'Add context for the audit log'}
               />
-              {notesError ? <p className="text-xs text-destructive">{notesError}</p> : null}
+              {notesError ? <p className="text-xs text-destructive-text">{notesError}</p> : null}
             </div>
 
             <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
@@ -134,14 +134,14 @@ export function EarlyCheckOutDialog({ booking, open, onOpenChange }: Props) {
                 className="mt-0.5"
               />
               <span>
-                <span className="font-medium text-ink-900">Guest consents to early check-out</span>
-                <span className="block text-ink-600">Recorded for audit; the guest agrees to leave before their scheduled check-out.</span>
+                <span className="font-medium text-foreground">Guest consents to early check-out</span>
+                <span className="block text-muted-foreground">Recorded for audit; the guest agrees to leave before their scheduled check-out.</span>
               </span>
             </label>
-            {consentError ? <p className="text-xs text-destructive">{consentError}</p> : null}
+            {consentError ? <p className="text-xs text-destructive-text">{consentError}</p> : null}
 
             {balance > 0 ? (
-              <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-700">
+              <p className="rounded-lg bg-warning-soft p-3 text-xs text-warning">
                 This booking has an outstanding balance of {formatMoney(balance)}. Check-out is refused while a balance is due if the hotel requires payment before check-out.
               </p>
             ) : null}

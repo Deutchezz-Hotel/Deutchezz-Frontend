@@ -100,8 +100,8 @@ export default function VerifyEmailPage() {
         <Reveal>
           <Card className="mx-auto max-w-lg">
             <CardContent className="space-y-6 p-8">
-              <p className="text-sm text-ink-600">
-                We sent a code to <span className="font-medium text-ink-900">{email}</span>.
+              <p className="text-sm text-muted-foreground">
+                We sent a code to <span className="font-medium text-foreground">{email}</span>.
               </p>
 
               {resent ? (
@@ -138,7 +138,7 @@ export default function VerifyEmailPage() {
               </div>
 
               {verify.isPending ? (
-                <div className="flex items-center justify-center gap-2 text-ink-700">
+                <div className="flex items-center justify-center gap-2 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   Verifying…
                 </div>
@@ -148,13 +148,13 @@ export default function VerifyEmailPage() {
                 </Button>
               )}
 
-              <p className="text-center text-sm text-ink-600">
+              <p className="text-center text-sm text-muted-foreground">
                 Wrong email?{' '}
-                <Link to="/register" className="text-forest-700 hover:underline">
+                <Link to="/register" className="text-primary hover:underline">
                   Use a different email
                 </Link>
                 {' · '}
-                <Link to="/login" className="text-forest-700 hover:underline">
+                <Link to="/login" className="text-primary hover:underline">
                   Sign in
                 </Link>
               </p>

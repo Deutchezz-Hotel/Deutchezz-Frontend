@@ -117,7 +117,7 @@ export default function ReceptionCreateBookingPage() {
     <div className="space-y-8">
       <div>
         <h1 className="heading-2">New walk-in booking</h1>
-        <p className="text-sm text-ink-600">Reserve rooms for guests who have arrived at the hotel.</p>
+        <p className="text-sm text-muted-foreground">Reserve rooms for guests who have arrived at the hotel.</p>
       </div>
       <div className="grid gap-10 lg:grid-cols-12">
         <div className="space-y-8 lg:col-span-8">
@@ -159,13 +159,13 @@ export default function ReceptionCreateBookingPage() {
               {availabilityQuery.isError ? <ErrorBanner message="We couldn't check availability for those dates." retry={() => availabilityQuery.refetch()} /> : null}
 
               <div className="space-y-4">
-                <p className="text-sm text-ink-600">Room types</p>
+                <p className="text-sm text-muted-foreground">Room types</p>
                 {(availability?.roomTypes ?? []).map((room) => (
                   <div key={room.roomTypeId} className="flex flex-col gap-4 rounded-xl border p-5 md:flex-row md:items-center md:justify-between">
                     <div className="space-y-1">
-                      <p className="font-semibold text-ink-900">{room.name}</p>
-                      <p className="text-sm text-ink-600">{room.bedType} · Up to {room.maximumOccupancy} guests · {formatMoney(room.pricePerNight)} / night</p>
-                      <p className="text-xs text-ink-500">{room.availableRooms} available for those dates</p>
+                      <p className="font-semibold text-foreground">{room.name}</p>
+                      <p className="text-sm text-muted-foreground">{room.bedType} · Up to {room.maximumOccupancy} guests · {formatMoney(room.pricePerNight)} / night</p>
+                      <p className="text-xs text-muted-foreground">{room.availableRooms} available for those dates</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <Button type="button" variant="outline" size="sm" onClick={() => changeQty(room.roomTypeId, room.availableRooms, -1)}>−</Button>
@@ -175,7 +175,7 @@ export default function ReceptionCreateBookingPage() {
                   </div>
                 ))}
                 {availability && availability.roomTypes.length === 0 ? (
-                  <p className="rounded-lg border border-dashed p-6 text-center text-sm text-ink-600">No rooms available for those dates.</p>
+                  <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No rooms available for those dates.</p>
                 ) : null}
               </div>
             </CardContent>
@@ -185,23 +185,23 @@ export default function ReceptionCreateBookingPage() {
             <CardContent className="space-y-5 p-8">
               <div className="space-y-1">
                 <h3 className="heading-3">Guest</h3>
-                <p className="text-sm text-ink-600">Walk-in guests don&apos;t receive emails. The booking summary will be sent to your email.</p>
+                <p className="text-sm text-muted-foreground">Walk-in guests don&apos;t receive emails. The booking summary will be sent to your email.</p>
               </div>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>First name</Label>
                   <Input {...form.register('firstName')} />
-                  {form.formState.errors.firstName ? <p className="text-xs text-destructive">{form.formState.errors.firstName.message}</p> : null}
+                  {form.formState.errors.firstName ? <p className="text-xs text-destructive-text">{form.formState.errors.firstName.message}</p> : null}
                 </div>
                 <div className="space-y-2">
                   <Label>Last name</Label>
                   <Input {...form.register('lastName')} />
-                  {form.formState.errors.lastName ? <p className="text-xs text-destructive">{form.formState.errors.lastName.message}</p> : null}
+                  {form.formState.errors.lastName ? <p className="text-xs text-destructive-text">{form.formState.errors.lastName.message}</p> : null}
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label>Phone number</Label>
                   <Input {...form.register('phoneNumber')} />
-                  {form.formState.errors.phoneNumber ? <p className="text-xs text-destructive">{form.formState.errors.phoneNumber.message}</p> : null}
+                  {form.formState.errors.phoneNumber ? <p className="text-xs text-destructive-text">{form.formState.errors.phoneNumber.message}</p> : null}
                 </div>
               </div>
             </CardContent>
@@ -212,13 +212,13 @@ export default function ReceptionCreateBookingPage() {
           <Card className="lg:sticky lg:top-24">
             <CardContent className="space-y-6 p-8">
               <h3 className="heading-3">Summary</h3>
-              <div className="space-y-2 text-sm text-ink-700">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <p>{values.checkInDate && values.checkOutDate ? formatStayRange(values.checkInDate, values.checkOutDate) : 'Select your dates'}</p>
                 <p>{nights} {nights === 1 ? 'night' : 'nights'} · {values.adults} adults · {values.children} children</p>
               </div>
-              <div className="space-y-2 text-sm text-ink-700">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 {selectedLines.length === 0 ? (
-                  <p className="text-ink-500">No rooms selected yet.</p>
+                  <p className="text-muted-foreground">No rooms selected yet.</p>
                 ) : (
                   selectedLines.map((l) => (
                     <div key={l.roomTypeId} className="flex items-center justify-between">
@@ -229,8 +229,8 @@ export default function ReceptionCreateBookingPage() {
                 )}
               </div>
               <div className="flex items-center justify-between border-t pt-4">
-                <p className="font-semibold text-ink-900">Total</p>
-                <p className="text-xl font-semibold text-forest-700">{formatMoney(estimatedTotal)}</p>
+                <p className="font-semibold text-foreground">Total</p>
+                <p className="text-xl font-semibold text-primary">{formatMoney(estimatedTotal)}</p>
               </div>
               <Button className="w-full" disabled={selectedLines.length === 0 || createBooking.isPending} onClick={handleSubmit}>
                 {createBooking.isPending ? 'Creating…' : 'Create booking'}

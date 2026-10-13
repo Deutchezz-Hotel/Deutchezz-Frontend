@@ -16,10 +16,10 @@ export function StatCard({ label, value, icon: Icon }: { label: string; value: s
   return (
     <Card className="flex items-start justify-between p-6">
       <div className="space-y-2">
-        <p className="text-sm text-ink-600">{label}</p>
-        <p className="text-3xl font-semibold text-ink-900">{value}</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-3xl font-semibold text-foreground">{value}</p>
       </div>
-      <div className="rounded-full bg-forest-50 p-3 text-forest-700">
+      <div className="rounded-full bg-accent p-3 text-primary">
         <Icon className="h-6 w-6" />
       </div>
     </Card>
@@ -40,7 +40,7 @@ export function SectionHeader({ eyebrow, title, action }: { eyebrow: string; tit
 
 export function AddressBlock() {
   return (
-    <div className="space-y-2 text-sm text-ink-700">
+    <div className="space-y-2 text-sm text-muted-foreground">
       {appConfig.addressLines.map((line) => (
         <p key={line}>{line}</p>
       ))}

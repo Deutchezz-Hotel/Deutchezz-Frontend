@@ -110,25 +110,25 @@ export function HeroShowcase({
           {current.kind === 'intro' ? (
             <>
               <p className="eyebrow-light mx-auto mb-4">{current.eyebrow}</p>
-              <h1 className="heading-1 mx-auto mb-6 max-w-4xl font-display text-white">{current.title}</h1>
-              <p className="mx-auto max-w-2xl text-lg text-white/85">{current.description}</p>
+              <h1 className="heading-1 mx-auto mb-6 max-w-4xl font-display text-on-media">{current.title}</h1>
+              <p className="mx-auto max-w-2xl text-lg text-on-media/85">{current.description}</p>
               <div className="mt-10 flex flex-wrap items-center justify-center gap-4">{introActions}</div>
             </>
           ) : (
             <>
               <p className="eyebrow-light mx-auto mb-4">{current.eyebrow}</p>
-              <h1 className="heading-1 mx-auto mb-4 max-w-4xl font-display text-white">{current.title}</h1>
-              <p className="mx-auto max-w-2xl text-lg text-white/85">{current.description}</p>
+              <h1 className="heading-1 mx-auto mb-4 max-w-4xl font-display text-on-media">{current.title}</h1>
+              <p className="mx-auto max-w-2xl text-lg text-on-media/85">{current.description}</p>
               <p className="mt-6 text-lg font-semibold text-gold-light">
                 {current.price}
-                <span className="text-sm font-normal text-white/70"> / night</span>
+                <span className="text-sm font-normal text-on-media/70"> / night</span>
               </p>
-              <p className="mt-1 text-sm text-white/70">{current.meta}</p>
+              <p className="mt-1 text-sm text-on-media/70">{current.meta}</p>
               <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-                <Button asChild size="lg" className="bg-gold text-white shadow-lg shadow-ink-950/30 hover:bg-gold-dark">
+                <Button asChild size="lg" className="bg-gold text-on-media shadow-lg shadow-ink-950/30 hover:bg-gold-dark">
                   <Link to={current.href ?? '/rooms'}>View this room <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="border-white/40 bg-white/5 text-white backdrop-blur hover:bg-white/10 hover:text-white">
+                <Button asChild size="lg" variant="outline" className="border-on-media/40 bg-on-media/5 text-on-media backdrop-blur hover:bg-on-media/10 hover:text-on-media">
                   <Link to="/book">Reserve your stay</Link>
                 </Button>
               </div>
@@ -147,7 +147,7 @@ export function HeroShowcase({
                 onClick={() => setIndex(i)}
                 className={cn(
                   'h-1.5 rounded-full transition-all duration-500',
-                  i === active ? 'w-8 bg-gold-light' : 'w-1.5 bg-white/40 hover:bg-white/70',
+                  i === active ? 'w-8 bg-gold-light' : 'w-1.5 bg-on-media/40 hover:bg-on-media/70',
                 )}
               />
             ))}

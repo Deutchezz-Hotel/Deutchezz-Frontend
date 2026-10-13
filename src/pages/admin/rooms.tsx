@@ -14,6 +14,7 @@ import { DatePicker } from '@/components/date-picker';
 import { DataPager } from '@/components/data-pager';
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { roomStatusLabel } from '@/lib/format';
+import { roomStatusTone } from '@/lib/status';
 import { focusFirstInvalid } from '@/lib/focus';
 import { toast } from 'sonner';
 import { BedDouble, Pencil, Plus } from 'lucide-react';
@@ -22,12 +23,6 @@ import type { Room, RoomStatus, SaveRoomRequest } from '@/types';
 const STATUS_FILTERS = ['All', 'Available', 'Occupied', 'Maintenance', 'Inactive'] as const;
 const ROOM_STATUSES: RoomStatus[] = ['Available', 'Occupied', 'Maintenance', 'Inactive'];
 const PAGE_SIZE = 12;
-
-const badgeTone = (status: RoomStatus) =>
-  status === 'Available' ? 'success'
-  : status === 'Occupied' ? 'default'
-  : status === 'Maintenance' ? 'warning'
-  : 'secondary';
 
 const emptyForm: SaveRoomRequest = { roomNumber: '', floor: 1, roomTypeId: '', status: 'Available' };
 const FORM_ID = 'room-form';
@@ -98,7 +93,7 @@ export default function AdminRoomsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Rooms</h1>
-          <p className="text-sm text-ink-600">Inventory and occupancy per date.</p>
+          <p className="text-sm text-muted-foreground">Inventory and occupancy per date.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button onClick={openCreate} disabled={roomTypes.length === 0}><Plus className="mr-2 h-4 w-4" /> Add room</Button>
@@ -148,11 +143,11 @@ export default function AdminRoomsPage() {
                     const board = room.effectiveStatus ?? room.status;
                     return (
                       <TableRow key={room.id}>
-                        <TableCell className="font-medium text-ink-900">{room.roomNumber}</TableCell>
-                        <TableCell className="text-ink-700">{room.floor}</TableCell>
-                        <TableCell className="text-ink-700">{room.roomTypeName}</TableCell>
+                        <TableCell className="font-medium text-foreground">{room.roomNumber}</TableCell>
+                        <TableCell className="text-muted-foreground">{room.floor}</TableCell>
+                        <TableCell className="text-muted-foreground">{room.roomTypeName}</TableCell>
                         <TableCell>
-                          <Badge variant={badgeTone(board)}>{roomStatusLabel(board)}</Badge>
+                          <Badge variant={roomStatusTone(board)}>{roomStatusLabel(board)}</Badge>
                         </TableCell>
                         <TableCell>
                           <Select

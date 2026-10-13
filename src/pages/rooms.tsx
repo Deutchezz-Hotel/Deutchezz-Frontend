@@ -24,7 +24,7 @@ export default function RoomsPage() {
           <Reveal delay={80} className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {types.map((t) => (
               <Card key={t.id} className="overflow-hidden">
-                <div className="aspect-[16/9] w-full bg-ink-100">
+                <div className="aspect-[16/9] w-full bg-muted">
                   {t.imageUrls[0] ? (
                     <img src={t.imageUrls[0]} alt={t.name} className="h-full w-full object-cover" />
                   ) : null}
@@ -33,12 +33,12 @@ export default function RoomsPage() {
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <h3 className="heading-3">{t.name}</h3>
-                      <p className="text-sm text-ink-600">{t.bedType} · Up to {t.maximumOccupancy} guests</p>
+                      <p className="text-sm text-muted-foreground">{t.bedType} · Up to {t.maximumOccupancy} guests</p>
                     </div>
-                    <p className="font-semibold text-forest-700">{formatMoney(t.basePrice)} / night</p>
+                    <p className="font-semibold text-primary">{formatMoney(t.basePrice)} / night</p>
                   </div>
-                  <p className="text-sm text-ink-600 line-clamp-2">{t.description}</p>
-                  <Link to={`/rooms/${t.id}`} className="inline-flex items-center text-sm font-medium text-forest-700 hover:underline">
+                  <p className="text-sm text-muted-foreground line-clamp-2">{t.description}</p>
+                  <Link to={`/rooms/${t.id}`} className="inline-flex items-center text-sm font-medium text-primary hover:underline">
                     View details <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
                 </CardContent>

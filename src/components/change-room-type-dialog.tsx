@@ -107,7 +107,7 @@ export function ChangeRoomTypeDialog({ booking, line, open, onOpenChange }: Prop
                 </SelectContent>
               </Select>
               {!roomTypesQuery.isLoading && options.length === 0 ? (
-                <p className="text-xs text-ink-600">No other room types are available to move to.</p>
+                <p className="text-xs text-muted-foreground">No other room types are available to move to.</p>
               ) : null}
             </div>
 
@@ -122,10 +122,10 @@ export function ChangeRoomTypeDialog({ booking, line, open, onOpenChange }: Prop
                 value={quantity}
                 onChange={(e) => { setQuantity(e.target.value); if (error) setError(''); }}
               />
-              {line ? <p className="text-xs text-ink-600">Between 1 and {line.quantity}.</p> : null}
+              {line ? <p className="text-xs text-muted-foreground">Between 1 and {line.quantity}.</p> : null}
             </div>
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error ? <p className="text-sm text-destructive-text">{error}</p> : null}
           </div>
         </FormDialogBody>
         <FormDialogFooter>

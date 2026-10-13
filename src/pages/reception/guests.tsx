@@ -18,7 +18,7 @@ export default function ReceptionGuestsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Guests</h1>
-          <p className="text-sm text-ink-600">Everyone who has stayed with us.</p>
+          <p className="text-sm text-muted-foreground">Everyone who has stayed with us.</p>
         </div>
         <Input
           className="w-full sm:w-64"
@@ -53,12 +53,12 @@ export default function ReceptionGuestsPage() {
                             <AvatarFallback className="bg-primary text-xs text-primary-foreground">{g.initials}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium text-ink-900">{g.firstName} {g.lastName}</p>
-                            <p className="text-xs text-ink-600">{g.email} · {g.phoneNumber}</p>
+                            <p className="font-medium text-foreground">{g.firstName} {g.lastName}</p>
+                            <p className="text-xs text-muted-foreground">{g.email} · {g.phoneNumber}</p>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-ink-700">{g.createdAt ? formatDisplayDate(g.createdAt) : '—'}</TableCell>
+                      <TableCell className="text-muted-foreground">{g.createdAt ? formatDisplayDate(g.createdAt) : '—'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

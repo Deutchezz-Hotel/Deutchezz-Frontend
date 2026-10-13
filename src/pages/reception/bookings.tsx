@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
 import { RowLink } from '@/components/shared';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
+import { bookingStatusTone } from '@/lib/status';
 import { formatStayRange } from '@/lib/dates';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, CalendarDays, Plus } from 'lucide-react';
@@ -26,7 +27,7 @@ export default function ReceptionBookingsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Bookings</h1>
-          <p className="text-sm text-ink-600">Search, check in and manage reservations.</p>
+          <p className="text-sm text-muted-foreground">Search, check in and manage reservations.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Input className="w-full sm:w-64" placeholder="Search booking reference..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -65,24 +66,24 @@ export default function ReceptionBookingsPage() {
                 </TableHeader>
                 <TableBody>
                   {bookings.map((b) => (
-                    <TableRow key={b.id} className="relative hover:bg-milk">
+                    <TableRow key={b.id} className="relative hover:bg-accent">
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-ink-900">{b.guestName}</p>
+                          <p className="font-medium text-foreground">{b.guestName}</p>
                           {b.source === 'WalkIn' ? <Badge variant="warning">Walk-in</Badge> : null}
                         </div>
-                        {b.guestPhoneNumber ? <p className="text-xs text-ink-600">{b.guestPhoneNumber}</p> : null}
-                        {b.createdByName ? <p className="text-xs text-ink-500">Booked by {b.createdByName}</p> : null}
+                        {b.guestPhoneNumber ? <p className="text-xs text-muted-foreground">{b.guestPhoneNumber}</p> : null}
+                        {b.createdByName ? <p className="text-xs text-muted-foreground">Booked by {b.createdByName}</p> : null}
                       </TableCell>
-                      <TableCell className="text-ink-700">{b.bookingReference}</TableCell>
+                      <TableCell className="text-muted-foreground">{b.bookingReference}</TableCell>
                       <TableCell>
                         <p>{formatStayRange(b.checkInDate, b.checkOutDate)}</p>
-                        <p className="text-xs text-ink-600">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
+                        <p className="text-xs text-muted-foreground">{b.nights} {b.nights === 1 ? 'night' : 'nights'}</p>
                       </TableCell>
                       <TableCell className="font-medium">{formatMoney(b.totalAmount)}</TableCell>
-                      <TableCell><Badge variant="secondary">{bookingStatusLabel(b.status)}</Badge></TableCell>
-                      <TableCell className="text-ink-700">{paymentStatusLabel(b.paymentStatus)}</TableCell>
-                      <TableCell className="text-ink-400"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/reception/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
+                      <TableCell><Badge variant={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge></TableCell>
+                      <TableCell className="text-muted-foreground">{paymentStatusLabel(b.paymentStatus)}</TableCell>
+                      <TableCell className="text-muted-foreground"><ArrowUpRight className="h-4 w-4" /><RowLink to={`/reception/bookings/${b.id}`} label={`Open booking ${b.bookingReference} for ${b.guestName}`} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -92,7 +93,7 @@ export default function ReceptionBookingsPage() {
         )
       ) : null}
 
-      <p className="text-sm text-ink-600">
+      <p className="text-sm text-muted-foreground">
         Open any booking from its row. To change a booking, contact the guest and update at the front desk.
       </p>
     </div>

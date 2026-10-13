@@ -40,7 +40,7 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <div>
         <h1 className="heading-2">Profile</h1>
-        <p className="text-sm text-ink-600">Your details, used for bookings and check-ins.</p>
+        <p className="text-sm text-muted-foreground">Your details, used for bookings and check-ins.</p>
       </div>
 
       <Card className="max-w-xl">
@@ -119,7 +119,7 @@ export default function ProfilePage() {
         <CardHeader>
           <CardTitle>Account</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-ink-600">
+        <CardContent className="text-sm text-muted-foreground">
           <p>Signed in as {user?.email} · {user?.role}</p>
         </CardContent>
       </Card>

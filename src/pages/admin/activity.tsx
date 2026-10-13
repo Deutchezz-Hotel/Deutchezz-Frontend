@@ -14,7 +14,7 @@ export default function AdminActivityPage() {
     <div className="space-y-6">
       <div>
         <h1 className="heading-2">Activity log</h1>
-        <p className="text-sm text-ink-600">A running record of important events, newest first.</p>
+        <p className="text-sm text-muted-foreground">A running record of important events, newest first.</p>
       </div>
 
       {query.isLoading ? <PageSkeleton rows={6} /> : null}
@@ -30,8 +30,8 @@ export default function AdminActivityPage() {
                 {items.map((log) => (
                   <li key={log.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0 space-y-0.5">
-                      <p className="truncate text-sm font-medium text-ink-900">{log.message}</p>
-                      <p className="text-xs text-ink-600">by {log.actorName} · {formatDisplayDate(log.timestamp)}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{log.message}</p>
+                      <p className="text-xs text-muted-foreground">by {log.actorName} · {formatDisplayDate(log.timestamp)}</p>
                     </div>
                     <Badge variant="secondary" className="shrink-0">{activityTypeLabel(log.type)}</Badge>
                   </li>

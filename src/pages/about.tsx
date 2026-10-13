@@ -32,12 +32,12 @@ export default function AboutPage() {
       <section className="section-pad container-x">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <Reveal className="space-y-6">
-            <p className="max-w-2xl text-lg text-ink-700">
+            <p className="max-w-2xl text-lg text-muted-foreground">
               From the first welcome to the last goodbye, every moment of your stay is designed to feel
               effortless. Our address places you at the pulse of the city, while our interiors offer a calm
               sanctuary to return to.
             </p>
-            <p className="max-w-2xl text-ink-700">
+            <p className="max-w-2xl text-muted-foreground">
               Each room balances the warmth of local craft with the considered calm of a modern hotel —
               crisp linens, thoughtful lighting, and the quiet hush of a space made for slowing down.
             </p>
@@ -50,13 +50,13 @@ export default function AboutPage() {
               className="aspect-[4/3] w-full rounded-2xl object-cover shadow-xl"
             />
             <div className="glass absolute -bottom-6 left-6 right-6 rounded-xl p-4 sm:-left-6 sm:right-auto sm:max-w-sm">
-              <p className="text-lg font-semibold text-ink-900">Deutchezz Hotel Ispahan</p>
-              <p className="mt-1 text-sm text-ink-600">Where every stay begins with a considered welcome.</p>
+              <p className="text-lg font-semibold text-foreground">Deutchezz Hotel Ispahan</p>
+              <p className="mt-1 text-sm text-muted-foreground">Where every stay begins with a considered welcome.</p>
             </div>
           </Reveal>
         </div>
       </section>
-      <section className="bg-milk">
+      <section className="bg-accent">
         <div className="section-pad container-x">
           <Reveal>
             <p className="eyebrow">What we value</p>
@@ -64,12 +64,12 @@ export default function AboutPage() {
           </Reveal>
           <Reveal delay={80} className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {values.map(({ icon: Icon, title, text }) => (
-              <div key={title} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-forest-100">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-forest-50 text-forest-700">
+              <div key={title} className="rounded-2xl bg-card p-6 shadow-sm ring-1 ring-border">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent text-primary">
                   <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="mt-4 text-xl font-semibold tracking-tight text-ink-900">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-700">{text}</p>
+                <h3 className="mt-4 text-xl font-semibold tracking-tight text-foreground">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
               </div>
             ))}
           </Reveal>

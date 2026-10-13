@@ -63,68 +63,68 @@ export default function ConfirmationPage() {
           <CardContent className="space-y-8 p-10">
             {data ? (
               <>
-                <div className="flex items-center gap-3 rounded-lg bg-forest-50 p-4 text-forest-800">
+                <div className="flex items-center gap-3 rounded-lg bg-accent p-4 text-primary">
                   <CheckCircle2 className="h-5 w-5" />
                   <p className="text-sm font-medium">Booking confirmed — a confirmation has been emailed to {data.guest.email}.</p>
                 </div>
 
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <p className="text-sm text-ink-600">Reference</p>
-                    <p className="text-xl font-semibold tracking-widest text-ink-900">{data.bookingReference}</p>
+                    <p className="text-sm text-muted-foreground">Reference</p>
+                    <p className="text-xl font-semibold tracking-widest text-foreground">{data.bookingReference}</p>
                   </div>
                   <div className="space-y-1 text-right">
-                    <p className="text-sm text-ink-600">Total</p>
-                    <p className="text-xl font-semibold text-forest-700">{formatMoney(data.totalAmount)}</p>
+                    <p className="text-sm text-muted-foreground">Total</p>
+                    <p className="text-xl font-semibold text-primary">{formatMoney(data.totalAmount)}</p>
                   </div>
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <p className="text-sm text-ink-600">Stay</p>
+                    <p className="text-sm text-muted-foreground">Stay</p>
                     <p className="font-medium">{formatStayRange(data.checkInDate, data.checkOutDate)} · {data.nights} {data.nights === 1 ? 'night' : 'nights'}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-ink-600">Status</p>
+                    <p className="text-sm text-muted-foreground">Status</p>
                     <p className="font-medium">{bookingStatusLabel(data.status)}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-ink-600">Payment</p>
+                    <p className="text-sm text-muted-foreground">Payment</p>
                     <p className="font-medium">{paymentStatusLabel(data.paymentStatus)} · Pay at hotel</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-ink-600">Guest</p>
+                    <p className="text-sm text-muted-foreground">Guest</p>
                     <p className="font-medium">{data.guest.firstName} {data.guest.lastName}</p>
-                    <p className="text-sm text-ink-600">{data.guest.email}</p>
+                    <p className="text-sm text-muted-foreground">{data.guest.email}</p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <p className="font-semibold text-ink-900">Rooms</p>
+                  <p className="font-semibold text-foreground">Rooms</p>
                   <ul className="divide-y rounded-lg border">
                     {data.rooms.map((room) => (
                       <li key={room.bookingRoomTypeId} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                        <span className="text-ink-700">
+                        <span className="text-muted-foreground">
                           {room.quantity > 1 ? `${room.quantity} × ${room.roomTypeName}` : room.roomTypeName} · {formatMoney(room.ratePerNight)} / night
                         </span>
-                        <span className="font-medium text-ink-900">{formatMoney(room.subtotal)}</span>
+                        <span className="font-medium text-foreground">{formatMoney(room.subtotal)}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="space-y-2 text-sm text-ink-700">
+                <div className="space-y-2 text-sm text-muted-foreground">
                   <p>Check-in: {data.checkInDate} from {appConfig.checkInTime}</p>
                   <p>Check-out: {data.checkOutDate} until {appConfig.checkOutTime}</p>
-                  <p className="text-ink-600">
+                  <p className="text-muted-foreground">
                     Keep this reference safe. If you booked as a guest without an account, this confirmation is your only record of the booking.
                   </p>
                 </div>
 
                 {!user ? (
                   <div className="space-y-3 rounded-lg border border-dashed p-4">
-                    <p className="text-sm font-medium text-ink-900">Create an account to save this booking</p>
-                    <p className="text-sm text-ink-600">Sign up to manage your reservations and check out faster next time.</p>
+                    <p className="text-sm font-medium text-foreground">Create an account to save this booking</p>
+                    <p className="text-sm text-muted-foreground">Sign up to manage your reservations and check out faster next time.</p>
                     <Button asChild variant="outline" size="sm">
                       <Link to="/register">Create an account</Link>
                     </Button>
@@ -141,7 +141,7 @@ export default function ConfirmationPage() {
                   {canCancel ? (
                     <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
                       <AlertDialogTrigger asChild>
-                        <Button variant="outline" className="text-destructive">
+                        <Button variant="destructive-outline">
                           <XCircle className="mr-2 h-4 w-4" /> Cancel booking
                         </Button>
                       </AlertDialogTrigger>
@@ -171,7 +171,7 @@ export default function ConfirmationPage() {
               </>
             ) : (
               <div className="space-y-4 text-center">
-                <p className="text-lg text-ink-700">
+                <p className="text-lg text-muted-foreground">
                   We don&apos;t have the booking details for {bookingReference} in this session.
                 </p>
                 <Button asChild variant="outline">

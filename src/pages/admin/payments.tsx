@@ -17,7 +17,7 @@ export default function AdminPaymentsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Payments</h1>
-          <p className="text-sm text-ink-600">A full record of everything received.</p>
+          <p className="text-sm text-muted-foreground">A full record of everything received.</p>
         </div>
         <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" /> Record payment</Button>
       </div>

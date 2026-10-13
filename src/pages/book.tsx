@@ -137,7 +137,7 @@ export default function BookPage() {
               <h3 className="heading-3">Stay details</h3>
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2 lg:col-span-1">
-                  <label className="text-sm font-medium text-ink-800">Dates</label>
+                  <label className="text-sm font-medium text-foreground">Dates</label>
                   <DateRangePicker
                     value={range}
                     min={new Date(todayISO())}
@@ -148,7 +148,7 @@ export default function BookPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-ink-800">Adults</label>
+                  <label className="text-sm font-medium text-foreground">Adults</label>
                   <Select value={values.adults} onValueChange={(v) => form.setValue('adults', v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -157,7 +157,7 @@ export default function BookPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-ink-800">Children</label>
+                  <label className="text-sm font-medium text-foreground">Children</label>
                   <Select value={values.children} onValueChange={(v) => form.setValue('children', v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -173,7 +173,7 @@ export default function BookPage() {
             <CardContent className="space-y-6 p-8">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="heading-3">Room types</h3>
-                {availabilityQuery.isFetching ? <p className="text-sm text-ink-600">Checking availability…</p> : null}
+                {availabilityQuery.isFetching ? <p className="text-sm text-muted-foreground">Checking availability…</p> : null}
               </div>
 
               {availabilityQuery.isError ? (
@@ -183,7 +183,7 @@ export default function BookPage() {
 
               {typesLoading ? (
                 <div className="space-y-4">
-                  {[0, 1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-lg bg-ink-100" />)}
+                  {[0, 1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-lg bg-muted" />)}
                 </div>
               ) : null}
 
@@ -195,10 +195,10 @@ export default function BookPage() {
                         <img src={room.imageUrls[0]} alt="" className="hidden h-20 w-28 rounded-lg object-cover sm:block" />
                       ) : null}
                       <div className="space-y-1">
-                        <p className="font-semibold text-ink-900">{room.name}</p>
-                        <p className="text-sm text-ink-600">{room.bedType} · Up to {room.maximumOccupancy} guests</p>
-                        <p className="text-sm font-medium text-forest-700">{formatMoney(room.pricePerNight)} / night</p>
-                        <p className="text-xs text-ink-500">{room.availableRooms} available for your dates</p>
+                        <p className="font-semibold text-foreground">{room.name}</p>
+                        <p className="text-sm text-muted-foreground">{room.bedType} · Up to {room.maximumOccupancy} guests</p>
+                        <p className="text-sm font-medium text-primary">{formatMoney(room.pricePerNight)} / night</p>
+                        <p className="text-xs text-muted-foreground">{room.availableRooms} available for your dates</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -215,7 +215,7 @@ export default function BookPage() {
               </div>
 
               {availability && availability.roomTypes.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-8 text-center text-sm text-ink-600">
+                <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
                   No rooms are available for those dates. Try different dates or fewer rooms.
                 </div>
               ) : null}
@@ -227,13 +227,13 @@ export default function BookPage() {
           <Card className="lg:sticky lg:top-24">
             <CardContent className="space-y-6 p-8">
               <h3 className="heading-3">Reservation summary</h3>
-              <div className="space-y-2 text-sm text-ink-700">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <p>{values.checkInDate && values.checkOutDate ? formatStayRange(values.checkInDate, values.checkOutDate) : 'Select your dates'}</p>
                 <p>{nights} {nights === 1 ? 'night' : 'nights'} · {values.adults} adults · {values.children} children</p>
               </div>
-              <div className="space-y-2 text-sm text-ink-700">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 {selectedLines.length === 0 ? (
-                  <p className="text-ink-500">No rooms selected yet.</p>
+                  <p className="text-muted-foreground">No rooms selected yet.</p>
                 ) : (
                   selectedLines.map((l) => (
                     <div key={l.roomTypeId} className="flex items-center justify-between">
@@ -244,10 +244,10 @@ export default function BookPage() {
                 )}
               </div>
               <div className="flex items-center justify-between border-t pt-4">
-                <p className="font-semibold text-ink-900">Estimated total</p>
-                <p className="text-xl font-semibold text-forest-700">{formatMoney(estimatedTotal)}</p>
+                <p className="font-semibold text-foreground">Estimated total</p>
+                <p className="text-xl font-semibold text-primary">{formatMoney(estimatedTotal)}</p>
               </div>
-              <p className="text-xs text-ink-500">This is an estimate. The hotel confirms the final total when your booking is placed.</p>
+              <p className="text-xs text-muted-foreground">This is an estimate. The hotel confirms the final total when your booking is placed.</p>
               <Button className="w-full" disabled={selectedLines.length === 0} onClick={handleContinue}>
                 Continue
               </Button>

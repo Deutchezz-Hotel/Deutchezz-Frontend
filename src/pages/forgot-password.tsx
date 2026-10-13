@@ -66,9 +66,9 @@ export default function ForgotPasswordPage() {
                   </Button>
                 </form>
               </Form>
-              <p className="text-center text-sm text-ink-600">
+              <p className="text-center text-sm text-muted-foreground">
                 Remembered it?{' '}
-                <Link to="/login" className="text-forest-700 hover:underline">
+                <Link to="/login" className="text-primary hover:underline">
                   Back to sign in
                 </Link>
               </p>

@@ -114,7 +114,7 @@ export function CancelBookingDialog({ booking, open, onOpenChange }: Props) {
 
               <div className="space-y-2">
                 <Label htmlFor="cancel-notes">
-                  Notes {reason === 'Other' ? <span className="text-destructive">*</span> : '(optional)'}
+                  Notes {reason === 'Other' ? <span className="text-destructive-text">*</span> : '(optional)'}
                 </Label>
                 <Textarea
                   id="cancel-notes"
@@ -123,7 +123,7 @@ export function CancelBookingDialog({ booking, open, onOpenChange }: Props) {
                   rows={3}
                   placeholder={reason === 'Other' ? 'Describe why this booking is being cancelled' : 'Add context for the audit log'}
                 />
-                {notesError ? <p className="text-xs text-destructive">{notesError}</p> : null}
+                {notesError ? <p className="text-xs text-destructive-text">{notesError}</p> : null}
               </div>
 
               {hasPaidPayments ? (
@@ -133,15 +133,15 @@ export function CancelBookingDialog({ booking, open, onOpenChange }: Props) {
                     <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
                       <RadioGroupItem value="refund" className="mt-0.5" />
                       <span>
-                        <span className="font-medium text-ink-900">Refund payments</span>
-                        <span className="block text-ink-600">Refund the {formatMoney(paidTotal)} already paid.</span>
+                        <span className="font-medium text-foreground">Refund payments</span>
+                        <span className="block text-muted-foreground">Refund the {formatMoney(paidTotal)} already paid.</span>
                       </span>
                     </label>
                     <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
                       <RadioGroupItem value="keep" className="mt-0.5" />
                       <span>
-                        <span className="font-medium text-ink-900">Keep payments</span>
-                        <span className="block text-ink-600">Leave the paid amounts on record.</span>
+                        <span className="font-medium text-foreground">Keep payments</span>
+                        <span className="block text-muted-foreground">Leave the paid amounts on record.</span>
                       </span>
                     </label>
                   </RadioGroup>
@@ -173,7 +173,7 @@ export function CancelBookingDialog({ booking, open, onOpenChange }: Props) {
             <AlertDialogAction
               onClick={doCancel}
               disabled={cancelBooking.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive-hover"
             >
               {cancelBooking.isPending ? 'Cancelling…' : 'Yes, cancel booking'}
             </AlertDialogAction>

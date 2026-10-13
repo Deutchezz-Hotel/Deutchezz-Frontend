@@ -45,11 +45,11 @@ export default function LoginPage() {
               })
             }
           />
-          <p className="text-center text-sm text-ink-600">
-            <Link to="/forgot-password" className="text-forest-700 hover:underline">Forgot your password?</Link>
+          <p className="text-center text-sm text-muted-foreground">
+            <Link to="/forgot-password" className="text-primary hover:underline">Forgot your password?</Link>
           </p>
-          <p className="text-center text-sm text-ink-600">
-            No account yet? <Link to="/register" className="text-forest-700 hover:underline">Create one</Link>
+          <p className="text-center text-sm text-muted-foreground">
+            No account yet? <Link to="/register" className="text-primary hover:underline">Create one</Link>
           </p>
         </CardContent>
       </Card>
