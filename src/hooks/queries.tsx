@@ -331,7 +331,6 @@ export function useAdminStaffMutations() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ['admin', 'staff'] });
   return {
     createStaff: useMutation({ mutationFn: (request: SaveStaffRequest) => services.admin.createStaff(request), onSuccess: invalidate }),
-    updateStaff: useMutation({ mutationFn: ({ id, request }: { id: string; request: SaveStaffRequest }) => services.admin.updateStaff(id, request), onSuccess: invalidate }),
     updateStaffStatus: useMutation({ mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => services.admin.updateStaffStatus(id, isActive), onSuccess: invalidate }),
   };
 }

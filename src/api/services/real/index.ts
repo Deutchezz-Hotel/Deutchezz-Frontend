@@ -451,13 +451,6 @@ export const realAdminApi = {
     };
     return call<c.StaffResponse>({ path: '/admin/staff', method: 'POST', body }).then(m.toStaff);
   },
-  getStaff(id: string): Promise<Staff> {
-    return call<c.StaffResponse>({ path: `/admin/staff/${encodeURIComponent(id)}` }).then(m.toStaff);
-  },
-  updateStaff(id: string, request: SaveStaffRequest): Promise<Staff> {
-    const body: c.UpdateStaffRequest = { firstName: request.firstName, lastName: request.lastName, phoneNumber: request.phoneNumber, role: request.role };
-    return call<c.StaffResponse>({ path: `/admin/staff/${encodeURIComponent(id)}`, method: 'PUT', body }).then(m.toStaff);
-  },
   updateStaffStatus(id: string, isActive: boolean): Promise<Staff> {
     return call<c.StaffResponse>({ path: `/admin/staff/${encodeURIComponent(id)}/status`, method: 'PATCH', body: { isActive } }).then(m.toStaff);
   },

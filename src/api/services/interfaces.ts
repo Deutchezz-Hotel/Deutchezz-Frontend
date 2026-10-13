@@ -183,9 +183,8 @@ export interface AdminApi {
   listBookings(params: BookingFilterParams): Promise<Paginated<BookingListItem>>;
   listGuests(params: PaginationParams): Promise<Paginated<GuestListItem>>;
   listUsers(params: UserListParams): Promise<Paginated<UserListItem>>;
-  listStaff(params: PaginationParams): Promise<Paginated<Staff>>;  createStaff(request: SaveStaffRequest): Promise<Staff>;
-  getStaff(id: string): Promise<Staff>;
-  updateStaff(id: string, request: SaveStaffRequest): Promise<Staff>;
+  listStaff(params: PaginationParams): Promise<Paginated<Staff>>;
+  createStaff(request: SaveStaffRequest): Promise<Staff>;
   updateStaffStatus(id: string, isActive: boolean): Promise<Staff>;
   changeUserRole(id: string, request: ChangeUserRoleRequest): Promise<UserListItem>;
   listPayments(params: PaginationParams): Promise<Paginated<PaymentListItem>>;

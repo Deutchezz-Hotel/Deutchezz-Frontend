@@ -416,7 +416,7 @@ export interface SaveStaffRequest {
   email: string;
   phoneNumber?: string;
   role: StaffRole;
-  /** Required when creating a staff member; ignored on update. */
+  /** Required when creating a staff member. */
   password?: string;
 }
 
@@ -493,7 +493,8 @@ export interface MeProfile {
 export interface SaveProfileRequest {
   firstName: string;
   lastName: string;
-  email: string;
+  /** Ignored by the API: email changes aren't supported yet. */
+  email?: string;
   phoneNumber?: string;
 }
 

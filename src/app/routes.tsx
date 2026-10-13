@@ -48,6 +48,7 @@ const AdminReports = withSuspense(lazy(() => import('@/pages/admin/reports')));
 const AdminActivity = withSuspense(lazy(() => import('@/pages/admin/activity')));
 const AdminNotifications = withSuspense(lazy(() => import('@/pages/admin/notifications')));
 const AdminSettings = withSuspense(lazy(() => import('@/pages/admin/settings')));
+const MyProfile = withSuspense(lazy(() => import('@/pages/shared/my-profile')));
 
 export const appRoutes: RouteObject[] = [
   {
@@ -99,6 +100,7 @@ export const appRoutes: RouteObject[] = [
           { path: '/reception/rooms', element: <ReceptionRooms /> },
           { path: '/reception/guests', element: <ReceptionGuests /> },
           { path: '/reception/payments', element: <ReceptionPayments /> },
+          { path: '/reception/profile', element: <MyProfile /> },
         ],
       },
     ],
@@ -123,6 +125,7 @@ export const appRoutes: RouteObject[] = [
           { path: '/admin/activity', element: <AdminActivity /> },
           { path: '/admin/notifications', element: <AdminNotifications /> },
           { path: '/admin/settings', element: <AdminSettings /> },
+          { path: '/admin/profile', element: <MyProfile /> },
         ],
       },
     ],

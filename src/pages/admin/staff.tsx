@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useAdminStaff, useAdminStaffMutations } from '@/hooks/queries';
+import { useAuth } from '@/app/auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,8 +16,8 @@ import { ChangeRoleDialog, type ChangeRoleTarget } from '@/components/change-rol
 import { staffRoleLabel } from '@/lib/format';
 import { focusFirstInvalid } from '@/lib/focus';
 import { toast } from 'sonner';
-import { Pencil, Plus, ShieldCheck, UserCog } from 'lucide-react';
-import type { SaveStaffRequest, Staff, StaffRole } from '@/types';
+import { Plus, ShieldCheck, UserCog } from 'lucide-react';
+import type { SaveStaffRequest, StaffRole } from '@/types';
 
 const ROLES: StaffRole[] = ['Receptionist', 'Administrator'];
 const ROLE_OPTIONS: ChangeRoleTarget['role'][] = ['Receptionist', 'Administrator', 'Customer'];
@@ -24,8 +25,8 @@ const emptyForm: SaveStaffRequest = { firstName: '', lastName: '', email: '', ph
 const FORM_ID = 'staff-form';
 
 export default function AdminStaffPage() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Staff | null>(null);
   const [roleTarget, setRoleTarget] = useState<ChangeRoleTarget | null>(null);
   const [form, setForm] = useState<SaveStaffRequest>(emptyForm);
   const [search, setSearch] = useState('');
@@ -42,17 +43,12 @@ export default function AdminStaffPage() {
     ? allStaff.filter((s) => `${s.firstName} ${s.lastName}`.toLowerCase().includes(q) || s.email.toLowerCase().includes(q))
     : allStaff;
 
-  const openCreate = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
-  const openEdit = (s: Staff) => {
-    setEditing(s);
-    setForm({ firstName: s.firstName, lastName: s.lastName, email: s.email, phoneNumber: s.phoneNumber ?? '', role: s.role });
-    setOpen(true);
-  };
+  const openCreate = () => { setForm(emptyForm); setOpen(true); };
   const save = () => {
     const firstNameValid = form.firstName.trim().length > 0;
     const lastNameValid = form.lastName.trim().length > 0;
     const emailValid = form.email.trim().length > 0;
-    const passwordValid = editing || (!!form.password && form.password.length >= 8);
+    const passwordValid = !!form.password && form.password.length >= 8;
     if (!firstNameValid || !lastNameValid || !emailValid) {
       focusFirstInvalid([
         { valid: firstNameValid, el: firstNameRef.current },
@@ -68,9 +64,10 @@ export default function AdminStaffPage() {
       return;
     }
     const req = { ...form, firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim() };
-    const opts = { onSuccess: () => { toast.success(editing ? 'Staff updated' : 'Staff added'); setOpen(false); }, onError: () => toast.error('Could not save the staff member') };
-    if (editing) mutations.updateStaff.mutate({ id: editing.id, request: req }, opts);
-    else mutations.createStaff.mutate(req, opts);
+    mutations.createStaff.mutate(req, {
+      onSuccess: () => { toast.success('Staff added'); setOpen(false); },
+      onError: () => toast.error('Could not save the staff member'),
+    });
   };
 
   return (
@@ -105,44 +102,52 @@ export default function AdminStaffPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {staff.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-primary text-xs text-primary-foreground">{s.initials}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-ink-900">{s.firstName} {s.lastName}</p>
-                            <p className="text-xs text-ink-600">{s.phoneNumber ? `${s.email} · ${s.phoneNumber}` : s.email}</p>
+                  {staff.map((s) => {
+                    const isSelf = user?.id === s.id;
+                    return (
+                      <TableRow key={s.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                              <AvatarFallback className="bg-primary text-xs text-primary-foreground">{s.initials}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-ink-900">
+                                {s.firstName} {s.lastName}
+                                {isSelf ? <Badge variant="secondary" className="ml-2 align-middle">You</Badge> : null}
+                              </p>
+                              <p className="text-xs text-ink-600">{s.phoneNumber ? `${s.email} · ${s.phoneNumber}` : s.email}</p>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell><Badge variant="secondary">{staffRoleLabel(s.role)}</Badge></TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={s.isActive}
-                          onCheckedChange={(checked) => mutations.updateStaffStatus.mutate(
-                            { id: s.id, isActive: checked },
-                            { onError: () => toast.error('Could not update status') },
-                          )}
-                          aria-label={`${s.isActive ? 'Deactivate' : 'Activate'} ${s.firstName}`}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(s)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setRoleTarget({ id: s.id, name: `${s.firstName} ${s.lastName}`.trim(), role: s.role })}
-                          >
-                            <UserCog className="mr-2 h-4 w-4" /> Change role
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell><Badge variant="secondary">{staffRoleLabel(s.role)}</Badge></TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={s.isActive}
+                            disabled={s.id === user?.id}
+                            onCheckedChange={(checked) => mutations.updateStaffStatus.mutate(
+                              { id: s.id, isActive: checked },
+                              { onError: () => toast.error('Could not change the status') },
+                            )}
+                            aria-label={`${s.isActive ? 'Deactivate' : 'Activate'} ${s.firstName}${s.id === user?.id ? ' (you)' : ''}`}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={s.id === user?.id}
+                              onClick={() => setRoleTarget({ id: s.id, name: `${s.firstName} ${s.lastName}`.trim(), role: s.role })}
+                              title={s.id === user?.id ? "You can't change your own role" : undefined}
+                            >
+                              <UserCog className="mr-2 h-4 w-4" /> Change role
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -151,35 +156,33 @@ export default function AdminStaffPage() {
       ) : null}
 
       <FormDialog open={open} onOpenChange={setOpen}>
-        <FormDialogContent className="sm:max-w-md">
+        <FormDialogContent className="sm:max-w-sm">
           <FormDialogHeader>
-            <FormDialogTitle>{editing ? `Edit ${editing.firstName} ${editing.lastName}` : 'Add staff'}</FormDialogTitle>
+            <FormDialogTitle>Add staff</FormDialogTitle>
           </FormDialogHeader>
           <FormDialogBody>
             <form id={FORM_ID} className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>First name</Label>
-                  <Input ref={firstNameRef} value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+                  <Label htmlFor="staff-first-name">First name</Label>
+                  <Input id="staff-first-name" ref={firstNameRef} value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Last name</Label>
-                  <Input ref={lastNameRef} value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+                  <Label htmlFor="staff-last-name">Last name</Label>
+                  <Input id="staff-last-name" ref={lastNameRef} value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
-                <Input ref={emailRef} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Label htmlFor="staff-email">Email</Label>
+                <Input id="staff-email" ref={emailRef} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
-              {!editing ? (
-                <div className="space-y-2">
-                  <Label>Password</Label>
-                  <Input ref={passwordRef} type="password" value={form.password ?? ''} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="At least 8 characters" />
-                </div>
-              ) : null}
               <div className="space-y-2">
-                <Label>Phone number (optional)</Label>
-                <Input value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} />
+                <Label htmlFor="staff-password">Password</Label>
+                <Input id="staff-password" ref={passwordRef} type="password" value={form.password ?? ''} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="At least 8 characters" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staff-phone">Phone number (optional)</Label>
+                <Input id="staff-phone" value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>Role</Label>
@@ -194,7 +197,7 @@ export default function AdminStaffPage() {
           </FormDialogBody>
           <FormDialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" form={FORM_ID} disabled={mutations.createStaff.isPending || mutations.updateStaff.isPending}>Save</Button>
+            <Button type="submit" form={FORM_ID} disabled={mutations.createStaff.isPending}>Save</Button>
           </FormDialogFooter>
         </FormDialogContent>
       </FormDialog>

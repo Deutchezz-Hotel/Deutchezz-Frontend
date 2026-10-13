@@ -371,13 +371,6 @@ export interface CreateStaffRequest {
   phoneNumber?: string | null;
 }
 
-export interface UpdateStaffRequest {
-  firstName?: string | null;
-  lastName?: string | null;
-  phoneNumber?: string | null;
-  role?: string | null;
-}
-
 export interface SetStaffStatusRequest {
   isActive: boolean;
 }
