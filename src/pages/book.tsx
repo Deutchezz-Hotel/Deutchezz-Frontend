@@ -14,7 +14,8 @@ import { addDaysISO, formatStayRange, formatTime12h, nightsBetween, todayISO, va
 import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import { newIdempotencyKey } from '@/lib/id';
 import { appConfig } from '@/config/appConfig';
-import { useEffect, useState } from 'react';
+import { overageHours, extraChargeForLine } from '@/lib/pricing';
+import { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { BookingDraft, BookingFlowState } from '@/features/booking/types';
 import { toast } from 'sonner';
@@ -71,6 +72,10 @@ export default function BookPage() {
 
   const availability = availabilityQuery.data;
   const nights = values.checkInDate && values.checkOutDate ? Math.max(1, nightsBetween(values.checkInDate, values.checkOutDate)) : 1;
+  const overage = useMemo(
+    () => overageHours({ checkInDate: values.checkInDate, checkInTime: values.checkInTime, checkOutDate: values.checkOutDate, checkOutTime: values.checkOutTime }),
+    [values.checkInDate, values.checkInTime, values.checkOutDate, values.checkOutTime],
+  );
 
   // Clamp any chosen quantities to the latest availability.
   useEffect(() => {
@@ -103,10 +108,14 @@ export default function BookPage() {
       roomTypeId: r.roomTypeId,
       name: r.name,
       pricePerNight: r.pricePerNight,
-      quantity: qty[r.roomTypeId],
+      quantity: qty[r.roomTypeId] ?? 0,
     }));
 
   const estimatedTotal = selectedLines.reduce((sum, l) => sum + l.pricePerNight * l.quantity * nights, 0);
+  const extraChargeAmount = useMemo(
+    () => selectedLines.reduce((sum, l) => sum + extraChargeForLine(l.pricePerNight, l.quantity, overage, policy), 0),
+    [selectedLines, overage, policy],
+  );
 
   const stayError = values.checkInDate && values.checkOutDate ? validateStayWindow(stayWindow, policy) : null;
 
@@ -134,6 +143,7 @@ export default function BookPage() {
       },
       lines: selectedLines,
       nights,
+      extraChargeAmount,
     };
     const state: BookingFlowState = { draft, idempotencyKey };
     nav('/booking/guest-details', { state });

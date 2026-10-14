@@ -196,6 +196,14 @@ export interface StayPolicy {
   maxExtraHoursPerStay: number;
   /** Minutes a room must rest between stays. */
   turnaroundMinutes: number;
+  /** Overstay hours up to this amount are free (no late check-out surcharge). */
+  graceHours: number;
+  /** Overstay hours up to this amount are charged the half-day percentage. */
+  halfDayHours: number;
+  /** Percentage of one night's rate charged for a half-day overstay (0–100). */
+  halfDayPercent: number;
+  /** Percentage of one night's rate charged for a full-day overstay (0–100). */
+  fullNightPercent: number;
 }
 
 /** One conflicted room in a 409 `room.occupied_until` response (v1.12). */
@@ -293,6 +301,8 @@ export interface BookingRoomLine {
   ratePerNight: number;
   numberOfNights: number;
   subtotal: number;
+  /** Late check-out surcharge for this line (0 when none applies). */
+  extraCharge: number;
   /** Room numbers of the live assignments, in assignment order. */
   assignedRoomNumbers?: string[];
   /** Rich live assignments for this line (v1.9); enables per-room actions. */
@@ -327,6 +337,8 @@ export interface BookingResponse {
   rooms: BookingRoomLine[];
   specialRequests: string | null;
   totalAmount: number;
+  /** Total late check-out surcharge across all lines (0 when none applies). */
+  extraChargeAmount: number;
   createdAt: string;
   /** How the booking was created. */
   source: BookingSource;

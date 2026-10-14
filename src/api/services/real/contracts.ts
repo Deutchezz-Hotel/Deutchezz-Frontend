@@ -143,6 +143,10 @@ export interface StayPolicyResponse {
   latestCheckOutTime: string;
   maxExtraHoursPerStay: number;
   turnaroundMinutes: number;
+  graceHours: number;
+  halfDayHours: number;
+  halfDayPercent: number;
+  fullNightPercent: number;
 }
 
 /** One conflicted room inside a 409 `room.occupied_until` `errors` array. */
@@ -223,6 +227,7 @@ export interface BookingRoomTypeLineResponse {
   ratePerNight: number;
   numberOfNights: number;
   subtotal: number;
+  extraCharge: number;
 }
 
 export interface RoomAssignmentResponse {
@@ -267,6 +272,7 @@ export interface BookingDetailResponse {
   assignments: RoomAssignmentResponse[];
   payments: PaymentSummary;
   createdAt: string;
+  extraChargeAmount: number;
   /** ISO-8601 instant the booking was cancelled, or null (retention, SoT v1.12). */
   cancelledAt?: string | null;
   /** When a cancelled, unpaid booking will be permanently purged, or null. */

@@ -16,6 +16,8 @@ export interface BookingDraft {
   request: CreateBookingRequest;
   lines: BookingSummaryLine[];
   nights: number;
+  /** Estimated late check-out surcharge for the draft (0 if none). */
+  extraChargeAmount?: number;
 }
 
 /** Router state passed between /book → guest details → review. */
