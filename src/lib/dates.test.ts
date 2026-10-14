@@ -32,6 +32,10 @@ const POLICY: StayPolicy = {
   latestCheckOutTime: '14:00',
   maxExtraHoursPerStay: 4,
   turnaroundMinutes: 0,
+  graceHours: 2,
+  halfDayHours: 6,
+  halfDayPercent: 50,
+  fullNightPercent: 100,
 };
 
 describe('nightsBetween', () => {
@@ -194,13 +198,13 @@ describe('validateStayWindow', () => {
     expect(validateStayWindow({ ...base, checkInTime: '23:00' }, POLICY)?.code).toBe('stay.time_not_allowed');
   });
 
-  it('rejects stays longer than nights allow', () => {
+  it('accepts a stay longer than nights allow because of late checkout surcharge', () => {
     const error = validateStayWindow(
       { ...base, checkInTime: '08:00', checkOutDate: '2026-11-04', checkOutTime: '14:00' },
       POLICY,
       { now: new Date('2026-10-01T00:00:00Z') },
     );
-    expect(error?.code).toBe('stay.too_long_for_nights');
+    expect(error).toBeNull();
   });
 
   it('rejects a past check-in for guests but allows staff walk-ins', () => {

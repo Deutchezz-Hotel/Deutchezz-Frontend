@@ -177,6 +177,7 @@ export function toBooking(d: c.BookingDetailResponse): BookingResponse {
       ratePerNight: line.ratePerNight,
       numberOfNights: line.numberOfNights,
       subtotal: line.subtotal,
+      extraCharge: line.extraCharge ?? 0,
       assignedRooms,
       assignedRoomNumbers: assignedRooms.map((a) => a.roomNumber),
     };
@@ -202,6 +203,7 @@ export function toBooking(d: c.BookingDetailResponse): BookingResponse {
     rooms,
     specialRequests: d.specialRequests,
     totalAmount: d.totalAmount,
+    extraChargeAmount: d.extraChargeAmount ?? 0,
     createdAt: d.createdAt,
     updatedAt: d.createdAt,
     source: d.source as BookingSource,

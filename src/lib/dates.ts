@@ -180,7 +180,7 @@ export function formatStayMoment(date: string, time: string): string {
   return `${formatDisplayDate(date)} · ${formatTime12h(time)}`;
 }
 
-export type StayErrorCode = 'stay.invalid_range' | 'stay.time_not_allowed' | 'stay.too_long_for_nights' | 'stay.in_the_past';
+export type StayErrorCode = 'stay.invalid_range' | 'stay.time_not_allowed' | 'stay.in_the_past';
 
 export interface StayValidationError {
   code: StayErrorCode;
@@ -223,12 +223,10 @@ export function validateStayWindow(
       message: `Check-out must be between ${formatTime12h(policy.earliestCheckOutTime)} and ${formatTime12h(policy.latestCheckOutTime)}`,
     };
 
-  const nights = nightsBetween(checkInDate, checkOutDate);
   const checkInAt = new Date(lagosDateTimeISO(checkInDate, inTime));
   const checkOutAt = new Date(lagosDateTimeISO(checkOutDate, outTime));
-  const allowedHours = nights * 24 + policy.maxExtraHoursPerStay;
-  if (checkOutAt.getTime() - checkInAt.getTime() > allowedHours * 3_600_000)
-    return { code: 'stay.too_long_for_nights', message: `A ${nights}-night stay may not exceed ${allowedHours} hours` };
+  if (checkOutAt.getTime() <= checkInAt.getTime())
+    return { code: 'stay.invalid_range', message: 'Check-out must be after check-in' };
 
   if (!options.isStaffWalkIn && checkInAt.getTime() < (options.now ?? new Date()).getTime())
     return { code: 'stay.in_the_past', message: 'Check-in time cannot be in the past' };

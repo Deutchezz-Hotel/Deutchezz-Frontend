@@ -14,7 +14,8 @@ import { addDaysISO, floorToSlot, formatStayRange, formatTime12h, lagosNow, nigh
 import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import { newIdempotencyKey } from '@/lib/id';
 import { appConfig } from '@/config/appConfig';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { overageHours, extraChargeForLine } from '@/lib/pricing';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -77,6 +78,10 @@ export default function ReceptionCreateBookingPage() {
   );
   const availability = availabilityQuery.data;
   const nights = values.checkInDate && values.checkOutDate ? Math.max(1, nightsBetween(values.checkInDate, values.checkOutDate)) : 1;
+  const overage = useMemo(
+    () => overageHours({ checkInDate: values.checkInDate, checkInTime: values.checkInTime, checkOutDate: values.checkOutDate, checkOutTime: values.checkOutTime }),
+    [values.checkInDate, values.checkInTime, values.checkOutDate, values.checkOutTime],
+  );
 
   const totalSelected = Object.values(qty).reduce((a, b) => a + b, 0);
   const changeQty = (roomTypeId: string, available: number, delta: number) => {
@@ -92,9 +97,14 @@ export default function ReceptionCreateBookingPage() {
     roomTypeId: r.roomTypeId,
     name: r.name,
     pricePerNight: r.pricePerNight,
-    quantity: qty[r.roomTypeId],
+    quantity: qty[r.roomTypeId] ?? 0,
   }));
   const estimatedTotal = selectedLines.reduce((sum, l) => sum + l.pricePerNight * l.quantity * nights, 0);
+  const extraChargeAmount = useMemo(
+    () => selectedLines.reduce((sum, l) => sum + extraChargeForLine(l.pricePerNight, l.quantity, overage, policy), 0),
+    [selectedLines, overage, policy],
+  );
+  void extraChargeAmount;
 
   const handleSubmit = form.handleSubmit((v) => {
     if (selectedLines.length === 0) {
