@@ -34,6 +34,8 @@ import type {
   Paginated,
   Payment,
   PaymentListItem,
+  PricingQuote,
+  PricingQuoteRequest,
   ReassignRoomRequest,
   ReceptionCancelBookingRequest,
   ReceptionCreateBookingRequest,
@@ -57,6 +59,7 @@ import type {
   UserListItem,
   UserRole,
   VerifyEmailRequest,
+  ContactRequest,
 } from '@/types';
 
 export interface PaginationParams {
@@ -184,6 +187,16 @@ export interface ReceptionApi {
   recordPayment(request: RecordPaymentRequest): Promise<Payment>;
 }
 
+export interface PricingApi {
+  /** Public duration-based price quote (the backend owns the billing formula). */
+  quote(request: PricingQuoteRequest): Promise<PricingQuote>;
+}
+
+export interface ContactApi {
+  /** Sends a message from the public contact form. */
+  send(request: ContactRequest): Promise<MessageResponse>;
+}
+
 export interface AdminApi {
   dashboard(): Promise<AdminDashboard>;
   listRooms(params: RoomListParams): Promise<Paginated<Room>>;
@@ -218,6 +231,8 @@ export interface ServiceCollection {
   roomTypes: RoomTypesApi;
   availability: AvailabilityApi;
   stay: StayPolicyApi;
+  pricing: PricingApi;
+  contact: ContactApi;
   uploads: UploadsApi;
   bookings: BookingsApi;
   me: MeApi;

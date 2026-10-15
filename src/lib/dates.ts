@@ -39,6 +39,77 @@ export function addDaysISO(isoDate: string, days: number): string {
   return format(addDays(parseISO(isoDate), days), 'yyyy-MM-dd');
 }
 
+/**
+ * The default check-out for a stay: its check-in date/time plus 24 hours × nights
+ * (SoT v1.15), so the default check-out time mirrors the check-in time. `nights`
+ * below 1 is clamped to 1. Times are Lagos-local "HH:mm" strings.
+ */
+export function computeDefaultCheckOut(
+  checkInDate: string,
+  checkInTime: string,
+  nights: number,
+): { checkOutDate: string; checkOutTime: string } {
+  const safeNights = Math.max(1, Math.trunc(nights) || 1);
+  return {
+    checkOutDate: addDaysISO(checkInDate, safeNights),
+    checkOutTime: normaliseTime(checkInTime) ?? checkInTime,
+  };
+}
+
+/**
+ * The next check-in slot strictly after `nowTime` (round UP, never the current slot),
+ * clamped into the policy's [earliest, latest] window. Returns null when no slot remains
+ * today. Times are Lagos-local "HH:mm".
+ */
+export function nextCheckInSlot(
+  nowTime: string,
+  earliest: string,
+  latest: string,
+  stepMinutes: number,
+): string | null {
+  const now = timeToMinutes(nowTime);
+  const lo = timeToMinutes(earliest);
+  const hi = timeToMinutes(latest);
+  if (now == null || lo == null || hi == null) return null;
+  const step = stepMinutes > 0 ? stepMinutes : 30;
+  const candidate = Math.max(lo, Math.floor(now / step) * step + step);
+  return candidate <= hi ? minutesToTime(candidate) : null;
+}
+
+/**
+ * The Lagos default check-in: the next slot strictly after now, or tomorrow's earliest slot
+ * when none remains today. `now` must come from `lagosNow()`, never the browser's clock.
+ */
+export function defaultCheckIn(
+  now: { date: string; time: string },
+  policy: Pick<StayPolicy, 'earliestCheckInTime' | 'latestCheckInTime' | 'timeSlotMinutes'>,
+): { date: string; time: string } {
+  const slot = nextCheckInSlot(now.time, policy.earliestCheckInTime, policy.latestCheckInTime, policy.timeSlotMinutes);
+  if (slot != null) return { date: now.date, time: slot };
+  return {
+    date: addDaysISO(now.date, 1),
+    time: normaliseTime(policy.earliestCheckInTime) ?? policy.earliestCheckInTime,
+  };
+}
+
+/**
+ * Whether a check-in slot may be picked: for today every slot at or before now is disabled,
+ * for a future date all window slots are available. `nowTime` must be Lagos-local.
+ */
+export function isCheckInSlotSelectable(
+  slot: string,
+  isToday: boolean,
+  nowTime: string,
+  earliest: string,
+  latest: string,
+): boolean {
+  if (!withinTimeRange(slot, earliest, latest)) return false;
+  if (!isToday) return true;
+  const s = timeToMinutes(slot);
+  const n = timeToMinutes(nowTime);
+  return s != null && n != null && s > n;
+}
+
 export function formatCheckInDate(isoDate: string): string {
   return `${formatDisplayDate(isoDate)} · check-in from ${appConfig.checkInTime}`;
 }
@@ -202,7 +273,7 @@ export interface StayWindowInput {
 export function validateStayWindow(
   input: StayWindowInput,
   policy: StayPolicy,
-  options: { isStaffWalkIn?: boolean; now?: Date } = {},
+  options: { now?: Date } = {},
 ): StayValidationError | null {
   const { checkInDate, checkInTime, checkOutDate, checkOutTime } = input;
   if (checkOutDate <= checkInDate) return { code: 'stay.invalid_range', message: 'Check-out must be after check-in' };
@@ -228,7 +299,7 @@ export function validateStayWindow(
   if (checkOutAt.getTime() <= checkInAt.getTime())
     return { code: 'stay.invalid_range', message: 'Check-out must be after check-in' };
 
-  if (!options.isStaffWalkIn && checkInAt.getTime() < (options.now ?? new Date()).getTime())
+  if (checkInAt.getTime() < (options.now ?? new Date()).getTime())
     return { code: 'stay.in_the_past', message: 'Check-in time cannot be in the past' };
 
   return null;

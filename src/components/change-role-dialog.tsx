@@ -16,14 +16,16 @@ export interface ChangeRoleTarget {
   role: UserRole;
 }
 
-const ALL_ROLES: UserRole[] = ['Customer', 'Receptionist', 'Administrator'];
-
 interface ChangeRoleDialogProps {
   /** The account to edit; `null` keeps the dialog closed. */
   target: ChangeRoleTarget | null;
   onOpenChange: (open: boolean) => void;
-  /** Roles offered, in display order. Defaults to all three. */
-  roles?: UserRole[];
+  /**
+   * Roles offered, in display order. Required so every caller states its intent explicitly — staff
+   * role changes live on the Staff page, and a customer can no longer be promoted to a staff role
+   * (v1.17). Omitting this must not silently fall back to all three roles.
+   */
+  roles: UserRole[];
   title?: string;
   description?: string;
 }
@@ -31,9 +33,10 @@ interface ChangeRoleDialogProps {
 /**
  * Assigns exactly one role to an account. A change moves the person between the
  * user directory and the staff list, so the mutation invalidates both. The
- * backend enforces the guard rails (no self-change, keep one administrator).
+ * backend enforces the guard rails (no self-change, keep one administrator, no
+ * customer-to-staff promotion).
  */
-export function ChangeRoleDialog({ target, onOpenChange, roles = ALL_ROLES, title = 'Change role', description }: ChangeRoleDialogProps) {
+export function ChangeRoleDialog({ target, onOpenChange, roles, title = 'Change role', description }: ChangeRoleDialogProps) {
   const [role, setRole] = useState<UserRole>('Customer');
   const mutation = useChangeUserRole();
   const open = target !== null;

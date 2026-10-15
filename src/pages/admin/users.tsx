@@ -2,21 +2,16 @@ import { useState } from 'react';
 import { useAdminUsers } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageSkeleton, ErrorBanner, EmptyState } from '@/components/feedback';
-import { ChangeRoleDialog, type ChangeRoleTarget } from '@/components/change-role-dialog';
 import { formatDisplayDate } from '@/lib/dates';
 import { roleLabel } from '@/lib/format';
-import { UserCog, Users } from 'lucide-react';
-
-const ROLE_OPTIONS = ['Customer', 'Receptionist', 'Administrator'] as const;
+import { Users } from 'lucide-react';
 
 export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
-  const [target, setTarget] = useState<ChangeRoleTarget | null>(null);
   const query = useAdminUsers({ pageSize: 100, search: search.trim() || undefined });
   const users = query.data?.items ?? [];
 
@@ -25,7 +20,7 @@ export default function AdminUsersPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="heading-2">Users</h1>
-          <p className="text-sm text-muted-foreground">Customer accounts. Promote one to staff to give front-desk access.</p>
+          <p className="text-sm text-muted-foreground">Customer accounts. Add staff from the Staff page.</p>
         </div>
         <Input
           className="w-full sm:w-64"
@@ -52,7 +47,6 @@ export default function AdminUsersPage() {
                     <TableHead>Status</TableHead>
                     <TableHead>Bookings</TableHead>
                     <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -78,15 +72,6 @@ export default function AdminUsersPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">{u.bookingsCount}</TableCell>
                       <TableCell className="text-muted-foreground">{formatDisplayDate(u.createdAt)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setTarget({ id: u.id, name: `${u.firstName} ${u.lastName}`.trim(), role: u.role })}
-                        >
-                          <UserCog className="mr-2 h-4 w-4" /> Change role
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -95,12 +80,6 @@ export default function AdminUsersPage() {
           </Card>
         )
       ) : null}
-
-      <ChangeRoleDialog
-        target={target}
-        roles={[...ROLE_OPTIONS]}
-        onOpenChange={(open) => { if (!open) setTarget(null); }}
-      />
     </div>
   );
 }

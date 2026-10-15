@@ -70,12 +70,8 @@ export function EarlyCheckOutDialog({ booking, open, onOpenChange }: Props) {
         },
         onError: (error) => {
           const err = toApiError(error);
-          if (err.problem.code === 'booking.early_checkout_requires_admin') {
-            toast.error('Early check-outs need an administrator. Ask an admin to complete this.');
-          } else if (err.problem.code === 'booking.notes_required') {
+          if (err.problem.code === 'booking.notes_required') {
             setNotesError('Notes are required when the reason is Other.');
-          } else if (err.problem.code === 'booking.balance_outstanding') {
-            toast.error('Settle the outstanding balance before checking out.');
           } else {
             toast.error(err.userMessage);
           }

@@ -90,6 +90,13 @@ export interface MessageResponse {
   message: string;
 }
 
+/** Public contact-form submission (POST /contact). */
+export interface ContactRequest {
+  name: string;
+  email: string;
+  message: string;
+}
+
 /**
  * Neutral acknowledgment for register/resend/forgot. The backend never reveals
  * whether an email/phone already exists, so these always succeed (202).
@@ -192,18 +199,55 @@ export interface StayPolicy {
   latestCheckInTime: string;
   earliestCheckOutTime: string;
   latestCheckOutTime: string;
-  /** A stay may run up to nights*24 + this many hours. */
-  maxExtraHoursPerStay: number;
   /** Minutes a room must rest between stays. */
   turnaroundMinutes: number;
-  /** Overstay hours up to this amount are free (no late check-out surcharge). */
+  /** Overstay hours up to this amount are free (no extended-stay surcharge). */
   graceHours: number;
-  /** Overstay hours up to this amount are charged the half-day percentage. */
-  halfDayHours: number;
-  /** Percentage of one night's rate charged for a half-day overstay (0–100). */
-  halfDayPercent: number;
-  /** Percentage of one night's rate charged for a full-day overstay (0–100). */
-  fullNightPercent: number;
+  /** Hard cap on how many nights a single stay may be booked for. */
+  maxStayNights: number;
+}
+
+/* ------------------------------ Pricing (v1.14) -------------------------- */
+
+/** One requested room line for a prospective price quote. */
+export interface PricingQuoteRoom {
+  roomTypeId: string;
+  quantity: number;
+}
+
+/** A prospective stay to price; the backend owns the duration-based formula. */
+export interface PricingQuoteRequest {
+  checkInDate: string;
+  checkInTime: string;
+  checkOutDate: string;
+  checkOutTime: string;
+  /** "walkIn"/"reception" relaxes the not-in-the-past check; omit for online. */
+  bookingType?: 'online' | 'walkIn' | 'reception';
+  rooms: PricingQuoteRoom[];
+}
+
+/** A priced room line from `POST /pricing/quote`. */
+export interface PricingQuoteLine {
+  roomTypeId: string;
+  roomTypeName: string;
+  quantity: number;
+  ratePerNight: number;
+  nights: number;
+  overageMinutes: number;
+  tierLabel: string | null;
+  subtotal: number;
+  extraCharge: number;
+  lineTotal: number;
+}
+
+/** Full quote: booked-nights base plus any tiered extended-stay overage. */
+export interface PricingQuote {
+  nights: number;
+  overageMinutes: number;
+  lines: PricingQuoteLine[];
+  subtotal: number;
+  extraChargeAmount: number;
+  total: number;
 }
 
 /** One conflicted room in a 409 `room.occupied_until` response (v1.12). */
@@ -301,7 +345,7 @@ export interface BookingRoomLine {
   ratePerNight: number;
   numberOfNights: number;
   subtotal: number;
-  /** Late check-out surcharge for this line (0 when none applies). */
+  /** Extended-stay surcharge for this line (0 when none applies). */
   extraCharge: number;
   /** Room numbers of the live assignments, in assignment order. */
   assignedRoomNumbers?: string[];
@@ -337,7 +381,7 @@ export interface BookingResponse {
   rooms: BookingRoomLine[];
   specialRequests: string | null;
   totalAmount: number;
-  /** Total late check-out surcharge across all lines (0 when none applies). */
+  /** Total extended-stay surcharge across all lines (0 when none applies). */
   extraChargeAmount: number;
   createdAt: string;
   /** How the booking was created. */
@@ -714,10 +758,17 @@ export interface HotelSettings {
   latestCheckInTime?: string;
   earliestCheckOutTime?: string;
   latestCheckOutTime?: string;
-  /** A stay may run up to nights*24 + this many hours. */
-  maxExtraHoursPerStay?: number;
   /** Minutes a room must rest between stays. */
   turnaroundMinutes?: number;
+  /** Hard cap on how many nights a single stay may be booked for. */
+  maxStayNights?: number;
+  /** Overstay hours up to this amount are free (no extended-stay surcharge). */
+  graceHours?: number;
+  /* ---- Check-out reminders (SoT v1.16) ---- */
+  /** Minutes before a checked-in stay's scheduled check-out to email the front desk. */
+  checkOutReminderLeadMinutes?: number;
+  /** Comma-separated staff inboxes for reminders (empty falls back to the desk inbox). */
+  receptionNotificationEmails?: string;
 }
 
 export type SaveSettingsRequest = Partial<HotelSettings>;

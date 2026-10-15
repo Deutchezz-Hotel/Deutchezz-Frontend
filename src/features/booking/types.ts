@@ -11,22 +11,16 @@ export interface BookingSummaryLine {
 /**
  * The in-progress booking. `request` is exactly what gets POSTed; `lines` and
  * `nights` carry display data (names/rates) the API request deliberately omits.
+ * Totals are never computed here — every surface prices through the backend.
  */
 export interface BookingDraft {
   request: CreateBookingRequest;
   lines: BookingSummaryLine[];
   nights: number;
-  /** Estimated late check-out surcharge for the draft (0 if none). */
-  extraChargeAmount?: number;
 }
 
 /** Router state passed between /book → guest details → review. */
 export interface BookingFlowState {
   draft: BookingDraft;
   idempotencyKey: string;
-}
-
-/** Estimated total for display only — the server is the source of truth. */
-export function estimateTotal(draft: BookingDraft): number {
-  return draft.lines.reduce((sum, line) => sum + line.pricePerNight * line.quantity * draft.nights, 0);
 }

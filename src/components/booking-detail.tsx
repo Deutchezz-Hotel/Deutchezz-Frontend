@@ -1,6 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useReceptionBooking, useReceptionAction, useReceptionRooms, useAdminBookingActions } from '@/hooks/queries';
+import { useReceptionBooking, useReceptionAction, useReceptionRooms, useAdminBookingActions, useStayPolicy } from '@/hooks/queries';
 import { useAuth } from '@/app/auth';
+import { ExtendedStayCharge } from '@/components/extended-stay-charge';
+import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
+import { bookingOverageMinutes } from '@/lib/pricing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,10 +42,13 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const [unassignTarget, setUnassignTarget] = useState<AssignedRoom | null>(null);
   const [lateTarget, setLateTarget] = useState<{ bookingRoomTypeId: string; roomId: string; roomNumber: string; availableFrom?: string } | null>(null);
   const [conflictError, setConflictError] = useState<ApiError | null>(null);
+  const { data: policyData } = useStayPolicy();
+  const graceHours = (policyData ?? DEFAULT_STAY_POLICY).graceHours;
 
   if (isLoading) return <PageSkeleton rows={4} />;
   if (isError || !booking) return <ErrorBanner message="We couldn't load this booking" retry={() => refetch()} />;
 
+  const overageMinutes = bookingOverageMinutes(booking);
   const paidTotal = booking.payments?.totalPaid ?? 0;
   const balance = booking.payments?.balance ?? Math.max(0, booking.totalAmount - paidTotal);
 
@@ -69,7 +75,7 @@ export function BookingDetail({ backHref }: { backHref: string }) {
   const runCheckIn = () => {
     action.checkIn.mutate(booking.id, {
       onSuccess: () => { toast.success('Checked in'); setPendingAction(null); },
-      onError: () => toast.error('Could not update this booking'),
+      onError: (error) => { setPendingAction(null); toast.error(toApiError(error).userMessage); },
     });
   };
 
@@ -83,10 +89,6 @@ export function BookingDetail({ backHref }: { backHref: string }) {
           setPendingAction(null);
           if (api.problem.code === 'booking.early_checkout_requires_consent') {
             setEarlyOpen(true);
-          } else if (api.problem.code === 'booking.balance_outstanding') {
-            toast.error('Settle the outstanding balance before checking out.');
-          } else if (api.problem.code === 'booking.early_checkout_requires_admin') {
-            toast.error('Early check-outs need an administrator.');
           } else {
             toast.error(api.userMessage);
           }
@@ -297,6 +299,15 @@ export function BookingDetail({ backHref }: { backHref: string }) {
               <p>{booking.nights} {booking.nights === 1 ? 'night' : 'nights'} · {booking.adults} adults · {booking.children} children</p>
               {canCheckOut ? (
                 <p className="text-xs text-muted-foreground">Scheduled check-out: {formatDisplayDate(booking.checkOutDate)} at {formatTime12h(booking.checkOutTime)}</p>
+              ) : null}
+              {overageMinutes > 0 ? (
+                <div className="pt-2">
+                  <ExtendedStayCharge
+                    overageMinutes={overageMinutes}
+                    amount={booking.extraChargeAmount}
+                    graceHours={graceHours}
+                  />
+                </div>
               ) : null}
               <p className="pt-2 text-2xl font-semibold text-primary">{formatMoney(booking.totalAmount)}</p>
             </CardContent>

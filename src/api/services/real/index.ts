@@ -35,6 +35,9 @@ import type {
   Paginated,
   Payment,
   PaymentListItem,
+  PricingQuote,
+  PricingQuoteRequest,
+  ContactRequest,
   ReassignRoomRequest,
   ReceptionCancelBookingRequest,
   ReceptionCreateBookingRequest,
@@ -231,6 +234,35 @@ export const realAvailabilityApi = {
 export const realStayApi = {
   getPolicy(): Promise<StayPolicy> {
     return call<c.StayPolicyResponse>({ path: '/stay-policy', skipAuth: true }).then(m.toStayPolicy);
+  },
+};
+
+/* -------------------------------- pricing -------------------------------- */
+
+export const realPricingApi = {
+  quote(request: PricingQuoteRequest): Promise<PricingQuote> {
+    const body: c.PricingQuoteRequest = {
+      checkInDate: request.checkInDate,
+      checkInTime: request.checkInTime ?? null,
+      checkOutDate: request.checkOutDate,
+      checkOutTime: request.checkOutTime ?? null,
+      bookingType: request.bookingType ?? null,
+      rooms: request.rooms.map((r) => ({ roomTypeId: r.roomTypeId, quantity: r.quantity })),
+    };
+    return call<c.PricingQuoteResponse>({ path: '/pricing/quote', method: 'POST', body, skipAuth: true });
+  },
+};
+
+/* -------------------------------- contact -------------------------------- */
+
+export const realContactApi = {
+  send(request: ContactRequest): Promise<MessageResponse> {
+    const body: c.ContactRequest = {
+      name: request.name,
+      email: request.email,
+      message: request.message,
+    };
+    return call<c.MessageResponse>({ path: '/contact', method: 'POST', body, skipAuth: true });
   },
 };
 
@@ -510,9 +542,11 @@ export const realServices = {
   roomTypes: realRoomTypesApi,
   availability: realAvailabilityApi,
   stay: realStayApi,
+  pricing: realPricingApi,
   uploads: realUploadsApi,
   bookings: realBookingsApi,
   me: realMeApi,
   reception: realReceptionApi,
   admin: realAdminApi,
+  contact: realContactApi,
 };

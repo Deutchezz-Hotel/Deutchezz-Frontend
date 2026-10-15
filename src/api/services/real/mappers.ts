@@ -469,8 +469,11 @@ export function toSettings(s: c.AdminSettingsResponse): HotelSettings {
     latestCheckInTime: s.latestCheckInTime,
     earliestCheckOutTime: s.earliestCheckOutTime,
     latestCheckOutTime: s.latestCheckOutTime,
-    maxExtraHoursPerStay: s.maxExtraHoursPerStay,
     turnaroundMinutes: s.turnaroundMinutes,
+    maxStayNights: s.maxStayNights,
+    graceHours: s.graceHours,
+    checkOutReminderLeadMinutes: s.checkOutReminderLeadMinutes,
+    receptionNotificationEmails: s.receptionNotificationEmails,
   };
 }
 
@@ -489,8 +492,11 @@ export function toSettingsPatch(request: Partial<HotelSettings>): c.UpdateAdminS
   if (request.latestCheckInTime !== undefined) patch.latestCheckInTime = request.latestCheckInTime;
   if (request.earliestCheckOutTime !== undefined) patch.earliestCheckOutTime = request.earliestCheckOutTime;
   if (request.latestCheckOutTime !== undefined) patch.latestCheckOutTime = request.latestCheckOutTime;
-  if (request.maxExtraHoursPerStay !== undefined) patch.maxExtraHoursPerStay = request.maxExtraHoursPerStay;
   if (request.turnaroundMinutes !== undefined) patch.turnaroundMinutes = request.turnaroundMinutes;
+  if (request.maxStayNights !== undefined) patch.maxStayNights = request.maxStayNights;
+  if (request.graceHours !== undefined) patch.graceHours = request.graceHours;
+  if (request.checkOutReminderLeadMinutes !== undefined) patch.checkOutReminderLeadMinutes = request.checkOutReminderLeadMinutes;
+  if (request.receptionNotificationEmails !== undefined) patch.receptionNotificationEmails = request.receptionNotificationEmails;
   return patch;
 }
 

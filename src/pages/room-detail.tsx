@@ -1,6 +1,7 @@
 import { PageHero } from '@/components/branding';
 import { Reveal } from '@/components/reveal';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
+import { RoomImageGallery } from '@/components/room-image-gallery';
 import { usePublicRoomTypes } from '@/hooks/queries';
 import { formatMoney } from '@/lib/format';
 import { useParams, Link } from 'react-router-dom';
@@ -24,11 +25,7 @@ export default function RoomDetailPage() {
         {error ? <ErrorBanner message="Unable to load room details" retry={refetch} /> : null}
         {type ? (
           <Reveal delay={80} className="grid gap-10 lg:grid-cols-2">
-            <div className="aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-              {type.imageUrls[0] ? (
-                <img src={type.imageUrls[0]} alt={type.name} className="h-full w-full object-cover" />
-              ) : null}
-            </div>
+            <RoomImageGallery images={type.imageUrls} alt={type.name} className="self-start" />
             <div className="space-y-6">
               <div className="flex items-start justify-between">
                 <div className="space-y-2">

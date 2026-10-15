@@ -1,47 +1,47 @@
-import type { StayPolicy } from '@/types';
-import { nightsBetween } from './dates';
+import type { BookingResponse } from '@/types';
 
-export interface StayWindow {
-  checkInDate: string;
-  checkInTime: string;
-  checkOutDate: string;
-  checkOutTime: string;
+const MINUTES_PER_DAY = 24 * 60;
+const MS_PER_MINUTE = 60_000;
+
+type OverageSource = Pick<BookingResponse, 'checkInAt' | 'checkOutAt' | 'actualCheckOutAt' | 'nights'>;
+
+/**
+ * Whole minutes of a stay beyond the booked `nights × 24 h`. Mirrors the backend
+ * charging basis: the actual check-out instant wins once the guest has left, so a
+ * booking repriced at an actual late check-out reports the final overage. The
+ * amount itself always comes from the stored field, never inferred here.
+ */
+export function bookingOverageMinutes(booking: OverageSource): number {
+  const end = booking.actualCheckOutAt ?? booking.checkOutAt;
+  const startMs = new Date(booking.checkInAt).getTime();
+  const endMs = new Date(end).getTime();
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return 0;
+  const wholeMinutes = Math.floor((endMs - startMs) / MS_PER_MINUTE);
+  return Math.max(0, wholeMinutes - booking.nights * MINUTES_PER_DAY);
 }
 
-export function overageHours(window: StayWindow): number {
-  const nights = Math.max(0, nightsBetween(window.checkInDate, window.checkOutDate));
-  const checkInAt = new Date(window.checkInDate + 'T' + window.checkInTime + ':00+01:00');
-  const checkOutAt = new Date(window.checkOutDate + 'T' + window.checkOutTime + ':00+01:00');
-  const durationMs = checkOutAt.getTime() - checkInAt.getTime();
-  if (!Number.isFinite(durationMs)) return 0;
-  const totalHours = durationMs / 3_600_000;
-  const allowedBase = nights * 24;
-  const overage = totalHours - allowedBase;
-  if (overage <= 0) return 0;
-  return Math.min(overage, 24);
+/** Overage expressed in hours (one decimal at most), e.g. 3 or 3.5. */
+export function overageHours(minutes: number): number {
+  return Math.round((minutes / 60) * 10) / 10;
 }
 
-export function extraChargeForLine(
-  ratePerNight: number,
-  quantity: number,
-  overageHours: number,
-  policy: StayPolicy,
-): number {
-  const qty = Math.max(0, Math.floor(quantity));
-  if (qty === 0 || ratePerNight <= 0 || overageHours <= 0) return 0;
-  const grace = policy.graceHours ?? 2;
-  const half = policy.halfDayHours ?? 6;
-  const halfPct = policy.halfDayPercent ?? 50;
-  const fullPct = policy.fullNightPercent ?? 100;
-  let percent = 0;
-  if (overageHours > grace && overageHours <= half) {
-    percent = halfPct;
-  } else if (overageHours > half) {
-    percent = fullPct;
-  } else {
-    percent = 0;
-  }
-  if (percent <= 0) return 0;
-  const charge = (ratePerNight * qty * percent) / 100;
-  return Math.round(charge * 100) / 100;
+/** Guest-facing charge label, e.g. "Extended stay (3 hrs beyond 24 hrs)". */
+export function extendedStayLabel(minutes: number): string {
+  return `Extended stay (${overageHours(minutes)} hrs beyond 24 hrs)`;
+}
+
+/** True when there is an overage but it sits inside the free grace period. */
+export function isWithinGrace(minutes: number, graceHours: number): boolean {
+  return minutes > 0 && minutes <= graceHours * 60;
+}
+
+export const WITHIN_GRACE_NOTE = 'Within the free grace period';
+
+/**
+ * Grace-period explanation with the value read from settings (never hardcoded),
+ * e.g. "Extra charges apply for time beyond 24 hours. The first 2 hours are a
+ * free grace period, so charges start after 26 hours."
+ */
+export function gracePeriodNote(graceHours: number): string {
+  return `Extra charges apply for time beyond 24 hours. The first ${graceHours} hours are a free grace period, so charges start after ${24 + graceHours} hours.`;
 }

@@ -13,6 +13,7 @@ import type { BookingFlowState } from '@/features/booking/types';
 import { useEffect } from 'react';
 import { useAuth } from '@/app/auth';
 import { formatStayRange, formatTime12h } from '@/lib/dates';
+import { ArrowLeft } from 'lucide-react';
 
 const schema = z.object({
   firstName: z.string().min(2, 'Enter your first name'),
@@ -28,15 +29,16 @@ export default function GuestDetailsPage() {
   const location = useLocation() as { state?: BookingFlowState };
   const flow = location.state;
   const { user } = useAuth();
+  const savedGuest = flow?.draft.request.guest;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      firstName: user?.firstName ?? '',
-      lastName: user?.lastName ?? '',
-      email: user?.email ?? '',
-      phoneNumber: user?.phoneNumber ?? '',
-      specialRequests: '',
+      firstName: savedGuest?.firstName || user?.firstName || '',
+      lastName: savedGuest?.lastName || user?.lastName || '',
+      email: savedGuest?.email || user?.email || '',
+      phoneNumber: savedGuest?.phoneNumber || user?.phoneNumber || '',
+      specialRequests: flow?.draft.request.specialRequests ?? '',
     },
   });
 
@@ -45,6 +47,27 @@ export default function GuestDetailsPage() {
   }, [flow, nav]);
 
   if (!flow) return null;
+
+  const buildDraft = () => {
+    const v = form.getValues();
+    return {
+      ...flow.draft,
+      request: {
+        ...flow.draft.request,
+        guest: {
+          firstName: v.firstName.trim(),
+          lastName: v.lastName.trim(),
+          email: v.email.trim(),
+          phoneNumber: v.phoneNumber.trim(),
+        },
+        specialRequests: v.specialRequests?.trim().length ? v.specialRequests.trim() : null,
+      },
+    };
+  };
+
+  const handleBack = () => {
+    nav('/book', { state: { draft: buildDraft(), idempotencyKey: flow.idempotencyKey } });
+  };
 
   return (
     <>
@@ -138,7 +161,12 @@ export default function GuestDetailsPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">Review reservation</Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button type="button" variant="outline" onClick={handleBack}>
+                    <ArrowLeft className="mr-1 h-4 w-4" /> Back
+                  </Button>
+                  <Button type="submit" className="flex-1">Review reservation</Button>
+                </div>
               </form>
             </Form>
           </CardContent>

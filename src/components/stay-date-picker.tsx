@@ -1,7 +1,9 @@
+import { useEffect, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { formatTime12h, timeSlots, type StayWindowInput } from '@/lib/dates';
+import { computeDefaultCheckOut, defaultCheckIn, formatTime12h, isCheckInSlotSelectable, lagosNow, nightsBetween, normaliseTime, timeSlots, timeToMinutes, type StayWindowInput } from '@/lib/dates';
 import { useStayPolicy } from '@/hooks/queries';
 import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
+import { gracePeriodNote } from '@/lib/pricing';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -65,11 +67,13 @@ function TimeField({
   value,
   options,
   onChange,
+  isDisabled,
 }: {
   label: string;
   value: string;
   options: string[];
   onChange: (time: string) => void;
+  isDisabled?: (time: string) => boolean;
 }) {
   return (
     <div className="space-y-1.5">
@@ -80,7 +84,7 @@ function TimeField({
         </SelectTrigger>
         <SelectContent className="max-h-72">
           {options.map((slot) => (
-            <SelectItem key={slot} value={slot}>
+            <SelectItem key={slot} value={slot} disabled={isDisabled?.(slot) ?? false}>
               {formatTime12h(slot)}
             </SelectItem>
           ))}
@@ -124,13 +128,10 @@ export function BoardMomentPicker({
 export function StayDatePicker({
   value,
   onChange,
-  isStaffWalkIn = false,
   className,
 }: {
   value: StayWindowInput;
   onChange: (next: StayWindowInput) => void;
-  /** Walk-ins may book a check-in today; the backend floors it to the slot grid. */
-  isStaffWalkIn?: boolean;
   className?: string;
 }) {
   const { data } = useStayPolicy();
@@ -138,32 +139,88 @@ export function StayDatePicker({
   const checkInSlots = timeSlots(policy.earliestCheckInTime, policy.latestCheckInTime, policy.timeSlotMinutes);
   const checkOutSlots = timeSlots(policy.earliestCheckOutTime, policy.latestCheckOutTime, policy.timeSlotMinutes);
   const min = new Date();
+  const nights = Math.max(1, nightsBetween(value.checkInDate, value.checkOutDate) || 1);
+  const checkInMinutes = timeToMinutes(value.checkInTime);
+  const isManualCheckOut = normaliseTime(value.checkOutTime) !== normaliseTime(value.checkInTime);
 
+  // Rule 6: track Lagos now so disabled slots refresh and a stale selection is moved forward.
+  const [now, setNow] = useState(() => lagosNow());
+  const [autoNotice, setAutoNotice] = useState<string | null>(null);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(lagosNow()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+  useEffect(() => {
+    const selectable = isCheckInSlotSelectable(
+      value.checkInTime, value.checkInDate === now.date, now.time,
+      policy.earliestCheckInTime, policy.latestCheckInTime,
+    );
+    if (selectable) return;
+    const def = defaultCheckIn(now, policy);
+    if (def.date === value.checkInDate && def.time === value.checkInTime) return;
+    const next = computeDefaultCheckOut(def.date, def.time, nights);
+    onChangeRef.current({
+      ...value, checkInDate: def.date, checkInTime: def.time,
+      checkOutDate: next.checkOutDate, checkOutTime: next.checkOutTime,
+    });
+    setAutoNotice('Your selected check-in time passed, so we moved it to the next available time.');
+  }, [now, value, policy, nights]);
+
+  const checkInMin = isoToDate(now.date) ?? min;
+  const checkInIsToday = value.checkInDate === now.date;
+
+  // Rule 2/5: moving check-in recomputes check-out (date + time) from the current nights,
+  // resetting any manual check-out time so the new default is visible.
   function setCheckInDate(iso: string) {
-    const next: StayWindowInput = { ...value, checkInDate: iso };
-    if (!next.checkOutDate || next.checkOutDate <= iso) {
-      const d = isoToDate(iso)!;
-      next.checkOutDate = dateToIso(new Date(d.getTime() + 86_400_000));
-    }
-    onChange(next);
+    setAutoNotice(null);
+    const next = computeDefaultCheckOut(iso, value.checkInTime, nights);
+    onChange({ ...value, checkInDate: iso, checkOutDate: next.checkOutDate, checkOutTime: next.checkOutTime });
+  }
+
+  function setCheckInTime(time: string) {
+    setAutoNotice(null);
+    const next = computeDefaultCheckOut(value.checkInDate, time, nights);
+    onChange({ ...value, checkInTime: time, checkOutDate: next.checkOutDate, checkOutTime: next.checkOutTime });
+  }
+
+  // Rule 3: moving check-out keeps the check-in time unless the guest picked a later one.
+  function setCheckOutDate(iso: string) {
+    setAutoNotice(null);
+    onChange({ ...value, checkOutDate: iso, checkOutTime: isManualCheckOut ? value.checkOutTime : value.checkInTime });
   }
 
   return (
     <div className={cn('space-y-3', className)}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <DateField label="Check-in date" value={value.checkInDate} min={isStaffWalkIn ? undefined : min} onChange={setCheckInDate} />
-        <TimeField label="Check-in time" value={value.checkInTime} options={checkInSlots} onChange={(t) => onChange({ ...value, checkInTime: t })} />
+        <DateField label="Check-in date" value={value.checkInDate} min={checkInMin} onChange={setCheckInDate} />
+        <TimeField
+          label="Check-in time"
+          value={value.checkInTime}
+          options={checkInSlots}
+          isDisabled={(slot) => !isCheckInSlotSelectable(
+            slot, checkInIsToday, now.time, policy.earliestCheckInTime, policy.latestCheckInTime)}
+          onChange={setCheckInTime}
+        />
         <DateField
           label="Check-out date"
           value={value.checkOutDate}
           min={isoToDate(value.checkInDate) ?? min}
-          onChange={(iso) => onChange({ ...value, checkOutDate: iso })}
+          onChange={setCheckOutDate}
         />
-        <TimeField label="Check-out time" value={value.checkOutTime} options={checkOutSlots} onChange={(t) => onChange({ ...value, checkOutTime: t })} />
+        <TimeField
+          label="Check-out time"
+          value={value.checkOutTime}
+          options={checkOutSlots}
+          isDisabled={(slot) => checkInMinutes != null && (timeToMinutes(slot) ?? 0) < checkInMinutes}
+          onChange={(t) => onChange({ ...value, checkOutTime: t })}
+        />
       </div>
-      <p className="text-xs text-muted-foreground">
-        {`Check-in from ${formatTime12h(policy.defaultCheckInTime)} · check-out by ${formatTime12h(policy.defaultCheckOutTime)}`}
-      </p>
+      <p className="text-xs text-muted-foreground">{gracePeriodNote(policy.graceHours)}</p>
+      {autoNotice ? <p className="text-xs font-medium text-foreground">{autoNotice}</p> : null}
     </div>
   );
 }

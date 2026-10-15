@@ -4,8 +4,10 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Clock, Mail, MapPin, Phone, Send } from 'lucide-react';
 import { PageHero } from '@/components/branding';
+import { HotelMap } from '@/components/hotel-map';
 import { Reveal } from '@/components/reveal';
 import { AddressBlock } from '@/components/shared';
+import { appConfig } from '@/config/appConfig';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -18,6 +20,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useSendContactMessage } from '@/hooks/queries';
+import { toApiError } from '@/api/problem';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Please share your name.'),
@@ -31,17 +35,17 @@ const contactDetails = [
   {
     icon: MapPin,
     label: 'Find us',
-    value: 'Deutchezz Hotel Ispahan, Jos, Plateau State',
+    value: `${appConfig.hotelName}, ${appConfig.address.city}, ${appConfig.address.state}`,
   },
   {
     icon: Phone,
     label: 'Call us',
-    value: '+234 (0) 812 345 6789',
+    value: appConfig.phoneNumber,
   },
   {
     icon: Mail,
     label: 'Email us',
-    value: 'hello@deutchezz.example',
+    value: appConfig.email,
   },
   {
     icon: Clock,
@@ -56,10 +60,17 @@ export default function ContactPage() {
     defaultValues: { name: '', email: '', message: '' },
   });
 
-  const onSubmit = (values: ContactValues) => {
+  const { mutateAsync, isPending } = useSendContactMessage();
+
+  const onSubmit = async (values: ContactValues) => {
     const firstName = values.name.trim().split(' ')[0];
-    toast.success(`Thank you, ${firstName} — we'll be in touch soon.`);
-    form.reset();
+    try {
+      await mutateAsync({ name: values.name.trim(), email: values.email.trim(), message: values.message.trim() });
+      toast.success(`Thank you, ${firstName} — we'll be in touch soon.`);
+      form.reset();
+    } catch (err) {
+      toast.error(toApiError(err).userMessage);
+    }
   };
 
   return (
@@ -142,15 +153,20 @@ export default function ContactPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="gap-2">
+                  <Button type="submit" className="gap-2" disabled={isPending}>
                     <Send className="h-4 w-4" />
-                    Send message
+                    {isPending ? 'Sending...' : 'Send message'}
                   </Button>
                   <p className="text-sm text-muted-foreground">We usually reply within one business day.</p>
                 </form>
               </Form>
             </CardContent>
           </Card>
+        </Reveal>
+      </section>
+      <section className="container-x pb-16 sm:pb-24">
+        <Reveal>
+          <HotelMap />
         </Reveal>
       </section>
     </>

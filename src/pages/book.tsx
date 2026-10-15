@@ -1,23 +1,24 @@
 import { PageHero } from '@/components/branding';
 import { Reveal } from '@/components/reveal';
 import { ErrorBanner } from '@/components/feedback';
-import { useAvailability, usePublicRoomTypes, useStayPolicy } from '@/hooks/queries';
+import { useAvailability, usePricingQuote, usePublicRoomTypes, useStayPolicy } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StayDatePicker } from '@/components/stay-date-picker';
+import { ExtendedStayCharge } from '@/components/extended-stay-charge';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { formatMoney } from '@/lib/format';
-import { addDaysISO, formatStayRange, formatTime12h, nightsBetween, todayISO, validateStayWindow } from '@/lib/dates';
+import { computeDefaultCheckOut, defaultCheckIn, formatStayRange, formatTime12h, lagosNow, nightsBetween, validateStayWindow } from '@/lib/dates';
 import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import { newIdempotencyKey } from '@/lib/id';
 import { appConfig } from '@/config/appConfig';
-import { overageHours, extraChargeForLine } from '@/lib/pricing';
-import { useMemo, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { BookingDraft, BookingFlowState } from '@/features/booking/types';
+import type { PricingQuoteRequest } from '@/types';
 import { toast } from 'sonner';
 
 const schema = z.object({
@@ -33,22 +34,31 @@ type FormValues = z.infer<typeof schema>;
 
 export default function BookPage() {
   const nav = useNavigate();
+  const location = useLocation() as { state?: BookingFlowState | { restart: true } };
+  // A draft sent back from the guest-details/review steps restores every selection;
+  // review's "Search again" sends { restart: true } and intentionally resets.
+  const incoming = location.state && 'draft' in location.state ? location.state : undefined;
   const { isLoading: typesLoading, error: typesError, refetch } = usePublicRoomTypes();
   const { data: policyData } = useStayPolicy();
   const policy = policyData ?? DEFAULT_STAY_POLICY;
-  const [qty, setQty] = useState<Record<string, number>>({});
-  const [idempotencyKey] = useState(() => newIdempotencyKey());
+  const [qty, setQty] = useState<Record<string, number>>(() =>
+    Object.fromEntries((incoming?.draft.request.rooms ?? []).map((r) => [r.roomTypeId, r.quantity])),
+  );
+  const [idempotencyKey] = useState(() => incoming?.idempotencyKey ?? newIdempotencyKey());
+
+  const initialCheckIn = defaultCheckIn(lagosNow(), policy);
+  const initialCheckOut = computeDefaultCheckOut(initialCheckIn.date, initialCheckIn.time, 1);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      checkInDate: todayISO(),
-      checkInTime: DEFAULT_STAY_POLICY.defaultCheckInTime,
-      checkOutDate: addDaysISO(todayISO(), 1),
-      checkOutTime: DEFAULT_STAY_POLICY.defaultCheckOutTime,
-      adults: '2',
-      children: '0',
-      rooms: '1',
+      checkInDate: initialCheckIn.date,
+      checkInTime: initialCheckIn.time,
+      checkOutDate: initialCheckOut.checkOutDate,
+      checkOutTime: initialCheckOut.checkOutTime,
+      adults: String(incoming?.draft.request.adults ?? 2),
+      children: String(incoming?.draft.request.children ?? 0),
+      rooms: String((incoming?.draft.request.rooms ?? []).reduce((n, r) => n + r.quantity, 0) || 1),
     },
   });
   const values = form.watch();
@@ -72,10 +82,6 @@ export default function BookPage() {
 
   const availability = availabilityQuery.data;
   const nights = values.checkInDate && values.checkOutDate ? Math.max(1, nightsBetween(values.checkInDate, values.checkOutDate)) : 1;
-  const overage = useMemo(
-    () => overageHours({ checkInDate: values.checkInDate, checkInTime: values.checkInTime, checkOutDate: values.checkOutDate, checkOutTime: values.checkOutTime }),
-    [values.checkInDate, values.checkInTime, values.checkOutDate, values.checkOutTime],
-  );
 
   // Clamp any chosen quantities to the latest availability.
   useEffect(() => {
@@ -111,11 +117,16 @@ export default function BookPage() {
       quantity: qty[r.roomTypeId] ?? 0,
     }));
 
-  const estimatedTotal = selectedLines.reduce((sum, l) => sum + l.pricePerNight * l.quantity * nights, 0);
-  const extraChargeAmount = useMemo(
-    () => selectedLines.reduce((sum, l) => sum + extraChargeForLine(l.pricePerNight, l.quantity, overage, policy), 0),
-    [selectedLines, overage, policy],
+  // Price through the backend so the booking forms never duplicate the billing formula (SoT v1.15).
+  const quoteQuery = usePricingQuote(
+    {
+      ...stayWindow,
+      bookingType: 'online',
+      rooms: selectedLines.map((l) => ({ roomTypeId: l.roomTypeId, quantity: l.quantity })),
+    } satisfies PricingQuoteRequest,
+    selectedLines.length > 0 && !!values.checkInDate && !!values.checkOutDate,
   );
+  const quote = quoteQuery.data;
 
   const stayError = values.checkInDate && values.checkOutDate ? validateStayWindow(stayWindow, policy) : null;
 
@@ -143,7 +154,6 @@ export default function BookPage() {
       },
       lines: selectedLines,
       nights,
-      extraChargeAmount,
     };
     const state: BookingFlowState = { draft, idempotencyKey };
     nav('/booking/guest-details', { state });
@@ -258,20 +268,33 @@ export default function BookPage() {
                 <p>{nights} {nights === 1 ? 'night' : 'nights'} · {values.adults} adults · {values.children} children</p>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
+                {quoteQuery.isError ? (
+                  <p className="text-destructive-text">We couldn&apos;t price this stay. Please adjust your dates.</p>
+                ) : null}
                 {selectedLines.length === 0 ? (
                   <p className="text-muted-foreground">No rooms selected yet.</p>
                 ) : (
-                  selectedLines.map((l) => (
-                    <div key={l.roomTypeId} className="flex items-center justify-between">
-                      <span>{l.quantity} × {l.name}</span>
-                      <span>{formatMoney(l.pricePerNight * l.quantity * nights)}</span>
-                    </div>
-                  ))
+                  selectedLines.map((l) => {
+                    const priced = quote?.lines.find((q) => q.roomTypeId === l.roomTypeId);
+                    return (
+                      <div key={l.roomTypeId} className="flex items-center justify-between">
+                        <span>{l.quantity} × {l.name}</span>
+                        <span>{priced ? formatMoney(priced.subtotal) : '—'}</span>
+                      </div>
+                    );
+                  })
                 )}
+                {quote ? (
+                  <ExtendedStayCharge
+                    overageMinutes={quote.overageMinutes}
+                    amount={quote.extraChargeAmount}
+                    graceHours={policy.graceHours}
+                  />
+                ) : null}
               </div>
               <div className="flex items-center justify-between border-t pt-4">
                 <p className="font-semibold text-foreground">Estimated total</p>
-                <p className="text-xl font-semibold text-primary">{formatMoney(estimatedTotal)}</p>
+                <p className="text-xl font-semibold text-primary">{quote ? formatMoney(quote.total) : '—'}</p>
               </div>
               <p className="text-xs text-muted-foreground">This is an estimate. The hotel confirms the final total when your booking is placed.</p>
               <Button className="w-full" disabled={selectedLines.length === 0} onClick={handleContinue}>

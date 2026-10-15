@@ -14,10 +14,7 @@ export const DEFAULT_STAY_POLICY: StayPolicy = {
   latestCheckInTime: '23:30',
   earliestCheckOutTime: '00:00',
   latestCheckOutTime: '23:30',
-  maxExtraHoursPerStay: 6,
   turnaroundMinutes: 0,
   graceHours: 2,
-  halfDayHours: 6,
-  halfDayPercent: 50,
-  fullNightPercent: 100,
+  maxStayNights: 30,
 };

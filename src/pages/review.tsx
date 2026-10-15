@@ -4,11 +4,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { estimateTotal, type BookingFlowState } from '@/features/booking/types';
+import { type BookingFlowState } from '@/features/booking/types';
+import { ExtendedStayCharge } from '@/components/extended-stay-charge';
+import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import { formatStayRange, formatTime12h } from '@/lib/dates';
 import { formatMoney } from '@/lib/format';
 import { newIdempotencyKey } from '@/lib/id';
-import { useCreateBooking } from '@/hooks/queries';
+import { useCreateBooking, usePricingQuote, useStayPolicy } from '@/hooks/queries';
+import type { PricingQuoteRequest } from '@/types';
 import { useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ApiError } from '@/api/problem';
@@ -25,6 +28,22 @@ export default function ReviewPage() {
   const createBooking = useCreateBooking();
   const [error, setError] = useState<ApiError | null>(null);
   const [duplicate, setDuplicate] = useState<{ reference?: string; minutesAgo?: number } | null>(null);
+  const { data: policyData } = useStayPolicy();
+  const policy = policyData ?? DEFAULT_STAY_POLICY;
+  // Price through the same backend endpoint the booking is created with, so the
+  // review total can never drift from the stored total (SoT v1.15).
+  const quoteQuery = usePricingQuote(
+    {
+      checkInDate: flow?.draft.request.checkInDate ?? '',
+      checkInTime: flow?.draft.request.checkInTime ?? '',
+      checkOutDate: flow?.draft.request.checkOutDate ?? '',
+      checkOutTime: flow?.draft.request.checkOutTime ?? '',
+      bookingType: 'online',
+      rooms: flow?.draft.request.rooms ?? [],
+    } satisfies PricingQuoteRequest,
+    !!flow && flow.draft.request.rooms.length > 0,
+  );
+  const quote = quoteQuery.data;
 
   useEffect(() => {
     if (!flow) nav('/book', { replace: true });
@@ -33,7 +52,6 @@ export default function ReviewPage() {
   if (!flow) return null;
 
   const { draft } = flow;
-  const total = estimateTotal(draft);
 
   const runCreate = (acknowledgeDuplicate: boolean, key: string) => {
     setError(null);
@@ -104,17 +122,37 @@ export default function ReviewPage() {
             <div className="space-y-3">
               <p className="font-semibold text-foreground">Rooms</p>
               <ul className="divide-y rounded-lg border">
-                {draft.lines.map((line) => (
-                  <li key={line.roomTypeId} className="flex items-center justify-between px-4 py-3 text-sm">
-                    <span className="text-muted-foreground">{line.quantity} × {line.name} <span className="text-muted-foreground">({formatMoney(line.pricePerNight)} / night)</span></span>
-                    <span className="font-medium text-foreground">{formatMoney(line.pricePerNight * line.quantity * draft.nights)}</span>
-                  </li>
-                ))}
+                {quote
+                  ? quote.lines.map((line) => (
+                      <li key={line.roomTypeId} className="flex items-center justify-between px-4 py-3 text-sm">
+                        <span className="text-muted-foreground">{line.quantity} × {line.roomTypeName} <span className="text-muted-foreground">({formatMoney(line.ratePerNight)} / night)</span></span>
+                        <span className="font-medium text-foreground">{formatMoney(line.subtotal)}</span>
+                      </li>
+                    ))
+                  : draft.lines.map((line) => (
+                      <li key={line.roomTypeId} className="flex items-center justify-between px-4 py-3 text-sm">
+                        <span className="text-muted-foreground">{line.quantity} × {line.name} <span className="text-muted-foreground">({formatMoney(line.pricePerNight)} / night)</span></span>
+                        <span className="font-medium text-foreground">—</span>
+                      </li>
+                    ))}
               </ul>
+              {quote ? (
+                <ExtendedStayCharge
+                  overageMinutes={quote.overageMinutes}
+                  amount={quote.extraChargeAmount}
+                  graceHours={policy.graceHours}
+                />
+              ) : null}
               <div className="flex items-center justify-between border-t pt-4">
                 <span className="font-semibold text-foreground">Estimated total</span>
-                <span className="text-xl font-semibold text-primary">{formatMoney(total)}</span>
+                <span className="text-xl font-semibold text-primary">{quote ? formatMoney(quote.total) : '—'}</span>
               </div>
+              {quoteQuery.isError ? (
+                <p className="flex items-start gap-2 text-xs text-destructive-text">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  We couldn&apos;t price this stay right now. Please go back and try again.
+                </p>
+              ) : null}
               <p className="flex items-start gap-2 text-xs text-muted-foreground">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 This is an estimate. The hotel confirms the final total when your booking is placed.

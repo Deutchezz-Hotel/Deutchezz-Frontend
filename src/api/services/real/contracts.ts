@@ -38,6 +38,13 @@ export interface MessageResponse {
   message: string;
 }
 
+/** Public contact-form submission (POST /contact). */
+export interface ContactRequest {
+  name: string;
+  email: string;
+  message: string;
+}
+
 /** 202 body for register/resend/forgot (no account enumeration). */
 export interface RegisterPendingResponse {
   message: string;
@@ -141,12 +148,9 @@ export interface StayPolicyResponse {
   latestCheckInTime: string;
   earliestCheckOutTime: string;
   latestCheckOutTime: string;
-  maxExtraHoursPerStay: number;
   turnaroundMinutes: number;
+  maxStayNights: number;
   graceHours: number;
-  halfDayHours: number;
-  halfDayPercent: number;
-  fullNightPercent: number;
 }
 
 /** One conflicted room inside a 409 `room.occupied_until` `errors` array. */
@@ -622,8 +626,11 @@ export interface AdminSettingsResponse {
   latestCheckInTime: string;
   earliestCheckOutTime: string;
   latestCheckOutTime: string;
-  maxExtraHoursPerStay: number;
   turnaroundMinutes: number;
+  maxStayNights: number;
+  graceHours: number;
+  checkOutReminderLeadMinutes: number;
+  receptionNotificationEmails: string;
 }
 
 export interface UpdateAdminSettingsRequest {
@@ -639,8 +646,49 @@ export interface UpdateAdminSettingsRequest {
   latestCheckInTime?: string | null;
   earliestCheckOutTime?: string | null;
   latestCheckOutTime?: string | null;
-  maxExtraHoursPerStay?: number | null;
   turnaroundMinutes?: number | null;
+  maxStayNights?: number | null;
+  graceHours?: number | null;
+  checkOutReminderLeadMinutes?: number | null;
+  receptionNotificationEmails?: string | null;
+}
+
+/* ------------------------------- Pricing (v1.14) ------------------------- */
+
+export interface PricingQuoteRoomRequest {
+  roomTypeId: string;
+  quantity: number;
+}
+
+export interface PricingQuoteRequest {
+  checkInDate: string;
+  checkInTime: string | null;
+  checkOutDate: string;
+  checkOutTime: string | null;
+  bookingType?: string | null;
+  rooms: PricingQuoteRoomRequest[];
+}
+
+export interface PricingQuoteLineResponse {
+  roomTypeId: string;
+  roomTypeName: string;
+  quantity: number;
+  ratePerNight: number;
+  nights: number;
+  overageMinutes: number;
+  tierLabel: string | null;
+  subtotal: number;
+  extraCharge: number;
+  lineTotal: number;
+}
+
+export interface PricingQuoteResponse {
+  nights: number;
+  overageMinutes: number;
+  lines: PricingQuoteLineResponse[];
+  subtotal: number;
+  extraChargeAmount: number;
+  total: number;
 }
 
 /* ---------------------------- Problem details ---------------------------- */
