@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
   addDaysISO,
+  computeDefaultCheckOut,
+  defaultCheckIn,
   floorToSlot,
   formatDisplayDate,
   formatInstant,
   formatStayRange,
   formatTime12h,
+  isCheckInSlotSelectable,
   isEarlyCheckOut,
   isOnSlotGrid,
   lagosDateTimeISO,
   lagosNow,
   minutesToTime,
+  nextCheckInSlot,
   nightsBetween,
   normaliseTime,
   scheduledCheckOutMoment,
@@ -30,12 +34,9 @@ const POLICY: StayPolicy = {
   latestCheckInTime: '22:00',
   earliestCheckOutTime: '06:00',
   latestCheckOutTime: '14:00',
-  maxExtraHoursPerStay: 4,
   turnaroundMinutes: 0,
   graceHours: 2,
-  halfDayHours: 6,
-  halfDayPercent: 50,
-  fullNightPercent: 100,
+  maxStayNights: 30,
 };
 
 describe('nightsBetween', () => {
@@ -68,6 +69,29 @@ describe('addDaysISO', () => {
   it('adds days and keeps the yyyy-MM-dd shape', () => {
     expect(addDaysISO('2026-10-31', 1)).toBe('2026-11-01');
     expect(addDaysISO('2026-10-10', -1)).toBe('2026-10-09');
+  });
+});
+
+describe('computeDefaultCheckOut', () => {
+  it('mirrors the check-in time and adds 24 hours per night', () => {
+    expect(computeDefaultCheckOut('2026-11-01', '14:00', 1)).toEqual({
+      checkOutDate: '2026-11-02',
+      checkOutTime: '14:00',
+    });
+    expect(computeDefaultCheckOut('2026-11-01', '14:00', 3)).toEqual({
+      checkOutDate: '2026-11-04',
+      checkOutTime: '14:00',
+    });
+  });
+
+  it('clamps non-positive or malformed nights to a single night', () => {
+    expect(computeDefaultCheckOut('2026-11-01', '14:00', 0).checkOutDate).toBe('2026-11-02');
+    expect(computeDefaultCheckOut('2026-11-01', '14:00', -3).checkOutDate).toBe('2026-11-02');
+    expect(computeDefaultCheckOut('2026-11-01', '14:00', Number.NaN).checkOutDate).toBe('2026-11-02');
+  });
+
+  it('normalises single-digit check-in times', () => {
+    expect(computeDefaultCheckOut('2026-11-01', '9:05', 1).checkOutTime).toBe('09:05');
   });
 });
 
@@ -207,9 +231,40 @@ describe('validateStayWindow', () => {
     expect(error).toBeNull();
   });
 
-  it('rejects a past check-in for guests but allows staff walk-ins', () => {
+  it('rejects a past check-in', () => {
     const now = new Date('2026-12-01T00:00:00Z');
     expect(validateStayWindow(base, POLICY, { now })?.code).toBe('stay.in_the_past');
-    expect(validateStayWindow(base, POLICY, { now, isStaffWalkIn: true })).toBeNull();
+  });
+});
+
+describe('check-in defaults and selectable slots', () => {
+  it('rounds the next slot UP, never the current one', () => {
+    expect(nextCheckInSlot('11:00', '08:00', '22:00', 30)).toBe('11:30');
+    expect(nextCheckInSlot('11:10', '08:00', '22:00', 30)).toBe('11:30');
+    expect(nextCheckInSlot('11:40', '08:00', '22:00', 30)).toBe('12:00');
+    expect(nextCheckInSlot('13:00', '08:00', '22:00', 30)).toBe('13:30');
+  });
+
+  it('clamps the next slot up to the earliest window', () => {
+    expect(nextCheckInSlot('06:00', '08:00', '22:00', 30)).toBe('08:00');
+  });
+
+  it('returns null when no slot remains today', () => {
+    expect(nextCheckInSlot('22:00', '08:00', '22:00', 30)).toBeNull();
+    expect(nextCheckInSlot('23:30', '08:00', '22:00', 30)).toBeNull();
+  });
+
+  it('defaults to the next slot today, or tomorrow earliest when the day is over', () => {
+    const window = { earliestCheckInTime: '08:00', latestCheckInTime: '22:00', timeSlotMinutes: 30 };
+    expect(defaultCheckIn({ date: '2026-11-01', time: '11:10' }, window)).toEqual({ date: '2026-11-01', time: '11:30' });
+    expect(defaultCheckIn({ date: '2026-11-01', time: '22:00' }, window)).toEqual({ date: '2026-11-02', time: '08:00' });
+  });
+
+  it('only enables today slots strictly after now', () => {
+    expect(isCheckInSlotSelectable('11:30', true, '11:00', '08:00', '22:00')).toBe(true);
+    expect(isCheckInSlotSelectable('11:00', true, '11:00', '08:00', '22:00')).toBe(false);
+    expect(isCheckInSlotSelectable('10:30', true, '11:00', '08:00', '22:00')).toBe(false);
+    expect(isCheckInSlotSelectable('08:00', false, '11:00', '08:00', '22:00')).toBe(true);
+    expect(isCheckInSlotSelectable('07:00', false, '11:00', '08:00', '22:00')).toBe(false);
   });
 });

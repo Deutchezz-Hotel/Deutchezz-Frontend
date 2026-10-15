@@ -5,10 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useLocation, useParams, Link, useNavigate } from 'react-router-dom';
+import { ExtendedStayCharge } from '@/components/extended-stay-charge';
+import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import { formatStayRange, formatTime12h } from '@/lib/dates';
 import { bookingStatusLabel, formatMoney, paymentStatusLabel } from '@/lib/format';
+import { bookingOverageMinutes } from '@/lib/pricing';
 import { toApiError } from '@/api/problem';
-import { useAnonymousCancelBooking } from '@/hooks/queries';
+import { useAnonymousCancelBooking, useStayPolicy } from '@/hooks/queries';
 import { useAuth } from '@/app/auth';
 import { toast } from 'sonner';
 import { ArrowLeft, CheckCircle2, Printer, XCircle } from 'lucide-react';
@@ -20,6 +23,8 @@ export default function ConfirmationPage() {
   const location = useLocation() as { state?: BookingResponse };
   const nav = useNavigate();
   const { user } = useAuth();
+  const { data: policyData } = useStayPolicy();
+  const graceHours = (policyData ?? DEFAULT_STAY_POLICY).graceHours;
   const [booking, setBooking] = useState<BookingResponse | null>(location.state ?? null);
   const cancel = useAnonymousCancelBooking();
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -32,6 +37,7 @@ export default function ConfirmationPage() {
   }, [booking, bookingReference, nav]);
 
   const data = booking;
+  const overageMinutes = data ? bookingOverageMinutes(data) : 0;
   const canCancel = !!data && (data.status === 'Confirmed' || data.status === 'Pending');
 
   const runCancel = () => {
@@ -111,6 +117,13 @@ export default function ConfirmationPage() {
                       </li>
                     ))}
                   </ul>
+                  {overageMinutes > 0 ? (
+                    <ExtendedStayCharge
+                      overageMinutes={overageMinutes}
+                      amount={data.extraChargeAmount}
+                      graceHours={graceHours}
+                    />
+                  ) : null}
                 </div>
 
                 <div className="space-y-2 text-sm text-muted-foreground">

@@ -147,15 +147,6 @@ export default function AdminSettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Max extra hours per stay</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.maxExtraHoursPerStay ?? 0}
-                  onChange={(e) => setForm({ ...form, maxExtraHoursPerStay: Number(e.target.value) })}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>Turnaround (minutes)</Label>
                 <Input
                   type="number"
@@ -164,6 +155,55 @@ export default function AdminSettingsPage() {
                   value={form.turnaroundMinutes ?? 0}
                   onChange={(e) => setForm({ ...form, turnaroundMinutes: Number(e.target.value) })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Max stay (nights)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={form.maxStayNights ?? 30}
+                  onChange={(e) => setForm({ ...form, maxStayNights: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Grace period (hours)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={24}
+                  value={form.graceHours ?? 2}
+                  onChange={(e) => setForm({ ...form, graceHours: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="border-t pt-4">
+            <h3 className="mb-1 text-sm font-semibold text-foreground">Check-out reminders</h3>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Emailed to the reception desk shortly before a checked-in stay is due to end. One reminder per stay.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Remind the desk (minutes before check-out)</Label>
+                <Input
+                  type="number"
+                  min={5}
+                  max={2880}
+                  step={5}
+                  value={form.checkOutReminderLeadMinutes ?? 30}
+                  onChange={(e) => setForm({ ...form, checkOutReminderLeadMinutes: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Reception inbox(es)</Label>
+                <Input
+                  type="text"
+                  placeholder="front@hotel.com, duty@hotel.com"
+                  value={form.receptionNotificationEmails ?? ''}
+                  onChange={(e) => setForm({ ...form, receptionNotificationEmails: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">Comma-separated. Leave blank to use the default desk inbox.</p>
               </div>
             </div>
           </div>

@@ -23,11 +23,13 @@ import type {
   CancelBookingRequest,
   ChangeRoomTypeRequest,
   CheckOutRequest,
+  PricingQuoteRequest,
   ReassignRoomRequest,
   ReceptionCancelBookingRequest,
   ReceptionCreateBookingRequest,
   UnassignRoomRequest,
   UserRole,
+  ContactRequest,
 } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -35,6 +37,7 @@ export const keys = {
   roomTypes: ['room-types'] as const,
   stayPolicy: ['stay-policy'] as const,
   availability: (q: AvailabilitySearchRequest) => ['availability', q] as const,
+  pricingQuote: (q: PricingQuoteRequest) => ['pricing', 'quote', q] as const,
   meBookings: (params: BookingFilterParams) => ['me', 'bookings', params] as const,
   meBooking: (id: string) => ['me', 'bookings', id] as const,
   meProfile: ['me', 'profile'] as const,
@@ -98,6 +101,15 @@ export function useStayPolicy() {
     queryFn: () => services.stay.getPolicy(),
     staleTime: 5 * 60 * 1000,
     placeholderData: DEFAULT_STAY_POLICY,
+  });
+}
+
+export function usePricingQuote(query: PricingQuoteRequest, enabled = true) {
+  return useQuery({
+    queryKey: keys.pricingQuote(query),
+    queryFn: () => services.pricing.quote(query),
+    enabled,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -389,5 +401,11 @@ export function useUpdateAdminSettings() {
   return useMutation({
     mutationFn: (request: SaveSettingsRequest) => services.admin.updateSettings(request),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.adminSettings }),
+  });
+}
+
+export function useSendContactMessage() {
+  return useMutation({
+    mutationFn: (request: ContactRequest) => services.contact.send(request),
   });
 }

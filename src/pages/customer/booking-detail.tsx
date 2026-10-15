@@ -1,9 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
-import { useMeBooking } from '@/hooks/queries';
+import { useMeBooking, useStayPolicy } from '@/hooks/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PageSkeleton, ErrorBanner } from '@/components/feedback';
+import { ExtendedStayCharge } from '@/components/extended-stay-charge';
+import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import { formatMoney, bookingStatusLabel, paymentStatusLabel } from '@/lib/format';
+import { bookingOverageMinutes } from '@/lib/pricing';
 import { bookingStatusTone, paymentStatusTone } from '@/lib/status';
 import { formatDisplayDate, formatStayRange, formatTime12h } from '@/lib/dates';
 import { ArrowLeft } from 'lucide-react';
@@ -11,9 +14,13 @@ import { ArrowLeft } from 'lucide-react';
 export default function CustomerBookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: booking, isLoading, isError, refetch } = useMeBooking(id);
+  const { data: policyData } = useStayPolicy();
+  const graceHours = (policyData ?? DEFAULT_STAY_POLICY).graceHours;
 
   if (isLoading) return <PageSkeleton rows={4} />;
   if (isError || !booking) return <ErrorBanner message="We couldn't load this booking" retry={() => refetch()} />;
+
+  const overageMinutes = bookingOverageMinutes(booking);
 
   return (
     <div className="space-y-6">
@@ -78,6 +85,15 @@ export default function CustomerBookingDetailPage() {
               <p>{`Check-in ${formatTime12h(booking.checkInTime)} · check-out ${formatTime12h(booking.checkOutTime)}`}</p>
               {booking.actualCheckInAt ? <p>Actual check-in {formatTime12h(booking.actualCheckInAt.slice(11, 16))}</p> : null}
               <p>{booking.nights} {booking.nights === 1 ? 'night' : 'nights'} · {booking.adults} adults · {booking.children} children</p>
+              {overageMinutes > 0 ? (
+                <div className="pt-2">
+                  <ExtendedStayCharge
+                    overageMinutes={overageMinutes}
+                    amount={booking.extraChargeAmount}
+                    graceHours={graceHours}
+                  />
+                </div>
+              ) : null}
               <p className="pt-2 text-2xl font-semibold text-primary">{formatMoney(booking.totalAmount)}</p>
             </CardContent>
           </Card>

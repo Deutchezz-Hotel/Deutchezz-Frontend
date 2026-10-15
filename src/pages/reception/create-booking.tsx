@@ -1,22 +1,23 @@
 import { ErrorBanner } from '@/components/feedback';
-import { useAvailability, useReceptionCreateBooking, useStayPolicy } from '@/hooks/queries';
+import { useAvailability, usePricingQuote, useReceptionCreateBooking, useStayPolicy } from '@/hooks/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StayDatePicker } from '@/components/stay-date-picker';
+import { ExtendedStayCharge } from '@/components/extended-stay-charge';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { formatMoney } from '@/lib/format';
-import { addDaysISO, floorToSlot, formatStayRange, formatTime12h, lagosNow, nightsBetween, validateStayWindow } from '@/lib/dates';
+import { computeDefaultCheckOut, defaultCheckIn, formatStayRange, formatTime12h, lagosNow, nightsBetween, validateStayWindow } from '@/lib/dates';
 import { DEFAULT_STAY_POLICY } from '@/config/stayPolicy';
 import { newIdempotencyKey } from '@/lib/id';
 import { appConfig } from '@/config/appConfig';
-import { useMemo, useState } from 'react';
-import { overageHours, extraChargeForLine } from '@/lib/pricing';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import type { PricingQuoteRequest } from '@/types';
 import { toast } from 'sonner';
 
 const schema = z.object({
@@ -44,13 +45,16 @@ export default function ReceptionCreateBookingPage() {
   const [qty, setQty] = useState<Record<string, number>>({});
   const createBooking = useReceptionCreateBooking(idempotencyKey);
 
+  const initialCheckIn = defaultCheckIn(lagosNow(), policy);
+  const initialCheckOut = computeDefaultCheckOut(initialCheckIn.date, initialCheckIn.time, 1);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      checkInDate: lagosNow().date,
-      checkInTime: floorToSlot(lagosNow().time, policy.timeSlotMinutes),
-      checkOutDate: addDaysISO(lagosNow().date, 1),
-      checkOutTime: policy.defaultCheckOutTime,
+      checkInDate: initialCheckIn.date,
+      checkInTime: initialCheckIn.time,
+      checkOutDate: initialCheckOut.checkOutDate,
+      checkOutTime: initialCheckOut.checkOutTime,
       adults: '2',
       children: '0',
       firstName: '',
@@ -78,10 +82,6 @@ export default function ReceptionCreateBookingPage() {
   );
   const availability = availabilityQuery.data;
   const nights = values.checkInDate && values.checkOutDate ? Math.max(1, nightsBetween(values.checkInDate, values.checkOutDate)) : 1;
-  const overage = useMemo(
-    () => overageHours({ checkInDate: values.checkInDate, checkInTime: values.checkInTime, checkOutDate: values.checkOutDate, checkOutTime: values.checkOutTime }),
-    [values.checkInDate, values.checkInTime, values.checkOutDate, values.checkOutTime],
-  );
 
   const totalSelected = Object.values(qty).reduce((a, b) => a + b, 0);
   const changeQty = (roomTypeId: string, available: number, delta: number) => {
@@ -99,19 +99,22 @@ export default function ReceptionCreateBookingPage() {
     pricePerNight: r.pricePerNight,
     quantity: qty[r.roomTypeId] ?? 0,
   }));
-  const estimatedTotal = selectedLines.reduce((sum, l) => sum + l.pricePerNight * l.quantity * nights, 0);
-  const extraChargeAmount = useMemo(
-    () => selectedLines.reduce((sum, l) => sum + extraChargeForLine(l.pricePerNight, l.quantity, overage, policy), 0),
-    [selectedLines, overage, policy],
+  const quoteQuery = usePricingQuote(
+    {
+      ...stayWindow,
+      bookingType: 'walkIn',
+      rooms: selectedLines.map((l) => ({ roomTypeId: l.roomTypeId, quantity: l.quantity })),
+    } satisfies PricingQuoteRequest,
+    selectedLines.length > 0 && !!values.checkInDate && !!values.checkOutDate,
   );
-  void extraChargeAmount;
+  const quote = quoteQuery.data;
 
   const handleSubmit = form.handleSubmit((v) => {
     if (selectedLines.length === 0) {
       toast.error('Select at least one room');
       return;
     }
-    const stayError = validateStayWindow(v, policy, { isStaffWalkIn: true });
+    const stayError = validateStayWindow(v, policy);
     if (stayError) {
       toast.error(stayError.message);
       return;
@@ -149,7 +152,6 @@ export default function ReceptionCreateBookingPage() {
             <CardContent className="space-y-6 p-8">
               <h3 className="heading-3">Stay</h3>
               <StayDatePicker
-                isStaffWalkIn
                 value={stayWindow}
                 onChange={(next) => {
                   form.setValue('checkInDate', next.checkInDate);
@@ -241,20 +243,33 @@ export default function ReceptionCreateBookingPage() {
                 <p>{nights} {nights === 1 ? 'night' : 'nights'} · {values.adults} adults · {values.children} children</p>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
+                {quoteQuery.isError ? (
+                  <p className="text-destructive-text">We couldn&apos;t price this stay. Please adjust the dates.</p>
+                ) : null}
                 {selectedLines.length === 0 ? (
                   <p className="text-muted-foreground">No rooms selected yet.</p>
                 ) : (
-                  selectedLines.map((l) => (
-                    <div key={l.roomTypeId} className="flex items-center justify-between">
-                      <span>{l.quantity} × {l.name}</span>
-                      <span>{formatMoney(l.pricePerNight * l.quantity * nights)}</span>
-                    </div>
-                  ))
+                  selectedLines.map((l) => {
+                    const priced = quote?.lines.find((q) => q.roomTypeId === l.roomTypeId);
+                    return (
+                      <div key={l.roomTypeId} className="flex items-center justify-between">
+                        <span>{l.quantity} × {l.name}</span>
+                        <span>{priced ? formatMoney(priced.subtotal) : '—'}</span>
+                      </div>
+                    );
+                  })
                 )}
+                {quote ? (
+                  <ExtendedStayCharge
+                    overageMinutes={quote.overageMinutes}
+                    amount={quote.extraChargeAmount}
+                    graceHours={policy.graceHours}
+                  />
+                ) : null}
               </div>
               <div className="flex items-center justify-between border-t pt-4">
                 <p className="font-semibold text-foreground">Total</p>
-                <p className="text-xl font-semibold text-primary">{formatMoney(estimatedTotal)}</p>
+                <p className="text-xl font-semibold text-primary">{quote ? formatMoney(quote.total) : '—'}</p>
               </div>
               <Button className="w-full" disabled={selectedLines.length === 0 || createBooking.isPending} onClick={handleSubmit}>
                 {createBooking.isPending ? 'Creating…' : 'Create booking'}

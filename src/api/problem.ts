@@ -6,7 +6,19 @@
  * map onto react-hook-form fields.
  */
 
+import { formatMoney } from '@/lib/format';
 import type { RoomConflict } from '@/types';
+
+/**
+ * Friendly, actionable text for the hotel payment / early-check-out rules.
+ * Kept here so every surface that shows `userMessage` benefits.
+ */
+const BOOKING_RULE_MESSAGES: Record<string, string> = {
+  'booking.payment_required_before_checkin': 'Record the payment, then check the guest in.',
+  'booking.payment_required_before_checkout': 'Record the payment, then check the guest out.',
+  'booking.early_checkout_requires_admin':
+    'Early check-outs need an administrator. Ask an administrator to approve this check-out.',
+};
 
 export interface ProblemDetails {
   type?: string;
@@ -28,6 +40,8 @@ export interface ProblemDetails {
   reference?: string;
   /** Id of the likely duplicate; only sent to authenticated callers. */
   bookingId?: string;
+  /** Outstanding balance on a payment-gate rejection (payment_required_before_*). */
+  outstandingBalance?: number;
   /* --- Late-availability conflict (room.available_later, v1.12) --- */
   roomId?: string;
   roomNumber?: string;
@@ -71,6 +85,14 @@ export class ApiError extends Error {
     // status 0 means the request never reached the API (offline, DNS, CORS, aborted).
     if (s === 0) {
       return "We couldn't reach the server. Check your connection and try again.";
+    }
+    // Payment / early-check-out rules: map the specific code to the right next step.
+    const ruleMessage = this.problem.code ? BOOKING_RULE_MESSAGES[this.problem.code] : undefined;
+    if (ruleMessage) {
+      const outstanding = this.problem.outstandingBalance;
+      return typeof outstanding === 'number' && outstanding > 0
+        ? `${ruleMessage} Outstanding balance: ${formatMoney(outstanding)}.`
+        : ruleMessage;
     }
     if (s === 409) {
       return this.problem.detail ?? 'These rooms are no longer available for your dates';
