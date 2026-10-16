@@ -1,5 +1,7 @@
 # Mock Removal Inventory
 
+> Historical record: this document describes the completed mock-removal work and is not a runtime integration guide.
+
 Scope: every source of non-real (mock/fake/demo) data in the frontend and the
 action taken to remove it. Generated during the `chore/remove-mocks-and-supabase`
 work. Classification legend:

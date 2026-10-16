@@ -2,8 +2,8 @@
  * Service interfaces — the single seam between the UI and the network.
  *
  * Components and hooks only ever talk to these interfaces (through the
- * `services` registry). Real and mock adapters both implement them, so the UI
- * rehearses identical rules regardless of which one is active.
+ * `services` registry). The real backend adapter implements these interfaces,
+ * keeping network details out of components and hooks.
  */
 import type {
   AdminDashboard,

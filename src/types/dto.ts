@@ -2,8 +2,8 @@
  * API DTOs.
  *
  * These mirror the backend contract and live in one place so they can be
- * swapped for generated types (openapi-typescript) once the backend publishes
- * http://localhost:5144/openapi/v1.json. Do not scatter DTO shapes elsewhere.
+ * swapped for generated types (openapi-typescript); see the root README for
+ * the backend OpenAPI URL and generation command. Do not scatter DTO shapes elsewhere.
  *
  * Conventions:
  *  - JSON camelCase.

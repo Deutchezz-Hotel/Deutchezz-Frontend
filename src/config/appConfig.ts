@@ -2,8 +2,8 @@
  * Static application configuration.
  *
  * These values are editable placeholders. The hotel name, address, contact
- * details and operational timings are consumed by the public site, the
- * dashboards and the mock backend so there is a single source of truth.
+ * details and operational timings are consumed by the public site and
+ * dashboards so there is a single source of truth.
  */
 /** Structured hotel address. `addressLines` below is derived from this. */
 const hotelAddress = {
